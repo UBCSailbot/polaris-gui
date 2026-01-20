@@ -1,0 +1,11 @@
+{
+    "recommendations": [
+        "ms-python.vscode-pylance",
+        "ms-python.python",
+        "ms-python.debugpy",
+        "ms-python.vscode-python-envs",
+        "kevinrose.vsc-python-indent",
+        "davidanson.vscode-markdownlint",
+        "christian-kohler.path-intellisense",
+    ]
+}
