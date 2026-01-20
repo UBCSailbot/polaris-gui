@@ -27,7 +27,7 @@
         },
         "typescript.suggest.paths": false,
         "javascript.suggest.paths": false,
-
-
+        "python.defaultInterpreterPath": "${workspaceFolder}/venv",
+        // "python.analysis.typeCheckingMode": "standard"
     }
 }
