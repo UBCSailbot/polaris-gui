@@ -10,7 +10,8 @@ This repository contains source code for the GUI application designed to interfa
     1. Associate the `.venv` folder with the project in VSCode (`cmd + shift + p` to open command palette > `Python: Select Interpreter`)
     2. Run `source .venv/bin/activate` you will need to do this whenever open a new terminal
 4. Install project dependencies with `pip install -r requirements.txt`
-5. Deactive the virtual environment with `deactivate`
+5. Run the application with `python .\src\Remote_Debugger_V15.py`
+6. Deactive the virtual environment with `deactivate`
 
 Notes:
 
