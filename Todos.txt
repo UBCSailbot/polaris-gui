@@ -1,0 +1,274 @@
+TODO
+
+Code Review (Jan 24):
+- give each process its own file (can_log, can_dump etc)
+- Each component in the GUI could be its own class or have its own init function - improves readability at the highest level
+    - you can just click into the function/class to learn more about the part you're actually interested in
+    - eg. DesiredHeadingLayout could be a component that inherits from QHBoxLayout or something
+
+
+- figure out a different connection method other than ssh - requires encryption
+    - socket: connection allowing both sides to read and write bytes
+        - might be a problem because we need to actually execute commands
+    - try and find a package other than ssh
+    - processes in C++ which connect to raspberry pi and which socket to main GUI
+- batching
+    - batching candump writes to the queue
+        - putting them together into the queue as one item, parsing them on the other side
+    - batch can_log frames - 
+        - small batches - ensure all messages are logged before closing/exiting program
+- pipe in temp_reader could be a value instead
+    - multiprocessing Manager() value - shared reference which handles locks for you
+- can_log - try a different method for storing data
+    - sqlite3 database - like ros2bag - talk to Elec leads about this first
+
+
+- Separate data processing & UI rendering- redraw graphs at a different rate (~10-20 Hz) than data is being received
+    - So each time it refreshes, we get multiple new data points
+    - Currently modifying can_logging_process() to handle the data parsing - becomes can_parsing_process()
+    - note: can_parsing_process and main QT loop both need access to shared data - dataobjects
+    - may need to switch to threads instead of processes: this would be a large overhaul
+    - Wait: can I use QThread?
+- add status indicator - "voltage is too low", "current too high", etc. - warnings to show something is wrong
+- look into socketCAN
+
+
+- look into multiprocessing vs multithreading
+- iperf - calculate maximum thoroughput 
+- could ping my laptop from the raspberry pi to calculate latency - apparently the command 
+- config file for steering; 
+- check out ways to "profile" the script -> examine what processes are running and how long they take
+- add libraries file to automatically import all libraries
+
+High-level priorities:
+- make GUI faster & more optimized - low latency and frame rate --> trying to improve frame rate (aim for 2-10fps (min 2 fps))
+    - ensure it stays responsive as we add more graphs - also reduce latency 
+    - Separate data processing & UI rendering- redraw graphs at a different rate (~10-20 Hz) than data is being received
+        - So each time it refreshes, we get multiple new data points
+    - try to split up into multiple python files
+        - make it modular, reusable - config files for objects, settings, etc.?
+
+Testing:
+- make sure when graphs are not visible, they're not actually plotting- aiming to reduce the latency
+        - how can I test performance between versions? CPU/memory usage?
+- make sure processes all close
+    - test stuff to try to break the program- get processes to not close
+    - .close - parent thread not closing children - use 'htop' in the terminal and check for processes
+        - disable daemons, etc. -> check multiprocessing lectures
+    - make sure there are no daemon threads active - make sure all child processes get killed
+
+
+Later:
+- adding functionality to call the canup.sh bash script through a button
+    - currently after pressing the button the logging stops working
+    - candump itself is working- I can see the messages on putty - so I think it might be because I set can0 down - need a way to restart the logging process
+    - currently I'm trying to figure out where/what queues can messages in update_status (self.queue)
+- interesting note: can_log_process intentionally sleeps for 0.1 secs... do I need that? Why is that there?
+- Look into why some graphs seem straighter than others; is the time value wrong for some graphs?
+- Find a way to set initial range that doesn't prevent auto-adjust
+- add option to candump line to save local copy of candump to file (-l)
+
+- Test program with a variety of sent CAN frames of all types
+- Performance - Make the UI faster - right now graphs and scrolling is slow to respond - switch to pyqt graphs
+    - Do stress testing - sending a ton of data all at once - need to know if/when can data is dropped
+    - delay = 0.5 secs for PDB script - already very very slow
+- Problem: the y-limits don't adjust for all lines in graphs with multiple lines
+- UI: Add the ability to select which graphs you want to see (some sort of checkbox thing?)
+    - Add that to the top of right_layout
+- For logging method, put last value logged unless its been too long, in which case will put "--"
+            - log values should still be in Remote_Debugger program, not internal function
+- Double-check/update Test Script program and DataObjects with correct ranges and rounding for new data (rudder_objs, )
+
+
+Lower priority issues:
+- Remove the "magic strings" in parsing functions: change dict keys to be the names
+- Figure out how to not make so many parsing functions for frames with a lot of data - a separate type of data object?
+- Fix issue where log values rounds down when displaying - sometimes I want the extra zero to show the precision (ie. for temps, I want 127.00 instead of 127.0)
+- Add ability to show/hide specific lines on graphs
+- TODO: Try using Qt5 graphs instead of matplotlib - look up to check if that might make graphs smoother, performance better
+- TODO: Try to make GUI nicer - so you can see more graphs and stuff at once
+- TODO: Set up a timeout so after a failed connection attempt, it will try to connect to the RPi again after a set time period
+
+- Note that obj.graph, obj.label obj.line (only one) don't need to be directly accessed by the main program at all (eg. pH_graph)
+    since they can be accessed through obj
+    - Nice to have: create graph and label internally - move functions into utility file (DataObject.py?)
+    - I wonder if I could create multiple DataObjects with the same graph, but different lines/labels to produce graphs with multiple lines
+        - could use this to later create different labels for each of the temps/volts
+        - I do prefer to access pdb_temp_graph and pdb_volt_graph directly since the different temps/volts share the same graph
+        - honestly why don't I set their graph objects to be None, and just use pdb_temp_graph and pdb_volt_graph?
+
+
+- I'm thinking in the future I might have a separate log file for each thing/can message/data sensor?
+
+Current problems:
+
+    
+- When can1 is set to loopback off, Test_Script_Sensors.py returns "Error sending command: write: no buffer space available"
+    - Don't think this is a big problem - I'm thinking it's because loopback (RPi sending to itself)
+
+Answered problems:
+    - Am I sending the CAN message wrong?
+        - No, I don't think so - because when I sent an edited CAN frame with fewer data bytes,
+        I received an error message (Usage: cansend <device> <can_frame>)
+        - No error message for various CAN frame ids
+    - Is candump supposed to show all messages?
+        - Yes; according to confluence documentation:
+        "Command for echoing all CAN messages: candump can1"
+    - candump is not showing any message when I cansend a message on another ssh session of rpi
+        - Need to make sure loopback is on
+    - How to set up mainframe to actually log values
+        - See readme
+    - Is all the data in little endian?
+        - Yes
+    - It seems that the program is based on being able to read the output of candump 
+    - but if loopback is off... not sure if it will work, since candump won't output anything... 
+        - It only doesn't output because we're using the RPi to send itself stuff (loopback); it will still
+            print output (when loopback off) if another device/peripheral sends the CAN command
+    - I wonder why I'm not getting "flat" data points? Each data point is sent twice, shouldn't I be seeing flat tops on
+        graph peaks and troughs? Not seeing that currently
+        - My guess is that it's not being logged... however, it should be graphed anyways, shouldn't it?
+        - Ok so the candump processing looks fine, telling me that every CAN line is received twice and graphed twice
+            - but... why are there sharp peaks then
+            - Might be because the time difference between the two commands is so close together - I think it's because both CAN messages are being sent/received basically together (from the same send)
+ - note: ask Adarsh whether I should change sal to be measured in µS/cm * 1000 or µS/cm <-- this is big numbers
+    - leave for now, until we figure out the expected range - in-water testing
+
+
+
+
+Questions/Need to know/figure out
+
+
+
+Add later / Nice to have
+- Refactor the program with a function to automatically create a new plot with given info
+    - Note: log_values will have to be updated to take an array of parameters to log; same with init_logging
+    - Note: Will need to make a separate class for plots
+    - make a list of frames/plots, handle each one in turn
+- Add variables for repeated settings; get rid of magic numbers (eg. add_subplot(111), figsize=(8, 4), )
+- Nice to have: make the gui more responsive for scrolling
+- I would like to have a separate file which contain all the utility functions - if those are ever modified, 
+  the modified versions carry over to original file - prevents inconsistencies
+  - If doing this, also simplify utility functions- doesn't need to be as complicated as it is right now I'm pretty sure
+
+DONE
+- Added vertical scrolling capability
+- Add graph (visuals) for ph sensor (V4.1)
+- Add functionality (parsing CAN content) & displaying on graph for ph sensor (V5)
+- Updated logging functionality so that a new log is created if and only if a new can message is received
+- Added logging functionality for pH (V5.5)
+- Added graphics for temp (V6)
+- Add similar graph functionality for temp (V6)
+- Add similar logging functionality for temp (V6)
+- Add similar graphics/functionality for salinity (V6)
+- Fix the problem where it plots only on pdb can frame send (V7)
+- Created new update_history function to replace all my while loops
+- Force scrollArea to fully show all graphs horizontally
+- Edit size of screen so it shows all temps and volts at the top of the screen
+- Make a version which ignores absurd values - note in REadme for water testing
+- Figure out why `line` is composed of multiple CAN lines
+    - I modified the data being put into self.queue by candump_process by splitting it into separate lines (.split(\n))
+    - Fixed parsing issue
+- Fixed "Error in CAN logging" messages from queue.empty
+- Updated Test_Script_Sensors and converting functions to correctly parse data
+    - Temp: Kelvin * 1000, 3 bytes - always positive
+    - Conductivity: 4 bytes
+- Modified data parsing to parse the correct number of bytes
+    - print error message if number of bytes is incorrect
+- Updated graphs to be able to take in data over the whole range of the sensor data
+    - Modify salinity graph to display data in µS/cm, instead of µS/cm * 1000
+- Fix CAN parsing problem- data is sometimes being parsed incorrectly
+- Edit scrolling capability so that top values are always visible
+- Created new class DataObject to better structure program
+- added functionality to delete points outside of graph window (points are still logged, trims list length held in memory)
+- make it so that graphs can get larger - if the screen expands, only the left side expands
+- Performance probably degrades over time if all data is kept in history lists; edit it so that 
+    the lists don't get too long over time; can be popped once logged (and if they are already off the graph)
+- do logging with new DataObject structure
+- move big CONNECTED label to left layout
+- Make it so that candump and values files created by the same instance have the same timestamp
+- implement salinity sensor functionality with new DataObject class
+- refactored existing temps/volts graphs/labels
+    - Tested that my nice new PDB debug test script works
+    - Use test script with V10, then use it with V11 and compare outputs (log output headers should be slightly diff: Temp1_C vs Temp1, Volt1_V vs Volt1)
+        - note that if lines are not appearing on graph, it might be due to lack of ax.legend()
+- shrunk window height - minimum height is limited by the left_layout
+- refactor actual rudder angle/set rudder angle with DataObject
+- add spd_over_gnd - problems may arise from the lambdas in parsing_fn input
+- add imu_heading
+- add mppt objects (4 of them)
+- Create send data_wind command test function
+- add data_wind_dir and data_wind_speed objects
+- Modify the parsing function for those with lambdas- made the parsing function just internal
+- Changed the can line to can0 and added variable can_line in case of future changes
+- Add to controls: The ability to send PID coefficients (0x200)
+- Fix existing controls so that they work with updated CAN frames
+    - Fix send_rudder() so that it works with the refactoring
+- Refactor cansend functions to all call a single cansend() - abstract a new function cansend()
+- Fix send_rudder - implement modified 0x001 mainframe frame
+- Desired heading angle keeps graphing, adding new points for itself so that the 
+    line continues even when angle is not regularly manually updated
+- Finished adding all new DRV/PWR values
+- created alternate interface for GraphObject/DataObject - Remote_Debugger should never call any matplotlib/pyqt5 internal function/library
+    - So much easier to make a new object/graph now
+- Fixed bug with calculating derivative
+    - check both sides; test script creating & encrypting data, receiving GUI receiving & parsing data
+- Real time values (in addition to all information we had last test):
+    1. All of the data in frame 0x204
+    2. All of the data in frame 0x206 (except we will only have at most one MPPT connected, not sure which one)
+    3. All of the data in frame 0x041
+    4. The ability to send coefficients for message 0x200
+- Finished graphs
+    1. Battery temperatures vs time (0x206)
+    2. Cell voltages vs time (0x206)
+    3. Desired rudder angle and actual rudder angle vs time ( 0x204)
+    4. IMU heading and desired heading vs. time (0x204)
+    5. Wind speed vs. time (0x041)
+    6. Wind direction vs. time (0x041)
+    7. Speed over ground vs time (0x204)
+    8. MPPT current vs. time (0x206)
+    9. IMU roll and pitch vs time (0x204)
+    10. Rudder controller integral and derivative term vs. time (0x204)
+    11. Data sensors x3 vs time (0x10X-0x12X)
+- switched from using matplotlib to PyQt5 graphs to improve performance
+- Removed scrolling, added dropdowns to choose up to 3 graphs to view at once
+- Replaced large if-else if-else with switch (match) statement
+
+
+
+Bug Tracker
+- Problem with receiving CAN frames with V6 
+    - sending any CAN frame causes GUI window to close, but console messages continue "Error logging..."
+- "ERROR sending command: write: No buffer space available" with automated testing script can be fixed with turning loopback on
+
+For fixing the "only plots when pdb plots" problem:
+    - Literally only plots when pdb canframe is sent
+    - Also, only starts plotting after receiving two pdb canframes
+
+- Note: pH graph line when tested doesn't appear as straight as the others since its rounded a lot more
+
+
+Testing Checklist:
+- Are the live values correct?
+- Are the graphed values correct?
+- Are the CAN frames being logged correctly?
+- Are values being logged correctly?
+    - Are the values themselves correct?
+    - Is the rounding correct?
+- Are log headers correct?
+    - Is there the right number of headers and values?
+    - Does the number of headers and values match?
+- Is objs.data being updated correctly? (never gets too long, and graphs are still good after update/deletion of data)
+- Does the UI look correct?
+    - Are the labels for values correct?
+    - Are graph titles/units correct?
+    - Is the graph window moving correctly (over time)?
+    - Are the graph axes appropriate?
+
+
+SOFT-ELEC Integration
+- pytest-qt for unit testing
+- separate logical components/units into separate files
+    - group widgets & their functionalities together
+- 'profile' the program
+    - or turn ssh off, compare before & after on htop
