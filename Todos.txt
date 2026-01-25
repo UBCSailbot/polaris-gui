@@ -1,4 +1,28 @@
 TODO
+
+Code Review (Jan 24):
+- give each process its own file (can_log, can_dump etc)
+- Each component in the GUI could be its own class or have its own init function - improves readability at the highest level
+    - you can just click into the function/class to learn more about the part you're actually interested in
+    - eg. DesiredHeadingLayout could be a component that inherits from QHBoxLayout or something
+
+
+- figure out a different connection method other than ssh - requires encryption
+    - socket: connection allowing both sides to read and write bytes
+        - might be a problem because we need to actually execute commands
+    - try and find a package other than ssh
+    - processes in C++ which connect to raspberry pi and which socket to main GUI
+- batching
+    - batching candump writes to the queue
+        - putting them together into the queue as one item, parsing them on the other side
+    - batch can_log frames - 
+        - small batches - ensure all messages are logged before closing/exiting program
+- pipe in temp_reader could be a value instead
+    - multiprocessing Manager() value - shared reference which handles locks for you
+- can_log - try a different method for storing data
+    - sqlite3 database - like ros2bag - talk to Elec leads about this first
+
+
 - Separate data processing & UI rendering- redraw graphs at a different rate (~10-20 Hz) than data is being received
     - So each time it refreshes, we get multiple new data points
     - Currently modifying can_logging_process() to handle the data parsing - becomes can_parsing_process()
