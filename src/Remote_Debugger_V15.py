@@ -1,6 +1,5 @@
 import sys
 import signal
-import paramiko
 import multiprocessing
 import time
 import csv
@@ -14,138 +13,10 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtGui import QPixmap, QFont
+
 from DataObject import *
 from utility import *
-
-### ----------  Background CAN Dump Process ---------- ###
-def candump_process(queue: multiprocessing.Queue):
-    client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    try:
-        client.connect(hostname, username=username, password=password)
-        transport = client.get_transport()
-        # session = transport.open_session()
-        # session.exec_command("bash sailbot_workspace/scripts/canup.sh -l")
-        session = transport.open_session()
-        session.exec_command(f"candump {can_line}")
-        while True:
-            if session.recv_ready():
-                line = session.recv(1024).decode()
-                lines = line.split("\n")
-                for l in lines:
-                    if (l != ""): queue.put(l.strip())
-            time.sleep(0.1)
-    except Exception as e:
-        queue.put(f"[ERROR] {str(e)}")
-    finally:
-        client.close()
-
-### ---------- Background Temp Reader Process ---------- ###
-def temperature_reader(pipe):
-    client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    try:
-        client.connect(hostname, username=username, password=password)
-        while True:
-            try:
-                stdin, stdout, stderr = client.exec_command("cat /sys/class/thermal/thermal_zone0/temp")
-                raw = stdout.read().decode().strip()
-                if raw:
-                    temp = float(raw) / 1000
-                    pipe.send((True, f"{temp:.1f}°C"))
-                else:
-                    pipe.send((False, "ERROR"))
-            except Exception:
-                pipe.send((False, "ERROR"))
-            time.sleep(1)
-    except Exception:
-        while True:
-            pipe.send((False, "DISCONNECTED"))
-            time.sleep(1)
-    finally:
-        client.close()
-
-### ---------- Background CAN Send Worker ---------- ###
-def cansend_worker(cmd_queue: multiprocessing.Queue, response_queue: multiprocessing.Queue, can_log_queue: multiprocessing.Queue):
-    client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    try:
-        client.connect(hostname, username=username, password=password)
-        while True:
-            cmd = cmd_queue.get()
-            if cmd == "__EXIT__":
-                break
-            try:
-                out = ""
-                err = ""
-                if (cmd[0:4] == "sudo"):
-                    stdin, stdout, stderr = client.exec_command(cmd, get_pty=True)
-                    buf = ""
-                    while (not buf.endswith("[sudo] password for sailbot: ")):
-                        buf += stdout.channel.recv(1024).decode()
-                    stdin.write(f"{password}\n")
-                    stdin.flush()
-                    out = stdout.read().decode()
-                    err = stderr.read().decode()
-                else:
-                    stdin, stdout, stderr = client.exec_command(cmd)
-                    out = stdout.read().decode()
-                    err = stderr.read().decode()
-
-                response_queue.put((cmd, out, err))
-                if (not err):
-                    can_log_queue.put_nowait(make_pretty(cmd))
-                else:
-                    raise Exception(f"Command not logged: {cmd}")
-            except Exception as e:
-                response_queue.put((cmd, "", f"Exec error: {str(e)}"))
-    except Exception as e:
-        response_queue.put(("ERROR", "", f"SSH error: {str(e)}"))
-    finally:
-        client.close()
-
-### ---------- Background CAN Logging Process ---------- ###
-def can_logging_process(queue: multiprocessing.Queue, log_queue: multiprocessing.Queue, timestamp):
-    """Dedicated process for logging CAN messages without blocking graphics"""
-    try:
-        # Create logs directory if it doesn't exist
-        if not os.path.exists('logs'):
-            os.makedirs('logs')
-        
-        # Create timestamped filename
-        # timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        candump_log_file = os.path.join('logs', f'candump_{timestamp}.csv')
-        
-        with open(candump_log_file, 'w', newline='') as csv_file:
-            writer = csv.writer(csv_file)
-            writer.writerow(['Timestamp', 'Elapsed_Time_s', 'CAN_Message'])
-            csv_file.flush()
-            
-            start_time = time.time()
-            print(f"CAN Logging started: {candump_log_file}")
-            
-            while True:
-                try:
-                    # Get message from queue with timeout
-                    if not log_queue.empty():
-                        message = log_queue.get(timeout=1.0)
-                        if message == "__EXIT__":
-                            break
-                        # Log the message
-                        timestamp = datetime.now().isoformat()
-                        elapsed_time = time.time() - start_time
-                        writer.writerow([timestamp, f'{elapsed_time:.3f}', message])
-                        csv_file.flush()
-                # except queue.empty as empty:
-                #     print(f"CAN logging queue empty")
-                except Exception as e:
-                    print(f"Error in CAN logging: {e}")
-                    continue
-                    
-    except Exception as e:
-        print(f"Failed to initialize CAN logging: {e}")
-    
-    print("CAN logging process terminated")
+from CAN_processes import *
 
 ### ----------  PyQt5 GUI ---------- ###
 class CANWindow(QWidget):
@@ -880,7 +751,7 @@ if __name__ == "__main__":
     response_queue = multiprocessing.Queue()
     can_log_queue = multiprocessing.Queue()
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-
+    
     candump_proc = multiprocessing.Process(target=candump_process, args=(queue,))
     temp_proc = multiprocessing.Process(target=temperature_reader, args=(child_conn,))
     cansend_proc = multiprocessing.Process(target=cansend_worker, args=(cmd_queue, response_queue, can_log_queue))
