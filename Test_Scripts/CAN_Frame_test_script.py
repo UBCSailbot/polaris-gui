@@ -10,7 +10,7 @@ import paramiko
 import time
 import random
 from datetime import datetime
-from In_Progress import Remote_Debugger_V15 # this should eventually change so that it imports the different process scripts etc.
+# from In_Progress import Remote_Debugger_V15 # this should eventually change so that it imports the different process scripts etc.
 
 # SSH Credentials
 hostname = "192.168.0.10"
@@ -20,7 +20,7 @@ password = "sailbot"
 can_line = "can0"
 
 # Time between sent frames (in secs)
-delay = 1
+delay = 0.3
 
 # CAN Frame IDs
 temp_sensor_id = "100" # 0x10X
@@ -262,8 +262,8 @@ def send_gps_command(client):
     '''
 
     try:
-        lat = convert_to_little_endian(convert_to_hex(int((slope_data + 90) * 1000000), 4))
-        lon = convert_to_little_endian(convert_to_hex(int((slope_data + 90) * 1000000), 4))
+        lat = convert_to_little_endian(convert_to_hex(int(((slope_data * 10) + 0.123499999) * 1000000), 4)) # should increase by 1
+        lon = convert_to_little_endian(convert_to_hex(int(((slope_data * 10) + 0.987611111) * 1000000), 4))
         secs = convert_to_little_endian(convert_to_hex(10, 2))
         mins = convert_to_little_endian(convert_to_hex(20, 2))
         hrs = convert_to_little_endian(convert_to_hex(30, 2))
@@ -366,7 +366,8 @@ def main():
                 print("Failed to send command, continuing...")
 
             time.sleep(delay)
-            success = send_data_wind_command(client)
+            print(f"generated gps_data = {sal_data}")
+            success = send_gps_command(client)
             # # time.sleep(delay)
             if not success:
                 print("Failed to send command, continuing...")

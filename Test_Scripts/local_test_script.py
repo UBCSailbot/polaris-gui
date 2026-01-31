@@ -6,7 +6,10 @@ Outputs support messages through terminal
 Use Ctrl+C or Space to stop sending
 """
 
+import sys
 import multiprocessing
+from src import Remote_Debugger
+
 
 
 can_line = "can0"
@@ -109,3 +112,13 @@ def run_local_test(data = None):
     print("local tests started running!")
     generate_slope_data()
     return
+
+def main():
+    run_local_test()
+    print("local tests executed successfully!")
+
+if __name__ == "__main__":
+    # print("syspath: ", end="")
+    # print(sys.path[0])
+    main()
+    
