@@ -104,6 +104,8 @@ class DataObject:
         if self.graph_obj:
             if not self.graph_obj.initialized: self.graph_obj.initialize()
             self.line = create_line(self.graph_obj, self.name, [], [], self.line_colour, cg.linewidth, self.line_dashed, symbol=False) if self.graph_obj else None # should automatically create line w/ empty data
+        else:
+            self.line = None
         self.label = create_label(self.name + ": ---- ") # should automatically create label
         
     # Return a tuple with the time:value of the most current data point collected
@@ -115,7 +117,7 @@ class DataObject:
     def add_datapoint(self, x, y):
         self.data[x] = y
         self.current = x
-        if (self.graph_obj.graph.isVisible()):
+        if (self.graph_obj and self.graph_obj.graph.isVisible()):
             self.update_line_data()
         return
     
@@ -137,7 +139,7 @@ class DataObject:
             data = self.parsing_fn(''.join(raw_data))
             if self.dp is not None: # for values which do not have variable dp (ie. not salinity)
                 data = round(data, self.dp)
-
+        
         self.add_datapoint(current_time, data)
         return
 

@@ -18,27 +18,31 @@ from DataObject import *
 from utility import *
 
 ### ----------  Background CAN Dump Process ---------- ###
-def candump_process(queue: multiprocessing.Queue):
+def candump_process(queue: multiprocessing.Queue, testing):
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    try:
-        client.connect(hostname, username=username, password=password)
-        transport = client.get_transport()
-        # session = transport.open_session()
-        # session.exec_command("bash sailbot_workspace/scripts/canup.sh -l")
-        session = transport.open_session()
-        session.exec_command(f"candump {can_line}")
-        while True:
-            if session.recv_ready():
-                line = session.recv(1024).decode()
-                lines = line.split("\n")
-                for l in lines:
-                    if (l != ""): queue.put(l.strip())
-            time.sleep(0.1)
-    except Exception as e:
-        queue.put(f"[ERROR] {str(e)}")
-    finally:
-        client.close()
+    if (testing):
+        # TODO
+        print("TESTING MODE ON")
+    else:
+        try:
+            client.connect(hostname, username=username, password=password)
+            transport = client.get_transport()
+            # session = transport.open_session()
+            # session.exec_command("bash sailbot_workspace/scripts/canup.sh -l")
+            session = transport.open_session()
+            session.exec_command(f"candump {can_line}")
+            while True:
+                if session.recv_ready():
+                    line = session.recv(1024).decode()
+                    lines = line.split("\n")
+                    for l in lines:
+                        if (l != ""): queue.put(l.strip())
+                time.sleep(0.1)
+        except Exception as e:
+            queue.put(f"[ERROR] {str(e)}")
+        finally:
+            client.close()
 
 ### ---------- Background Temp Reader Process ---------- ###
 def temperature_reader(pipe):
@@ -175,7 +179,7 @@ class CANWindow(QWidget):
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_status)
-        self.timer.start(update_freq) # Updates every update_freq milliseconds
+        self.timer.start(gui_update_freq) # Updates every update_freq milliseconds
 
     def _init_logging(self):
         """Initialize CSV logging files with timestamped names"""
@@ -501,7 +505,7 @@ class CANWindow(QWidget):
 
         self.graph_titles = []
         for obj in all_objs:
-            if ((obj.graph_obj.graph is not None) and (obj.graph_obj.x_name not in self.graph_titles)):
+            if ((obj.graph_obj is not None) and (obj.graph_obj.x_name not in self.graph_titles)):
                 self.graph_titles.append(obj.graph_obj.x_name)
 
         for d in dropdowns:
@@ -703,18 +707,18 @@ class CANWindow(QWidget):
         # Process any new CAN messages
         while not self.queue.empty():
             line = self.queue.get()
-            # self.output_display.append(line) # TODO: Note - what does this do?
+            # self.output_display.append(line)
 
             new_msg_to_log = False
   
-            print(f"line parsed = {line}")
+            # print(f"line parsed = {line}")
 
             # Send to separate logging process (non-blocking)
+            # TODO: modify the nowait to ensure logging
             try:
                 self.can_log_queue.put_nowait(line)
             except:
                 print(f"line was not logged!")
-                pass  # Queue full, skip logging this message to avoid blocking
 
             if line.startswith(can_line):
                 new_msg_to_log = True
@@ -723,8 +727,8 @@ class CANWindow(QWidget):
                     frame_id = parts[1].lower()
                     self.time_history.append(current_time)
                     
-                    # TODO: Turn the if-else-if-else statement into a dictionary with frame id:function - just runs the function associated with frame id
-                    # Handle 0x206 frame (temperature and voltage data)
+                    # TODO: Use a dictionary with frame id:function - just runs the function associated with frame id?
+                    # There's definitely some abstraction that can be done here
                     match frame_id:
                         case "041": # Data_Wind frame
                             try:
@@ -736,26 +740,36 @@ class CANWindow(QWidget):
                             except Exception as e:
                                 self.output_display.append(f"[PARSE ERROR 0x041] {str(e)}")
 
+                        case "070":
+                                try:
+                                    raw_data = line.split(']')[-1].strip().split()
+                                    parsed = parse_0x070_frame(''.join(raw_data))
+                                    for obj in gps_objs:
+                                        obj.parse_frame(current_time, None, parsed)
+                                        obj.update_label()
+                                except Exception as e:
+                                    self.output_display.append(f"[PARSE ERROR 0x070] {str(e)}")
+
                         case "100": # water_temp sensor frame
                             try:
                                 temp_sensor_obj.parse_frame(current_time, line)
                                 temp_sensor_obj.update_label()
                             except Exception as e:
-                                self.output_display.append(f"[PARSE ERROR 0x10X] {str(e)}")
+                                self.output_display.append(f"[PARSE ERROR 0x100] {str(e)}")
                        
                         case "110": # pH sensor frame
                             try:               
                                 pH_obj.parse_frame(current_time, line)
                                 pH_obj.update_label()
                             except Exception as e:
-                                self.output_display.append(f"[PARSE ERROR 0x11X] {str(e)}")
+                                self.output_display.append(f"[PARSE ERROR 0x110] {str(e)}")
 
                         case "120": # salinity sensor frame
                             try: 
                                 sal_obj.parse_frame(current_time, line)
                                 sal_obj.update_label()                                            
                             except Exception as e:
-                                self.output_display.append(f"[PARSE ERROR 0x12X] {str(e)}") 
+                                self.output_display.append(f"[PARSE ERROR 0x120] {str(e)}") 
 
                         case "204": # Handle 0x204 frame (actual rudder angle)
 
@@ -872,8 +886,6 @@ def cleanup():
 if __name__ == "__main__":
     multiprocessing.set_start_method("spawn")
 
-    # lock = multiprocessing.Lock()
-
     queue = multiprocessing.Queue()
     parent_conn, child_conn = multiprocessing.Pipe()
     cmd_queue = multiprocessing.Queue()
@@ -881,7 +893,7 @@ if __name__ == "__main__":
     can_log_queue = multiprocessing.Queue()
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 
-    candump_proc = multiprocessing.Process(target=candump_process, args=(queue,))
+    candump_proc = multiprocessing.Process(target=candump_process, args=(queue, False)) # Testing mode set to false when run from main
     temp_proc = multiprocessing.Process(target=temperature_reader, args=(child_conn,))
     cansend_proc = multiprocessing.Process(target=cansend_worker, args=(cmd_queue, response_queue, can_log_queue))
     can_logging_proc = multiprocessing.Process(target=can_logging_process, args=(queue, can_log_queue, timestamp))
