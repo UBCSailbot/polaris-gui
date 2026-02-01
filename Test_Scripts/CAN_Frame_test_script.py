@@ -288,8 +288,82 @@ def send_gps_command(client):
             return True
             
     except Exception as e:
-        print(f"Exception sending rudder command: {e}")
+        print(f"Exception sending gps command: {e}")
         return False
+    
+def send_ais_command(client, num_msgs):
+        # TODO: Send num_msgs can messages (multiple commands) to reflect actual AIS behaviour
+        # note: should ais_obj be a subclass of dataobject?
+
+        for i in range(num_msgs):
+            try:
+
+                id = convert_to_little_endian(convert_to_hex(i * 100000000, 4))
+                lat = convert_to_little_endian(convert_to_hex(int(((slope_data * 10) + 0.123499999) * 1000000), 4)) # should change by 1
+                lon = convert_to_little_endian(convert_to_hex(int(((slope_data * 10) + 0.987611111) * 1000000), 4))
+                sog = 0
+                if (i == 3):
+                    sog = convert_to_little_endian(convert_to_hex(1023, 2)) # test sog not available 
+                else:
+                    sog = convert_to_little_endian(convert_to_hex(int(slope_data) * 100, 2))
+
+                cog = 0
+                if (i == 5):
+                    cog = convert_to_little_endian(convert_to_hex(3600, 2)) # test cog not available
+                else:
+                    cog = convert_to_little_endian(convert_to_hex(int(slope_data) * 100, 2))    
+                
+                true_heading = 0
+                if (i == 2):
+                    true_heading = convert_to_little_endian(convert_to_hex(511, 2)) # test true heading not available
+                else:
+                    true_heading = convert_to_little_endian(convert_to_hex(int(slope_data) * 200, 2)) 
+
+                rot = 0
+                if (i == 4):
+                    rot = convert_to_little_endian(convert_to_hex(0, 1)) # test rot not available (ROT = -128, sent as ROT + 128)
+                else:
+                    rot = convert_to_little_endian(convert_to_hex(int(slope_data) * 200, 1)) 
+
+
+                ship_len = 0
+                if (i == 1):
+                    ship_len = convert_to_little_endian(convert_to_hex(0, 2)) # test ship length not available
+                else:
+                    ship_len = convert_to_little_endian(convert_to_hex(int(slope_data) * 250, 2)) 
+
+                ship_wid = 0
+                if (i == 0):
+                    ship_wid = convert_to_little_endian(convert_to_hex(0, 2)) # test ship length not available
+                else:
+                    ship_wid = convert_to_little_endian(convert_to_hex(int(slope_data) * 70, 2)) 
+
+                idx = convert_to_little_endian(convert_to_hex(i, 1))
+
+                num_ships = convert_to_little_endian(convert_to_hex(num_msgs, 1))
+
+                can_data = id + lat + lon + sog + cog + true_heading + rot + ship_len + ship_wid + idx + num_ships
+                can_message = "cansend " + can_line + " 070##1" + can_data
+
+                # print(can_message)
+
+                # Execute the cansend command
+                stdin, stdout, stderr = client.exec_command(can_message)
+                
+                # Check for errors
+                error = stderr.read().decode().strip()
+                output = stdout.read().decode().strip()
+                
+                if error:
+                    print(f"ERROR sending command: {error}")
+                    return False
+                else:
+                    print(f"✓ Sent - CAN message: {can_message}")
+                    return True
+                    
+            except Exception as e:
+                print(f"Exception sending AIS command: {e}")
+                return False
 
 
 def main():
@@ -346,29 +420,33 @@ def main():
             # time.sleep(delay)
             # success = send_rudder_command(client)
 
-            pH_data = round(slope_data * 15)
-            temp_sensor_data = round((slope_data * 1100.0) + 273.15, 3)
-            sal_data = round(slope_data * 575000, 3)
+            # pH_data = round(slope_data * 15)
+            # temp_sensor_data = round((slope_data * 1100.0) + 273.15, 3)
+            # sal_data = round(slope_data * 575000, 3)
 
-            print(f"generated pH_data = {pH_data}")
-            success = send_sensor_command(client, pH_id, pH_data)
-            if not success:
-                print("Failed to send command, continuing...")
+            # print(f"generated pH_data = {pH_data}")
+            # success = send_sensor_command(client, pH_id, pH_data)
+            # if not success:
+            #     print("Failed to send command, continuing...")
 
-            print(f"generated temp_sensor_data = {temp_sensor_data}")
-            success = send_sensor_command(client, temp_sensor_id, temp_sensor_data)
-            if not success:
-                print("Failed to send command, continuing...")
+            # print(f"generated temp_sensor_data = {temp_sensor_data}")
+            # success = send_sensor_command(client, temp_sensor_id, temp_sensor_data)
+            # if not success:
+            #     print("Failed to send command, continuing...")
 
-            print(f"generated sal_data = {sal_data}")
-            success = send_sensor_command(client, sal_id, sal_data)
-            if not success:
-                print("Failed to send command, continuing...")
+            # print(f"generated sal_data = {sal_data}")
+            # success = send_sensor_command(client, sal_id, sal_data)
+            # if not success:
+            #     print("Failed to send command, continuing...")
 
-            time.sleep(delay)
-            print(f"generated gps_data = {sal_data}")
+            # time.sleep(delay)
+            print(f"Sending gps command...")
             success = send_gps_command(client)
-            # # time.sleep(delay)
+            if not success:
+                print("Failed to send command, continuing...")
+
+            print(f"Sending AIS command...")
+            success = send_ais_command(client, 6) # TODO: test with larger numbers of ships - test with more than 127
             if not success:
                 print("Failed to send command, continuing...")
 
@@ -398,3 +476,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+    # for i in range(0, 6):
+    #     send_ais_command(None, 6)
