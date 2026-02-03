@@ -197,7 +197,7 @@ class CANWindow(QWidget):
         values_header = [
             'Timestamp', 'Elapsed_Time_s'
         ]
-        for obj in all_objs:
+        for obj in data_objs:
             values_header.append(obj.name)
 
         self.values_writer.writerow(values_header)
@@ -219,7 +219,7 @@ class CANWindow(QWidget):
             timestamp = datetime.now().isoformat()
             elapsed_time = time.time() - self.time_start
             values = [timestamp, f'{elapsed_time:.3f}']
-            for obj in all_objs:
+            for obj in data_objs:
                 val = obj.get_current()[1]
                 if (val is not None):
                     values.append(str(val))
@@ -566,7 +566,7 @@ class CANWindow(QWidget):
         for obj in all_objs:
             if ((obj.graph_obj is not None) and (obj.graph_obj.x_name == name)):
                 return obj.graph_obj
-
+            
     def setGraph(self, name, spot, dropdowns):
         '''
         Shows given graph at spot\n
@@ -574,18 +574,38 @@ class CANWindow(QWidget):
         spot = 0, 1, 2 (top, mid, bot)\n
         '''
         newGraphObj = self.getGraphObjFromXName(name) # get graph to put in spot
-        if (newGraphObj.x_name == self.visibleGraphObjs[spot].x_name):
+        if (newGraphObj.x_name == self.visibleGraphObjs[spot].dropdown_label):
             return # do nothing
         if newGraphObj in self.visibleGraphObjs: # if graph to put in spot is already visible
             # don't allow the switch to happen - set dropdown text back to original and print error message
             print("[ERR] Graph is already visible")
-            dropdowns[spot].setCurrentText(self.visibleGraphObjs[spot].x_name) # switch text back to original
+            dropdowns[spot].setCurrentText(self.visibleGraphObjs[spot].dropdown_label) # switch text back to original
         else: 
             self.right_graphs_layout.removeWidget(self.visibleGraphObjs[spot].graph) # remove graph currently in spot
             self.visibleGraphObjs[spot].hide()
             self.right_graphs_layout.addWidget(newGraphObj.graph, spot, 0)
             newGraphObj.show()
             self.visibleGraphObjs[spot] = newGraphObj  
+
+    # def setGraph(self, name, spot, dropdowns):
+    #     '''
+    #     Shows given graph at spot\n
+    #     name = DataObj.graph_obj.x_name\n
+    #     spot = 0, 1, 2 (top, mid, bot)\n
+    #     '''
+    #     newGraphObj = self.getGraphObjFromXName(name) # get graph to put in spot
+    #     if (newGraphObj.x_name == self.visibleGraphObjs[spot].x_name):
+    #         return # do nothing
+    #     if newGraphObj in self.visibleGraphObjs: # if graph to put in spot is already visible
+    #         # don't allow the switch to happen - set dropdown text back to original and print error message
+    #         print("[ERR] Graph is already visible")
+    #         dropdowns[spot].setCurrentText(self.visibleGraphObjs[spot].x_name) # switch text back to original
+    #     else: 
+    #         self.right_graphs_layout.removeWidget(self.visibleGraphObjs[spot].graph) # remove graph currently in spot
+    #         self.visibleGraphObjs[spot].hide()
+    #         self.right_graphs_layout.addWidget(newGraphObj.graph, spot, 0)
+    #         newGraphObj.show()
+    #         self.visibleGraphObjs[spot] = newGraphObj  
 
     def keyPressEvent(self, event):
         if not self.keyboard_checkbox.isChecked():
@@ -739,8 +759,23 @@ class CANWindow(QWidget):
                                     obj.update_label()
                             except Exception as e:
                                 self.output_display.append(f"[PARSE ERROR 0x041] {str(e)}")
+                        case "060": # AIS frame
+                            try:
+                                raw_data = line.split(']')[-1].strip().split()
+                                parsed = parse_0x060_frame(''.join(raw_data))
+                                ais_obj.add_frame(parsed[AIS_Attributes.LONGITUDE], parsed[AIS_Attributes.LATITUDE], parsed)
+                                # If this is the last frame in the batch
+                                if parsed[AIS_Attributes.IDX] == parsed[AIS_Attributes.TOTAL]:
+                                    ais_obj.log_data()
+                                    # if graph is visible
+                                    if ais_obj.graph_obj.isVisible():
+                                        ais_obj.update_line_data()
+                                    ais_obj.switch_current()
 
-                        case "070":
+
+                            except Exception as e:
+                                self.output_display.append(f"[PARSE ERROR 0x041] {str(e)}")
+                        case "070": # GPS frame
                                 try:
                                     raw_data = line.split(']')[-1].strip().split()
                                     parsed = parse_0x070_frame(''.join(raw_data))
@@ -801,7 +836,7 @@ class CANWindow(QWidget):
                     self._log_values()
 
         # trim values no longer being graphed
-        for obj in all_objs:
+        for obj in data_objs:
             obj.update_data(current_time, scroll_window)
                         
         # Always update plots every timer cycle (independent of CAN messages) # TODO: Modify this - batch plot updates?
@@ -838,7 +873,7 @@ class CANWindow(QWidget):
     def _update_plot_ranges(self, current_time):
         # === Auto-scale and scroll X axis ===
         if len(self.time_history) > 1:
-            for obj in all_objs:
+            for obj in data_objs:
                 if (obj.graph_obj is not None):
                     obj.graph_obj.update_xlim(max(0, current_time - scroll_window), current_time)
 

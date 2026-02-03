@@ -1,3 +1,4 @@
+from enum import Enum
 from DataObject import *
 from config import *
 
@@ -7,6 +8,26 @@ username = "sailbot"
 password = "sailbot"
 
 can_line = "can0"
+
+### ----------  Structs/Enums ---------- ###
+class AIS_Attributes(Enum):
+    SID = "ship_id"
+    LONGITUDE = "longitude"
+    LATITUDE = "latitude"
+    SOG = "speed_over_gnd"
+    SOG_NA = 1023
+    COG = "course_over_gnd"
+    COG_NA = 3600
+    HEADING = "true_heading"
+    HEADING_NA = 511
+    ROT = "rate_of_turn"
+    ROT_NA = -128
+    LENGTH = "ship_length"
+    LENGTH_NA = 0
+    WIDTH = "ship_width"
+    WIDTH_NA = 0
+    IDX = "index"
+    TOTAL = "total_ships"
 
 ### ----------  Utility Functions ---------- ###
 # Note that these functions are designed to work with positive numbers
@@ -21,6 +42,23 @@ def convert_from_little_endian_str(hex_str):
     raw = bytes.fromhex(hex_str)
     big_endian = raw[::-1].hex()
     return int(big_endian, 16)
+
+def val(raw_bytes, s, e, div):
+    return int.from_bytes(raw_bytes[s:e], 'little') / div
+
+
+# NOTE: Currently returns True/False, but parsing functions don't do anything with this return value as of yet - it just prints it as a notice
+# NOTE: May add functionality to also log if a given data point is out of range (ie. is sus)
+def range_check(num, minn = None, maxn = None):
+    '''Prints error and returns False if given num is not within [min, max] (inclusive); if None is given for either max or min, that boundary is not checked.'''
+    if (maxn is not None and num > maxn): 
+        print(f"ERROR - Value {num} is higher than expected range")
+        return False
+    if (minn is not None and num < minn):
+        print(f"ERROR - Value {num} is lower than expected range")
+        return False
+    return True
+
 
 ### ----------  Parsing Data Frames  ---------- ###
 
@@ -82,7 +120,7 @@ def parse_0x041_frame(data_hex):
     }
 
 # Salinity data frame
-def parse_0x12X_frame(data_hex):
+def parse_0x120_frame(data_hex):
     raw_bytes = bytes.fromhex(data_hex)
     if len(raw_bytes) != 4:
         raise ValueError("Incorrect data length (num bytes): ID 0x12X")
@@ -132,7 +170,7 @@ def sal_parsing_fn(data_hex):
     return actual
 
 # pH data frame
-def parse_0x11X_frame(data_hex):
+def parse_0x110_frame(data_hex):
     raw_bytes = bytes.fromhex(data_hex)
     if len(raw_bytes) != 2:
         raise ValueError(f"Incorrect data length (num bytes): ID 0x11X\nExpecting: 2 bytes, Received: {len(raw_bytes)}")
@@ -168,7 +206,7 @@ def pH_parsing_fn(data_hex):
 
 
 # temp data frame
-def parse_0x10X_frame(data_hex):
+def parse_0x100_frame(data_hex):
     raw_bytes = bytes.fromhex(data_hex)
     if len(raw_bytes) != 3:
         raise ValueError("Incorrect data length (num bytes): ID 0x10X")
@@ -212,12 +250,46 @@ def parse_0x070_frame(data_hex):
     # temp is in format of temp * 1000
     val = lambda s, e, div: int.from_bytes(raw_bytes[s:e], 'little') / div
 
-    return {
+    parsed = {
         # actual_rudder_obj.name: val(0, 2, 100.0) - 90,
         gps_lat_obj.name: val(0, 4, 1000000) - 90,
         gps_lon_obj.name: val(4, 8, 1000000) - 90,
         spd_over_gnd_obj.name: val(16, 20, 1000)
     }
+
+    range_check(parsed[gps_lat_obj.name], -90, 90)
+    range_check(parsed[gps_lon_obj.name], -180, 180)
+    range_check(parsed[spd_over_gnd_obj.name], 0)
+
+    return parsed
+
+def parse_0x060_frame(data_hex):
+    raw_bytes = bytes.fromhex(data_hex)
+    if len(raw_bytes) != 25:
+        raise ValueError("Incorrect data length (num bytes): ID 0x10X")
+    
+    # temp is in format of temp * 1000
+
+    parsed = {
+        # actual_rudder_obj.name: val(0, 2, 100.0) - 90,
+        AIS_Attributes.SID: val(raw_bytes, 0, 4, 1),
+        AIS_Attributes.LATITUDE: val(raw_bytes, 4, 8, 1000000) - 90,
+        AIS_Attributes.LONGITUDE: val(raw_bytes, 8, 12, 1000000) - 180,
+        AIS_Attributes.SOG: val(raw_bytes, 12, 14, 10) if (val(raw_bytes, 12, 14, 10) != AIS_Attributes.SOG_NA) else None, 
+        AIS_Attributes.COG: val(raw_bytes, 14, 16, 10) if (val(raw_bytes, 14, 16, 10) != AIS_Attributes.COG_NA) else None, 
+        AIS_Attributes.HEADING: val(raw_bytes, 16, 18, 10) if (val(raw_bytes, 16, 18, 10) != AIS_Attributes.HEADING_NA) else None, 
+        AIS_Attributes.ROT: (val(raw_bytes, 18, 19, 1) - 128) if ((val(raw_bytes, 18, 19, 1) - 128) != AIS_Attributes.ROT_NA) else None, 
+        AIS_Attributes.LENGTH: val(raw_bytes, 19, 21, 1) if (val(raw_bytes, 19, 21, 1) != AIS_Attributes.LENGTH_NA) else None, 
+        AIS_Attributes.WIDTH: val(raw_bytes, 21, 23, 1) if (val(raw_bytes, 21, 23, 1) != AIS_Attributes.WIDTH_NA) else None, 
+        AIS_Attributes.IDX: val(raw_bytes, 23, 24, 1),
+        AIS_Attributes.TOTAL: val(raw_bytes, 24, 25, 1)
+    }
+
+    range_check(parsed[gps_lat_obj.name], -90, 90)
+    range_check(parsed[gps_lon_obj.name], -180, 180)
+    range_check(parsed[spd_over_gnd_obj.name], 0)
+
+    return parsed
 
 def make_pretty(cmd):
     '''
@@ -297,6 +369,15 @@ data_wind_objs = [data_wind_spd_obj, data_wind_dir_obj]
 gps_lat_obj = DataObject("gps_lat", 4, "DD", None, graph=None)
 gps_lon_obj = DataObject("gps_lon", 4, "DD", None, graph=None)
 
+# AIS
+polaris_pen = pg.mkPen(color='r', width=5) # set point border color (red)
+polaris_brush = pg.mkBrush(color='r')
+other_pen = pg.mkPen(color='b', width=1)
+other_brush = pg.mkBrush(color='b')
+
+position_graph_obj = GraphObject("Longitude", "Latitude", "DD", "DD", -90, 90, "Ship Positions") # note: this graph's x_range should definitely not be updated with the rest
+ais_obj = AISObject("Ship Positions", 4, "DD", None, other_pen, other_brush, polaris_pen, polaris_brush, graph = position_graph_obj)
+
 # General sensors (pH, water temp, salinity)
 pH_graph_obj = GraphObject("pH", cg.graph_y, None, cg.graph_y_units, 0, 14)
 pH_obj = DataObject("pH", 1, None, pH_parsing_fn, line_colour="r", graph=pH_graph_obj)
@@ -312,4 +393,14 @@ pdb_objs = [temp1_obj, temp2_obj , temp3_obj, volt1_obj, volt2_obj, volt3_obj, v
 rudder_objs = [actual_rudder_obj, set_rudder_obj, spd_over_gnd_obj, imu_roll_obj, imu_pitch_obj, integral_obj, derivative_obj, imu_heading_obj] # all objects with data from 0x204 frame (rudder -> mainframe)
 data_objs = [pH_obj, temp_sensor_obj, sal_obj]
 gps_objs = [gps_lat_obj, gps_lon_obj]
-all_objs = gps_objs + data_objs + data_wind_objs + rudder_objs + pdb_objs # + data_objs
+# Only data_objs are logged together in the values csv file; they are all graphed vs. Time and have their values trimmed accordingly over time
+data_objs = gps_objs + data_objs + data_wind_objs + rudder_objs + pdb_objs 
+all_objs = data_objs.copy()
+all_objs.append(ais_obj) # ais is logged and updated differently since it is not a vs. Time graph
+
+# Testing val
+# if __name__ == "__main__":
+#     lst = [0x12, 0x34, 0x56, 0x78, 0x90, 0xab]
+#     arr = bytearray(lst)
+#     print(hex(int(val(arr, 0, 2, 1))))
+#     print(hex(int(val(arr, 2, 6, 1))))
