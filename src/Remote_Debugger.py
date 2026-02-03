@@ -505,8 +505,8 @@ class CANWindow(QWidget):
 
         self.graph_titles = []
         for obj in all_objs:
-            if ((obj.graph_obj is not None) and (obj.graph_obj.x_name not in self.graph_titles)):
-                self.graph_titles.append(obj.graph_obj.x_name)
+            if ((obj.graph_obj is not None) and (obj.graph_obj.dropdown_label not in self.graph_titles)):
+                self.graph_titles.append(obj.graph_obj.dropdown_label)
 
         for d in dropdowns:
             d.setFont(QFont(cg.d_font_type, cg.d_font_size))
@@ -564,17 +564,17 @@ class CANWindow(QWidget):
             
     def getGraphObjFromXName(self, name):
         for obj in all_objs:
-            if ((obj.graph_obj is not None) and (obj.graph_obj.x_name == name)):
+            if ((obj.graph_obj is not None) and (obj.graph_obj.dropdown_label == name)):
                 return obj.graph_obj
             
     def setGraph(self, name, spot, dropdowns):
         '''
         Shows given graph at spot\n
-        name = DataObj.graph_obj.x_name\n
+        name = DataObj.graph_obj.dropdown_label\n
         spot = 0, 1, 2 (top, mid, bot)\n
         '''
         newGraphObj = self.getGraphObjFromXName(name) # get graph to put in spot
-        if (newGraphObj.x_name == self.visibleGraphObjs[spot].dropdown_label):
+        if (newGraphObj.dropdown_label == self.visibleGraphObjs[spot].dropdown_label):
             return # do nothing
         if newGraphObj in self.visibleGraphObjs: # if graph to put in spot is already visible
             # don't allow the switch to happen - set dropdown text back to original and print error message
@@ -774,7 +774,7 @@ class CANWindow(QWidget):
 
 
                             except Exception as e:
-                                self.output_display.append(f"[PARSE ERROR 0x041] {str(e)}")
+                                self.output_display.append(f"[PARSE ERROR 0x060] {str(e)}")
                         case "070": # GPS frame
                                 try:
                                     raw_data = line.split(']')[-1].strip().split()
