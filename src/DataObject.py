@@ -69,7 +69,7 @@ class GraphObject: # struct which keeps together objects needed for a graph
         return
     
     def initialize(self):
-        self.graph = create_graph(f"{self.x_name} vs. {self.y_name}", f"{self.x_name} ({self.x_units})" if self.x_units else f"{self.x_name}", 
+        self.graph = create_graph(self.dropdown_label if self.dropdown_label != self.x_name else f"{self.x_name} vs. {self.y_name}", f"{self.x_name} ({self.x_units})" if self.x_units else f"{self.x_name}", 
                                   f"{self.y_name} ({self.y_units})")
         self.graph.hide()
         self.initialized = True 
