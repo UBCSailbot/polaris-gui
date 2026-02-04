@@ -10,7 +10,7 @@ password = "sailbot"
 window_height = 450
 window_width = 1350
 
-update_freq = 100 # frequency at which CAN messages are collected & processed
+# update_freq = 100 # frequency at which CAN messages are collected & processed - TODO: implement separation of CAN msg processing and gui updating
 gui_update_freq = 100 # frequency of UI update in millis
 
 # ==== Live Values ====

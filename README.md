@@ -13,33 +13,6 @@ This repository contains source code for the GUI application designed to interfa
 5. Run the application with `python .\src\Remote_Debugger_V15.py`
 6. Deactive the virtual environment with `deactivate`
 
-Notes:
-
-- V13 is the most updated (working) version.
-- V13 is the most updated version tested with physical sensors - worked on Water Testing Day! (yay)
-- V9 was also tested (more rigorously) with physical sensors.
-- Note that V10 onwards depends on DataObject.py being in the same folder as Remote_debugger (at least for now)
-- Make sure to put the can line up before using the GUI
-  - Can use "bash sailbot_workspace/scripts/canup.sh" with optional "-l" argument to turn loopback on (this puts up can0)
-- Graphs don't start showing values until at there are at least 2 data points
-
-## Version Descriptions
-
-- V4.1 - V4 + graph of pH sensor only
-- V5 - V4 + graph of pH sensor + graphing functionality
-- V5.5 - V4 + graph of pH sensor + graphing functionality + logging functionality
-- V6 - V5.5 + temp sensor graphics/functionality + salinity sensor graphics/functionality
-- V7 - Fixed "starts plotting only when pdb command is sent" problem
-- ignoring - V7 + ignoring absurd data from possible issues with parsing
-- V8 - Fix data issues - logging data incorrectly, appears to be parsing incorrectly
-- V8_tabs - Improves UI to more easily view graphs
-- V9 - Changed parsing for temperature, Revert UI
-- V10 - refactoring to more easily add stuff (depends on DataObject.py) + added visuals for existing data sensor values (pH, water temp, salinity)
-- V11 - V10 + refactored previously existing temps/volts + refactored rudder debug frame
-- V12 - Update UI - shift live values to column in the middle + add new DRV/PWR data (new debug frames)
-- V13 - add new controls (eg. send PID values)
-- V14 - switch from matplotlib to pyqtgraph & limit to 3 graphs shown at once
-
 ## Important usage notes
 
 - May need to put CAN line down and back up before CAN works properly

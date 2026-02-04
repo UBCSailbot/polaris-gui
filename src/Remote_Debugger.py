@@ -16,7 +16,140 @@ from PyQt5.QtGui import QPixmap, QFont
 
 from DataObject import *
 from utility import *
-from CAN_processes import *
+
+### ----------  Background CAN Dump Process ---------- ###
+def candump_process(queue: multiprocessing.Queue, testing):
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    if (testing):
+        # TODO
+        print("TESTING MODE ON")
+    else:
+        try:
+            client.connect(hostname, username=username, password=password)
+            transport = client.get_transport()
+            # session = transport.open_session()
+            # session.exec_command("bash sailbot_workspace/scripts/canup.sh -l")
+            session = transport.open_session()
+            session.exec_command(f"candump {can_line}")
+            while True:
+                if session.recv_ready():
+                    line = session.recv(1024).decode()
+                    lines = line.split("\n")
+                    for l in lines:
+                        if (l != ""): queue.put(l.strip())
+                time.sleep(0.1)
+        except Exception as e:
+            queue.put(f"[ERROR] {str(e)}")
+        finally:
+            client.close()
+
+### ---------- Background Temp Reader Process ---------- ###
+def temperature_reader(pipe):
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    try:
+        client.connect(hostname, username=username, password=password)
+        while True:
+            try:
+                stdin, stdout, stderr = client.exec_command("cat /sys/class/thermal/thermal_zone0/temp")
+                raw = stdout.read().decode().strip()
+                if raw:
+                    temp = float(raw) / 1000
+                    pipe.send((True, f"{temp:.1f}°C"))
+                else:
+                    pipe.send((False, "ERROR"))
+            except Exception:
+                pipe.send((False, "ERROR"))
+            time.sleep(1)
+    except Exception:
+        while True:
+            pipe.send((False, "DISCONNECTED"))
+            time.sleep(1)
+    finally:
+        client.close()
+
+### ---------- Background CAN Send Worker ---------- ###
+def cansend_worker(cmd_queue: multiprocessing.Queue, response_queue: multiprocessing.Queue, can_log_queue: multiprocessing.Queue):
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    try:
+        client.connect(hostname, username=username, password=password)
+        while True:
+            cmd = cmd_queue.get()
+            if cmd == "__EXIT__":
+                break
+            try:
+                out = ""
+                err = ""
+                if (cmd[0:4] == "sudo"):
+                    stdin, stdout, stderr = client.exec_command(cmd, get_pty=True)
+                    buf = ""
+                    while (not buf.endswith("[sudo] password for sailbot: ")):
+                        buf += stdout.channel.recv(1024).decode()
+                    stdin.write(f"{password}\n")
+                    stdin.flush()
+                    out = stdout.read().decode()
+                    err = stderr.read().decode()
+                else:
+                    stdin, stdout, stderr = client.exec_command(cmd)
+                    out = stdout.read().decode()
+                    err = stderr.read().decode()
+
+                response_queue.put((cmd, out, err))
+                if (not err):
+                    can_log_queue.put_nowait(make_pretty(cmd))
+                else:
+                    raise Exception(f"Command not logged: {cmd}")
+            except Exception as e:
+                response_queue.put((cmd, "", f"Exec error: {str(e)}"))
+    except Exception as e:
+        response_queue.put(("ERROR", "", f"SSH error: {str(e)}"))
+    finally:
+        client.close()
+
+### ---------- Background CAN Logging Process ---------- ###
+def can_logging_process(queue: multiprocessing.Queue, log_queue: multiprocessing.Queue, timestamp):
+    """Dedicated process for logging CAN messages without blocking graphics"""
+    try:
+        # Create logs directory if it doesn't exist
+        if not os.path.exists('logs'):
+            os.makedirs('logs')
+        
+        # Create timestamped filename
+        # timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        candump_log_file = os.path.join('logs', f'candump_{timestamp}.csv')
+        
+        with open(candump_log_file, 'w', newline='') as csv_file:
+            writer = csv.writer(csv_file)
+            writer.writerow(['Timestamp', 'Elapsed_Time_s', 'CAN_Message'])
+            csv_file.flush()
+            
+            start_time = time.time()
+            print(f"CAN Logging started: {candump_log_file}")
+            
+            while True:
+                try:
+                    # Get message from queue with timeout
+                    if not log_queue.empty():
+                        message = log_queue.get(timeout=1.0)
+                        if message == "__EXIT__":
+                            break
+                        # Log the message
+                        timestamp = datetime.now().isoformat()
+                        elapsed_time = time.time() - start_time
+                        writer.writerow([timestamp, f'{elapsed_time:.3f}', message])
+                        csv_file.flush()
+                # except queue.empty as empty:
+                #     print(f"CAN logging queue empty")
+                except Exception as e:
+                    print(f"Error in CAN logging: {e}")
+                    continue
+                    
+    except Exception as e:
+        print(f"Failed to initialize CAN logging: {e}")
+    
+    print("CAN logging process terminated")
 
 ### ----------  PyQt5 GUI ---------- ###
 class CANWindow(QWidget):
@@ -46,7 +179,7 @@ class CANWindow(QWidget):
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_status)
-        self.timer.start(update_freq) # Updates every update_freq milliseconds
+        self.timer.start(gui_update_freq) # Updates every update_freq milliseconds
 
     def _init_logging(self):
         """Initialize CSV logging files with timestamped names"""
@@ -64,7 +197,7 @@ class CANWindow(QWidget):
         values_header = [
             'Timestamp', 'Elapsed_Time_s'
         ]
-        for obj in all_objs:
+        for obj in data_objs:
             values_header.append(obj.name)
 
         self.values_writer.writerow(values_header)
@@ -86,7 +219,7 @@ class CANWindow(QWidget):
             timestamp = datetime.now().isoformat()
             elapsed_time = time.time() - self.time_start
             values = [timestamp, f'{elapsed_time:.3f}']
-            for obj in all_objs:
+            for obj in data_objs:
                 val = obj.get_current()[1]
                 if (val is not None):
                     values.append(str(val))
@@ -372,8 +505,8 @@ class CANWindow(QWidget):
 
         self.graph_titles = []
         for obj in all_objs:
-            if ((obj.graph_obj.graph is not None) and (obj.graph_obj.x_name not in self.graph_titles)):
-                self.graph_titles.append(obj.graph_obj.x_name)
+            if ((obj.graph_obj is not None) and (obj.graph_obj.dropdown_label not in self.graph_titles)):
+                self.graph_titles.append(obj.graph_obj.dropdown_label)
 
         for d in dropdowns:
             d.setFont(QFont(cg.d_font_type, cg.d_font_size))
@@ -431,28 +564,48 @@ class CANWindow(QWidget):
             
     def getGraphObjFromXName(self, name):
         for obj in all_objs:
-            if ((obj.graph_obj is not None) and (obj.graph_obj.x_name == name)):
+            if ((obj.graph_obj is not None) and (obj.graph_obj.dropdown_label == name)):
                 return obj.graph_obj
-
+            
     def setGraph(self, name, spot, dropdowns):
         '''
         Shows given graph at spot\n
-        name = DataObj.graph_obj.x_name\n
+        name = DataObj.graph_obj.dropdown_label\n
         spot = 0, 1, 2 (top, mid, bot)\n
         '''
         newGraphObj = self.getGraphObjFromXName(name) # get graph to put in spot
-        if (newGraphObj.x_name == self.visibleGraphObjs[spot].x_name):
+        if (newGraphObj.dropdown_label == self.visibleGraphObjs[spot].dropdown_label):
             return # do nothing
         if newGraphObj in self.visibleGraphObjs: # if graph to put in spot is already visible
             # don't allow the switch to happen - set dropdown text back to original and print error message
             print("[ERR] Graph is already visible")
-            dropdowns[spot].setCurrentText(self.visibleGraphObjs[spot].x_name) # switch text back to original
+            dropdowns[spot].setCurrentText(self.visibleGraphObjs[spot].dropdown_label) # switch text back to original
         else: 
             self.right_graphs_layout.removeWidget(self.visibleGraphObjs[spot].graph) # remove graph currently in spot
             self.visibleGraphObjs[spot].hide()
             self.right_graphs_layout.addWidget(newGraphObj.graph, spot, 0)
             newGraphObj.show()
             self.visibleGraphObjs[spot] = newGraphObj  
+
+    # def setGraph(self, name, spot, dropdowns):
+    #     '''
+    #     Shows given graph at spot\n
+    #     name = DataObj.graph_obj.x_name\n
+    #     spot = 0, 1, 2 (top, mid, bot)\n
+    #     '''
+    #     newGraphObj = self.getGraphObjFromXName(name) # get graph to put in spot
+    #     if (newGraphObj.x_name == self.visibleGraphObjs[spot].x_name):
+    #         return # do nothing
+    #     if newGraphObj in self.visibleGraphObjs: # if graph to put in spot is already visible
+    #         # don't allow the switch to happen - set dropdown text back to original and print error message
+    #         print("[ERR] Graph is already visible")
+    #         dropdowns[spot].setCurrentText(self.visibleGraphObjs[spot].x_name) # switch text back to original
+    #     else: 
+    #         self.right_graphs_layout.removeWidget(self.visibleGraphObjs[spot].graph) # remove graph currently in spot
+    #         self.visibleGraphObjs[spot].hide()
+    #         self.right_graphs_layout.addWidget(newGraphObj.graph, spot, 0)
+    #         newGraphObj.show()
+    #         self.visibleGraphObjs[spot] = newGraphObj  
 
     def keyPressEvent(self, event):
         if not self.keyboard_checkbox.isChecked():
@@ -574,18 +727,18 @@ class CANWindow(QWidget):
         # Process any new CAN messages
         while not self.queue.empty():
             line = self.queue.get()
-            # self.output_display.append(line) # TODO: Note - what does this do?
+            # self.output_display.append(line)
 
             new_msg_to_log = False
   
-            print(f"line parsed = {line}")
+            # print(f"line parsed = {line}")
 
             # Send to separate logging process (non-blocking)
+            # TODO: modify the nowait to ensure logging
             try:
                 self.can_log_queue.put_nowait(line)
             except:
                 print(f"line was not logged!")
-                pass  # Queue full, skip logging this message to avoid blocking
 
             if line.startswith(can_line):
                 new_msg_to_log = True
@@ -594,8 +747,8 @@ class CANWindow(QWidget):
                     frame_id = parts[1].lower()
                     self.time_history.append(current_time)
                     
-                    # TODO: Turn the if-else-if-else statement into a dictionary with frame id:function - just runs the function associated with frame id
-                    # Handle 0x206 frame (temperature and voltage data)
+                    # TODO: Use a dictionary with frame id:function - just runs the function associated with frame id?
+                    # There's definitely some abstraction that can be done here
                     match frame_id:
                         case "041": # Data_Wind frame
                             try:
@@ -606,27 +759,52 @@ class CANWindow(QWidget):
                                     obj.update_label()
                             except Exception as e:
                                 self.output_display.append(f"[PARSE ERROR 0x041] {str(e)}")
+                        case "060": # AIS frame
+                            try:
+                                raw_data = line.split(']')[-1].strip().split()
+                                parsed = parse_0x060_frame(''.join(raw_data))
+                                ais_obj.add_frame(parsed[AIS_Attributes.LONGITUDE], parsed[AIS_Attributes.LATITUDE], parsed)
+                                # If this is the last frame in the batch
+                                if parsed[AIS_Attributes.IDX] == parsed[AIS_Attributes.TOTAL]:
+                                    ais_obj.log_data()
+                                    # if graph is visible
+                                    if ais_obj.graph_obj.isVisible():
+                                        ais_obj.update_line_data()
+                                    ais_obj.switch_current()
+
+
+                            except Exception as e:
+                                self.output_display.append(f"[PARSE ERROR 0x060] {str(e)}")
+                        case "070": # GPS frame
+                                try:
+                                    raw_data = line.split(']')[-1].strip().split()
+                                    parsed = parse_0x070_frame(''.join(raw_data))
+                                    for obj in gps_objs:
+                                        obj.parse_frame(current_time, None, parsed)
+                                        obj.update_label()
+                                except Exception as e:
+                                    self.output_display.append(f"[PARSE ERROR 0x070] {str(e)}")
 
                         case "100": # water_temp sensor frame
                             try:
                                 temp_sensor_obj.parse_frame(current_time, line)
                                 temp_sensor_obj.update_label()
                             except Exception as e:
-                                self.output_display.append(f"[PARSE ERROR 0x10X] {str(e)}")
+                                self.output_display.append(f"[PARSE ERROR 0x100] {str(e)}")
                        
                         case "110": # pH sensor frame
                             try:               
                                 pH_obj.parse_frame(current_time, line)
                                 pH_obj.update_label()
                             except Exception as e:
-                                self.output_display.append(f"[PARSE ERROR 0x11X] {str(e)}")
+                                self.output_display.append(f"[PARSE ERROR 0x110] {str(e)}")
 
                         case "120": # salinity sensor frame
                             try: 
                                 sal_obj.parse_frame(current_time, line)
                                 sal_obj.update_label()                                            
                             except Exception as e:
-                                self.output_display.append(f"[PARSE ERROR 0x12X] {str(e)}") 
+                                self.output_display.append(f"[PARSE ERROR 0x120] {str(e)}") 
 
                         case "204": # Handle 0x204 frame (actual rudder angle)
 
@@ -658,7 +836,7 @@ class CANWindow(QWidget):
                     self._log_values()
 
         # trim values no longer being graphed
-        for obj in all_objs:
+        for obj in data_objs:
             obj.update_data(current_time, scroll_window)
                         
         # Always update plots every timer cycle (independent of CAN messages) # TODO: Modify this - batch plot updates?
@@ -695,7 +873,7 @@ class CANWindow(QWidget):
     def _update_plot_ranges(self, current_time):
         # === Auto-scale and scroll X axis ===
         if len(self.time_history) > 1:
-            for obj in all_objs:
+            for obj in data_objs:
                 if (obj.graph_obj is not None):
                     obj.graph_obj.update_xlim(max(0, current_time - scroll_window), current_time)
 
@@ -743,15 +921,13 @@ def cleanup():
 if __name__ == "__main__":
     multiprocessing.set_start_method("spawn")
 
-    # lock = multiprocessing.Lock()
-
     queue = multiprocessing.Queue()
     parent_conn, child_conn = multiprocessing.Pipe()
     cmd_queue = multiprocessing.Queue()
     response_queue = multiprocessing.Queue()
     can_log_queue = multiprocessing.Queue()
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    
+
     candump_proc = multiprocessing.Process(target=candump_process, args=(queue,))
     temp_proc = multiprocessing.Process(target=temperature_reader, args=(child_conn,))
     cansend_proc = multiprocessing.Process(target=cansend_worker, args=(cmd_queue, response_queue, can_log_queue))
