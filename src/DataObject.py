@@ -190,10 +190,10 @@ class AISObject(DataObject): # NOTE: does this class need to take all arguments 
         self.polaris_pos = (None, None) # tuple with polaris's (longitude, latitude)
         # self.datasets is a list of two lists - each list contains several dictionaries; each dict contains all attributes from 1 CAN message
         self.datasets = [[], []] # contains data for previous cycle and current cycle - each batch of AIS messages is separated
-        self.current_data = False # index of data for current cycle in self.datasets
+        self.current_idx = False # index of data for current cycle in self.datasets
 
-    def add_frame(self, x, y, dict):
-        self.datasets[self.current].append(dict)
+    def add_frame(self, x, y, data):
+        self.datasets[self.current_idx].append(data)
         self.add_datapoint(x, y)
 
     # def parse_frame(self, parsed): # x_data, y_data are floats, idx = -1 if index is not applicable
