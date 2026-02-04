@@ -123,7 +123,7 @@ def parse_0x041_frame(data_hex):
 def parse_0x120_frame(data_hex):
     raw_bytes = bytes.fromhex(data_hex)
     if len(raw_bytes) != 4:
-        raise ValueError("Incorrect data length (num bytes): ID 0x12X")
+        raise ValueError("Incorrect data length (num bytes): ID 0x120")
     
     # Conductivity in µS/cm * 1000
     # raw = int.from_bytes(raw_bytes, "little") # is raw_bytes[0:2] really necessary?
@@ -151,7 +151,7 @@ def sal_parsing_fn(data_hex):
     '''
     raw_bytes = bytes.fromhex(data_hex)
     if len(raw_bytes) != 4:
-        raise ValueError("Incorrect data length (num bytes): ID 0x12X")
+        raise ValueError("Incorrect data length (num bytes): ID 0x120")
     
     # Conductivity in µS/cm * 1000
     raw = convert_from_little_endian_str(data_hex)
@@ -173,7 +173,7 @@ def sal_parsing_fn(data_hex):
 def parse_0x110_frame(data_hex):
     raw_bytes = bytes.fromhex(data_hex)
     if len(raw_bytes) != 2:
-        raise ValueError(f"Incorrect data length (num bytes): ID 0x11X\nExpecting: 2 bytes, Received: {len(raw_bytes)}")
+        raise ValueError(f"Incorrect data length (num bytes): ID 0x110\nExpecting: 2 bytes, Received: {len(raw_bytes)}")
     
     # pH is in format of pH * 1000
     raw = convert_from_little_endian_str(data_hex)
@@ -190,7 +190,7 @@ def parse_0x110_frame(data_hex):
 def pH_parsing_fn(data_hex):
     raw_bytes = bytes.fromhex(data_hex)
     if len(raw_bytes) != 2:
-        raise ValueError(f"Incorrect data length (num bytes): ID 0x11X\nExpecting: 2 bytes, Received: {len(raw_bytes)}")
+        raise ValueError(f"Incorrect data length (num bytes): ID 0x110\nExpecting: 2 bytes, Received: {len(raw_bytes)}")
     
     # pH is in format of pH * 1000
     raw = convert_from_little_endian_str(data_hex)
@@ -209,7 +209,7 @@ def pH_parsing_fn(data_hex):
 def parse_0x100_frame(data_hex):
     raw_bytes = bytes.fromhex(data_hex)
     if len(raw_bytes) != 3:
-        raise ValueError("Incorrect data length (num bytes): ID 0x10X")
+        raise ValueError("Incorrect data length (num bytes): ID 0x100")
     
     # temp is in format of temp * 1000
     # raw = int.from_bytes(raw_bytes, "little") # is raw_bytes[0:2] really necessary?
@@ -228,7 +228,7 @@ def parse_0x100_frame(data_hex):
 def temp_sensor_parsing_fn(data_hex):
     raw_bytes = bytes.fromhex(data_hex)
     if len(raw_bytes) != 3:
-        raise ValueError("Incorrect data length (num bytes): ID 0x10X")
+        raise ValueError("Incorrect data length (num bytes): ID 0x100")
     
     # temp is in format of temp * 1000
     raw = convert_from_little_endian_str(data_hex)
@@ -245,7 +245,7 @@ def temp_sensor_parsing_fn(data_hex):
 def parse_0x070_frame(data_hex):
     raw_bytes = bytes.fromhex(data_hex)
     if len(raw_bytes) != 20:
-        raise ValueError("Incorrect data length (num bytes): ID 0x10X")
+        raise ValueError("Incorrect data length (num bytes): ID 0x070")
     
     # temp is in format of temp * 1000
     val = lambda s, e, div: int.from_bytes(raw_bytes[s:e], 'little') / div
@@ -265,8 +265,9 @@ def parse_0x070_frame(data_hex):
 
 def parse_0x060_frame(data_hex):
     raw_bytes = bytes.fromhex(data_hex)
-    if len(raw_bytes) != 25:
-        raise ValueError("Incorrect data length (num bytes): ID 0x10X")
+    if len(raw_bytes) < 25: # candump pads the frame to make it 32 bytes
+        print("number of raw_bytes = ", len(raw_bytes))
+        raise ValueError("Incorrect data length (num bytes): ID 0x060")
     
     # temp is in format of temp * 1000
 
@@ -285,9 +286,9 @@ def parse_0x060_frame(data_hex):
         AIS_Attributes.TOTAL: val(raw_bytes, 24, 25, 1)
     }
 
-    range_check(parsed[gps_lat_obj.name], -90, 90)
-    range_check(parsed[gps_lon_obj.name], -180, 180)
-    range_check(parsed[spd_over_gnd_obj.name], 0)
+    range_check(parsed[AIS_Attributes.LATITUDE], -90, 90)
+    range_check(parsed[AIS_Attributes.LONGITUDE], -180, 180)
+    range_check(parsed[AIS_Attributes.SOG], 0)
 
     return parsed
 
