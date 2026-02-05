@@ -7,7 +7,7 @@ from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import QTimer, Qt
 
 from config import *
-import styles
+from . import styles
 
 # constants
 small_spacing = 2
@@ -146,7 +146,7 @@ def init_commands_grid(self, commands):
     self.command_buttons = []
     for i, (label, command) in enumerate(commands):
         btn = QPushButton(f"Copy: {label}")
-        btn.setStyleSheet(styles.command_button_style)
+        btn.setStyleSheet(styles.command_button)
         btn.clicked.connect(lambda checked, cmd=command: self.copy_to_clipboard(cmd))
         self.command_buttons.append(btn)
         

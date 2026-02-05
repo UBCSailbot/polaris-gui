@@ -641,7 +641,7 @@ if __name__ == "__main__":
     can_log_queue = multiprocessing.Queue()
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 
-    candump_proc = multiprocessing.Process(target=candump_process, args=(queue,))
+    candump_proc = multiprocessing.Process(target=candump_process, args=(queue, False))
     temp_proc = multiprocessing.Process(target=temperature_reader, args=(child_conn,))
     cansend_proc = multiprocessing.Process(target=cansend_worker, args=(cmd_queue, response_queue, can_log_queue))
     can_logging_proc = multiprocessing.Process(target=can_logging_process, args=(queue, can_log_queue, timestamp))
