@@ -8,6 +8,7 @@ from PyQt5.QtCore import QTimer, Qt
 
 from config import *
 from . import styles
+from utility import *
 
 # constants
 small_spacing = 2
@@ -195,5 +196,59 @@ def init_left_layout(self, top_bar_layout, checkbox_layout, input_layout, emerge
     
     return left_layout
     
-def init_left_bar(self):
-    return 
+def init_labels_layout():
+    labels_layout = QVBoxLayout()
+    labels_layout.setSpacing(0)
+
+    for graph_obj in all_objs:
+        if (graph_obj.label is not None):
+            labels_layout.addWidget(graph_obj.label)
+        
+    labels_layout.addStretch(1)
+    return labels_layout
+
+def init_right_layout(self):
+    right_layout = QVBoxLayout()
+    # Graph dropdowns (Top, Middle, Bottom)
+    dropdown_layout = QHBoxLayout()
+    d_top = QComboBox()
+    d_mid = QComboBox()
+    d_bot = QComboBox()
+    dropdowns = [d_top, d_mid, d_bot]
+
+    self.right_graphs_layout = QGridLayout() # create GridLayout for three graphs (0, 0), (1, 0), (2, 0)
+    # Note: It is important that each distinct graph canvas is only added as a widget
+    #       a single time, or else problems
+    self.visibleGraphObjs = [] # list of GraphObjs with visible graphs, in order of position descending
+
+    self.graph_titles = []
+    for obj in all_objs:
+        if ((obj.graph_obj is not None) and (obj.graph_obj.dropdown_label not in self.graph_titles)):
+            self.graph_titles.append(obj.graph_obj.dropdown_label)
+
+    for d in dropdowns:
+        d.setFont(QFont(cg.d_font_type, cg.d_font_size))
+        d.addItems(self.graph_titles)
+        d.setVisible(False)
+        dropdown_layout.addWidget(d)
+
+    # show a maximum of three graphs initially 
+    for i in range(0, 3):
+        if (i < len(self.graph_titles)):
+            graph_obj = self.getGraphObjFromXName(self.graph_titles[i])
+            if (graph_obj not in self.visibleGraphObjs):
+                self.right_graphs_layout.addWidget(graph_obj.graph, i, 0)
+                self.visibleGraphObjs.append(graph_obj)
+                graph_obj.show()
+                dropdowns[i].setCurrentText(self.graph_titles[i])
+                dropdowns[i].setVisible(True)
+        else: break
+
+    d_top.currentTextChanged.connect(lambda text: self.setGraph(text, 0, dropdowns))
+    d_mid.currentTextChanged.connect(lambda text: self.setGraph(text, 1, dropdowns))
+    d_bot.currentTextChanged.connect(lambda text: self.setGraph(text, 2, dropdowns))
+    
+    right_layout.addLayout(dropdown_layout)
+    right_layout.addLayout(self.right_graphs_layout)
+    
+    return right_layout
