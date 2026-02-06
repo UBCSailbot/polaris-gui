@@ -74,7 +74,8 @@ def init_rudder_input_group(self):
     self.rudder_button.clicked.connect(self.send_rudder)
     self.rudder_input_group = QWidget()
     self.rudder_input_group.setLayout(self.rudder_input_layout)
-    
+    self.rudder_input_group.setVisible(False)
+
     return self.rudder_input_group
 
 def init_trim_input_group(self):
@@ -115,7 +116,7 @@ def init_pid_layout(self):
     
     return self.pid_layout
 
-def init_emergency_controls_layout(self):
+def init_emergency_controls(self):
     self.emergency_checkbox = QCheckBox("Enable Emergency Controls")
     self.emergency_checkbox.stateChanged.connect(self.toggle_emergency_buttons)
 
@@ -127,8 +128,7 @@ def init_emergency_controls_layout(self):
     self.restart_btn = QPushButton("Restart Power After 20s")
     self.restart_btn.setEnabled(False)
     self.restart_btn.clicked.connect(self.send_restart_power)
-    
-            
+ 
     self.power_off_btn.setStyleSheet(styles.red_button)
     self.restart_btn.setStyleSheet(styles.red_button)
 
@@ -156,6 +156,44 @@ def init_commands_grid(self, commands):
         self.commands_grid.addWidget(btn, row, col)
         
         return self.commands_grid
+
+def init_input_layout(self):
+    input_layout = QGridLayout()
+    input_layout.setSpacing(0)
+    input_layout.addWidget(self.rudder_input_group, 0, 0)
+    input_layout.addWidget(self.trim_input_group, 0, 1)
+    input_layout.addWidget(self.desired_heading_input_group, 0, 0)
+    
+    return input_layout
+
+def init_left_layout(self, top_bar_layout, checkbox_layout, input_layout, emergency_controls):    
+    left_layout = QVBoxLayout()
+    left_layout.addLayout(top_bar_layout)
+    left_layout.addLayout(checkbox_layout)
+    left_layout.addSpacing(5)  # Add small spacing
+    left_layout.addWidget(self.instructions1_display)
+    left_layout.addWidget(self.instructions2_display)
+    left_layout.addSpacing(5)  # Add small spacing
+    left_layout.addWidget(self.rudder_display)
+    left_layout.addWidget(self.trimtab_display)
+    left_layout.addSpacing(5)  # Add small spacing
+    
+    left_layout.addLayout(input_layout)
+    left_layout.addLayout(self.pid_layout)
+    
+    left_layout.addSpacing(5)  # Add small spacing
+    left_layout.addWidget(QLabel("Candump Output:"))
+    left_layout.addWidget(self.output_display)
+    left_layout.addSpacing(5)  # Add small spacing
+    left_layout.addWidget(self.emergency_checkbox)
+    left_layout.addSpacing(5)  # Add spacing before emergency buttons
+    left_layout.addLayout(emergency_controls)
+    left_layout.addSpacing(5)  # Add spacing before SSH instructions
+    left_layout.addWidget(self.ssh_instructions_label)
+    left_layout.addSpacing(5)  # Small spacing before command buttons
+    left_layout.addLayout(self.commands_grid)
+    
+    return left_layout
     
 def init_left_bar(self):
     return 

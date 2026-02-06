@@ -127,7 +127,7 @@ class CANWindow(QWidget):
         self.trim_input_group = init_trim_input_group(self)
         
         self.pid_layout = init_pid_layout(self)
-        emergency_controls_layout = init_emergency_controls_layout(self)
+        emergency_controls_layout = init_emergency_controls(self)
 
         self.output_display = QTextEdit()
         self.output_display.setReadOnly(True)
@@ -160,38 +160,9 @@ class CANWindow(QWidget):
         # Create a grid layout for command buttons
         self.commands_grid = init_commands_grid(self, commands)   
          
-        left_layout = QVBoxLayout()
-        left_layout.addLayout(top_bar_layout)
-        left_layout.addLayout(checkbox_layout)
-        left_layout.addSpacing(5)  # Add small spacing
-        left_layout.addWidget(self.instructions1_display)
-        left_layout.addWidget(self.instructions2_display)
-        left_layout.addSpacing(5)  # Add small spacing
-        left_layout.addWidget(self.rudder_display)
-        left_layout.addWidget(self.trimtab_display)
-        left_layout.addSpacing(5)  # Add small spacing
-        input_layout = QGridLayout()
-        input_layout.setSpacing(0)
-        input_layout.addWidget(self.rudder_input_group, 0, 0)
-        input_layout.addWidget(self.trim_input_group, 0, 1)
-        input_layout.addWidget(self.desired_heading_input_group, 0, 0)
-        left_layout.addLayout(input_layout)
-        left_layout.addLayout(self.pid_layout)
-
-        self.rudder_input_group.setVisible(False)
-
-        left_layout.addSpacing(5)  # Add small spacing
-        left_layout.addWidget(QLabel("Candump Output:"))
-        left_layout.addWidget(self.output_display)
-        left_layout.addSpacing(5)  # Add small spacing
-        left_layout.addWidget(self.emergency_checkbox)
-        left_layout.addSpacing(5)  # Add spacing before emergency buttons
-        left_layout.addLayout(emergency_controls_layout)
-        left_layout.addSpacing(5)  # Add spacing before SSH instructions
-        left_layout.addWidget(self.ssh_instructions_label)
-        left_layout.addSpacing(5)  # Small spacing before command buttons
-        left_layout.addLayout(self.commands_grid)
-
+        input_layout = init_input_layout(self)
+        left_layout = init_left_layout(self, top_bar_layout, checkbox_layout, input_layout, emergency_controls_layout)
+        
         right_layout = QVBoxLayout()
 
         # right_labels_layout = QVBoxLayout()
