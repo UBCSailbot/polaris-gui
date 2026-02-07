@@ -20,7 +20,7 @@ password = "sailbot"
 can_line = "can0"
 
 # Time between sent frames (in secs)
-delay = 0.3
+delay = 1
 
 # CAN Frame IDs
 temp_sensor_id = "100" # 0x10X
@@ -262,8 +262,8 @@ def send_gps_command(client):
     '''
 
     try:
-        lat = convert_to_little_endian(convert_to_hex(int(((slope_data * 10) + 0.123499999) * 1000000), 4)) # should increase by 1
-        lon = convert_to_little_endian(convert_to_hex(int(((slope_data * 10) + 0.987611111) * 1000000), 4))
+        lat = convert_to_little_endian(convert_to_hex(int(((slope_data * 150) + 0.123499999) * 1000000), 4)) # should increase by 1
+        lon = convert_to_little_endian(convert_to_hex(int(((slope_data * 100) + 0.987611111) * 1000000), 4))
         secs = convert_to_little_endian(convert_to_hex(10, 2))
         mins = convert_to_little_endian(convert_to_hex(20, 2))
         hrs = convert_to_little_endian(convert_to_hex(30, 2))
@@ -295,12 +295,19 @@ def send_ais_command(client, num_msgs):
         # TODO: Send num_msgs can messages (multiple commands) to reflect actual AIS behaviour
         # note: should ais_obj be a subclass of dataobject?
 
+        data_points = [1, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1]
+        # data_points.reverse()
+
         for i in range(num_msgs):
+            # x_data = data_points[i % len(data_points)] # prevent errors for too-short array
+            # y_data = data_points[len(data_points) - 1 - (i % len(data_points))]
+            x_data = random.random() * 10
+            y_data = random.random()
             try:
 
-                id = convert_to_little_endian(convert_to_hex(i * 100000000, 4))
-                lat = convert_to_little_endian(convert_to_hex(int(((slope_data * 10) + 0.123499999) * 1000000), 4)) # should change by 1
-                lon = convert_to_little_endian(convert_to_hex(int(((slope_data * 10) + 0.987611111) * 1000000), 4))
+                id = convert_to_little_endian(convert_to_hex(i * 10000000, 4))
+                lat = convert_to_little_endian(convert_to_hex(int(((y_data * 240) + 0.123499999) * 1000000), 4)) # should change by 1
+                lon = convert_to_little_endian(convert_to_hex(int(((x_data * 31) + 0.987611111) * 1000000), 4))
                 sog = 0
                 if (i == 3):
                     sog = convert_to_little_endian(convert_to_hex(1023, 2)) # test sog not available 
@@ -343,9 +350,9 @@ def send_ais_command(client, num_msgs):
                 num_ships = convert_to_little_endian(convert_to_hex(num_msgs, 1))
 
                 can_data = id + lat + lon + sog + cog + true_heading + rot + ship_len + ship_wid + idx + num_ships
-                can_message = "cansend " + can_line + " 070##1" + can_data
+                can_message = "cansend " + can_line + " 060##1" + can_data
 
-                # print(can_message)
+                # print(len(can_data) / 2)
 
                 # Execute the cansend command
                 stdin, stdout, stderr = client.exec_command(can_message)
@@ -359,11 +366,14 @@ def send_ais_command(client, num_msgs):
                     return False
                 else:
                     print(f"✓ Sent - CAN message: {can_message}")
-                    return True
+
+                # generate_slope_data()
                     
             except Exception as e:
                 print(f"Exception sending AIS command: {e}")
                 return False
+            
+        return True
 
 
 def main():
@@ -416,7 +426,7 @@ def main():
             total_elapsed = current_time - start_time
             print(f"[{timestamp}] Total elapsed time: {total_elapsed:.1f}s")
             
-            # success = send_pdb_command(client)
+            success = send_pdb_command(client)
             # time.sleep(delay)
             # success = send_rudder_command(client)
 
@@ -446,7 +456,7 @@ def main():
                 print("Failed to send command, continuing...")
 
             print(f"Sending AIS command...")
-            success = send_ais_command(client, 6) # TODO: test with larger numbers of ships - test with more than 127
+            success = send_ais_command(client, 20) # TODO: test with larger numbers of ships - test with more than 127 - note: I did do this, might try again later
             if not success:
                 print("Failed to send command, continuing...")
 
