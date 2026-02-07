@@ -219,13 +219,18 @@ class CANWindow(QWidget):
             timestamp = datetime.now().isoformat()
             elapsed_time = time.time() - self.time_start
             values = [timestamp, f'{elapsed_time:.3f}']
+            # print("line 222")
             for obj in data_objs:
                 val = obj.get_current()[1]
+                # print("line 225")
                 if (val is not None):
                     values.append(str(val))
                 else:
                     values.append("None")
+                # print("line 230")
+            # print("line 231")
             self.values_writer.writerow(values)
+            # print("line 233")
             self.values_csv_file.flush()  # Flush immediately to prevent data loss
         except Exception as e:
             print(f"Error logging values: {e}")
