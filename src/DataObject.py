@@ -1,6 +1,7 @@
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QLabel
 import pyqtgraph as pg
+import csv
 import config as cg
 
 graph_margin = 0.2
@@ -47,7 +48,7 @@ def create_graph(title, x_label, y_label, title_style = cg.graph_title_style, la
 
 # data is a dictionary with values = data logged, keys = time logged
 class GraphObject: # struct which keeps together objects needed for a graph
-    def __init__(self, x_name, y_name, x_units, y_units, minn, maxn): # data = history?
+    def __init__(self, x_name, y_name, x_units, y_units, minn, maxn, dropdown_label = None): # data = history?
         '''
         Initialization for GraphObject\n
         minn : minimum data value expected over graph lifetime\n
@@ -61,10 +62,14 @@ class GraphObject: # struct which keeps together objects needed for a graph
         self.maxn = maxn # max data value expected
         self.initialized = False # indicates if graph widget was created or not
         self.visible = False
+        if dropdown_label is None:
+            self.dropdown_label = self.x_name
+        else:
+            self.dropdown_label = dropdown_label
         return
     
     def initialize(self):
-        self.graph = create_graph(f"{self.x_name} vs. {self.y_name}", f"{self.x_name} ({self.x_units})" if self.x_units else f"{self.x_name}", 
+        self.graph = create_graph(self.dropdown_label if self.dropdown_label != self.x_name else f"{self.x_name} vs. {self.y_name}", f"{self.x_name} ({self.x_units})" if self.x_units else f"{self.x_name}", 
                                   f"{self.y_name} ({self.y_units})")
         self.graph.hide()
         self.initialized = True 
@@ -86,7 +91,7 @@ class GraphObject: # struct which keeps together objects needed for a graph
         return self.visible
 
 class DataObject:
-    def __init__(self, name, dp, units, parsing_fn, line_dashed = False, line_colour = None, graph: GraphObject = None):
+    def __init__(self, name, dp, units, parsing_fn, line_dashed = False, line_colour = None, hasLabel = True, graph: GraphObject = None):
         self.name = name
         self.dp = dp # number of dp to round to
         self.units = units if units else ""
@@ -98,13 +103,17 @@ class DataObject:
             raise ValueError("DataObject __init__: Given a graph, but not a line colour")
         self.data = {} # no data when initialized: of form time:value
         self.current = None # key of most recent data entry datapoint
+        self.line = None
+        self.hasLabel = hasLabel
         return 
     
     def initialize(self):
         if self.graph_obj:
             if not self.graph_obj.initialized: self.graph_obj.initialize()
-            self.line = create_line(self.graph_obj, self.name, [], [], self.line_colour, cg.linewidth, self.line_dashed, symbol=False) if self.graph_obj else None # should automatically create line w/ empty data
-        self.label = create_label(self.name + ": ---- ") # should automatically create label
+            self.line = create_line(self.graph_obj, self.name, [], [], self.line_colour, cg.linewidth, self.line_dashed, symbol=False) # should automatically create line w/ empty data
+        if self.hasLabel:
+            self.label = create_label(self.name + ": ---- ") # should automatically create label
+        else: self.label = None
         
     # Return a tuple with the time:value of the most current data point collected
     def get_current(self):
@@ -115,7 +124,7 @@ class DataObject:
     def add_datapoint(self, x, y):
         self.data[x] = y
         self.current = x
-        if (self.graph_obj.graph.isVisible()):
+        if (self.graph_obj and self.graph_obj.graph.isVisible()):
             self.update_line_data()
         return
     
@@ -137,7 +146,7 @@ class DataObject:
             data = self.parsing_fn(''.join(raw_data))
             if self.dp is not None: # for values which do not have variable dp (ie. not salinity)
                 data = round(data, self.dp)
-
+        
         self.add_datapoint(current_time, data)
         return
 
@@ -159,3 +168,56 @@ class DataObject:
         return
 
     
+class AISObject(DataObject): # NOTE: does this class need to take all arguments of parent class?
+    def __init__(self, name, dp, units, parsing_fn, other_pen, other_brush, polaris_pen = None, polaris_brush = None, graph: GraphObject = None):
+        super().__init__(name, dp, units, None, hasLabel = False, line_colour = other_brush.color(), graph = graph)
+        # below all done by super
+        # self.name = name
+        # self.dp = dp # number of dp to round to
+        # self.units = units if units else ""
+        # self.parsing_fn = parsing_fn
+        # self.line_dashed = line_dashed # boolean indicating whether line should be dashed or not
+        # self.line_colour = line_colour # if not graphed, doesn't need line colour
+        # self.graph_obj = graph # if not graphed, doesn't need a graph
+        # if (line_colour is None and graph is not None):
+        #     raise ValueError("DataObject __init__: Given a graph, but not a line colour")
+        # no data when initialized: of form time:value
+        # self.current = None # key of most recent data entry datapoint
+        self.pen = other_pen
+        self.brush = other_brush
+        self.polaris_pen = polaris_pen if polaris_pen is not None else other_pen
+        self.polaris_brush = polaris_brush if polaris_brush is not None else other_brush
+        self.polaris_pos = (None, None) # tuple with polaris's (longitude, latitude)
+        # self.datasets is a list of two lists - each list contains several dictionaries; each dict contains all attributes from 1 CAN message
+        self.datasets = [[], []] # contains data for previous cycle and current cycle - each batch of AIS messages is separated
+        self.current_idx = False # index of data for current cycle in self.datasets
+
+    def add_frame(self, x, y, data):
+        self.datasets[self.current_idx].append(data)
+        self.add_datapoint(x, y)
+
+    # def parse_frame(self, parsed): # x_data, y_data are floats, idx = -1 if index is not applicable
+    #     # pen/brush used changes depending on frame_id
+    #     # logs current points and clears all previous points if idx = total, also calls set_data if graph is visible
+
+    #     # Note: This function should contain logic for calculating if idx == total and if total might be more than 127 ships
+    #     # self.add_datapoint(x_data, y_data)
+
+    #     # if parsed[AIS_Attributes.]
+    #     # # plot points if graph is visible
+    #     # if self.graph_obj.isVisible(): self.plot_data(self.datasets[self.current])
+
+    #     return
+
+    def log_data(self):
+        # TODO: log current data in csv file 
+        print("Data is logged!")
+        return
+    
+    def switch_current(self):
+        '''Switch index of self.dataset between 0 and 1'''
+        self.current = not self.current
+    
+    def update_polaris_pos(self, lon, lat):
+        self.polaris_pos = (lon, lat)
+        
