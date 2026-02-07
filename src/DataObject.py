@@ -229,20 +229,15 @@ class AISObject(DataObject): # NOTE: does this class need to take all arguments 
     def clear_data(self):
         self.data.clear() # remove all old data
 
-    def init_logging(self, timestamp):
-        # TODO: create, set up the csv file and headers - save reference to it
-       
+    def init_logging(self, timestamp):       
         """Initialize CSV logging files with timestamped names"""
         # Create logs directory if it doesn't exist
         if not os.path.exists('logs'):
             os.makedirs('logs')
         
-        # Create timestamped filenames        
-        # Values log file (CAN dump logging is now handled by separate process)
+        # Create timestamped filename       
+        # AIS log file (log file only for AIS values)
         self.ais_log_file = os.path.join('logs', f'ais_values_{timestamp}.csv')
-        # self.ais_log_file = "AIS_LOG_FILE"
-        # self.ais_csv_file = open(self.ais_log_file, 'w', newline='')
-        # self.ais_log_writer = csv.writer(self.ais_csv_file)
 
         # Header names
         values_header = ['Timestamp', 'Elapsed_Time_s'] + self.log_value_headers
@@ -253,10 +248,7 @@ class AISObject(DataObject): # NOTE: does this class need to take all arguments 
             writer.writerow(values_header)
             csv_file.flush()
         
-        # self.ais_log_writer.writerow(values_header)
-        # self.ais_csv_file.flush()  # Ensure header is written immediately
-        
-        print(f"Values logging initialized: {self.ais_log_file}")
+        print(f"AIS logging initialized: {self.ais_log_file}")
 
     def log_data(self, timestamp, elapsed_time):
         # TODO: log current data in csv file 
