@@ -49,13 +49,13 @@ def val(raw_bytes, s, e, div):
 
 # NOTE: Currently returns True/False, but parsing functions don't do anything with this return value as of yet - it just prints it as a notice
 # NOTE: May add functionality to also log if a given data point is out of range (ie. is sus)
-def range_check(num, minn = None, maxn = None):
+def range_check(quantity, num, minn = None, maxn = None):
     '''Prints error and returns False if given num is not within [min, max] (inclusive); if None is given for either max or min, that boundary is not checked.'''
     if (maxn is not None and num > maxn): 
-        print(f"ERROR - Value {num} is higher than expected range")
+        print(f"ERROR - {quantity} {num} is higher than expected range")
         return False
     if (minn is not None and num < minn):
-        print(f"ERROR - Value {num} is lower than expected range")
+        print(f"ERROR - {quantity} {num} is lower than expected range")
         return False
     return True
 
@@ -286,9 +286,9 @@ def parse_0x060_frame(data_hex):
         AIS_Attributes.TOTAL: val(raw_bytes, 24, 25, 1)
     }
 
-    range_check(parsed[AIS_Attributes.LATITUDE], -90, 90)
-    range_check(parsed[AIS_Attributes.LONGITUDE], -180, 180)
-    range_check(parsed[AIS_Attributes.SOG], 0)
+    range_check(AIS_Attributes.LATITUDE, parsed[AIS_Attributes.LATITUDE], -90, 90)
+    range_check(AIS_Attributes.LONGITUDE, parsed[AIS_Attributes.LONGITUDE], -180, 180)
+    range_check(AIS_Attributes.SOG, parsed[AIS_Attributes.SOG], 0)
 
     return parsed
 
@@ -371,13 +371,13 @@ gps_lat_obj = DataObject("gps_lat", 4, "DD", None, graph=None)
 gps_lon_obj = DataObject("gps_lon", 4, "DD", None, graph=None)
 
 # AIS
-polaris_pen = pg.mkPen(color='r', width=5) # set point border color (red)
+# polaris_pen = pg.mkPen(color='r', width=5) # set point border color (red)
 polaris_brush = pg.mkBrush(color='r')
-other_pen = pg.mkPen(color='b', width=1)
+# other_pen = pg.mkPen(color='b', width=1)
 other_brush = pg.mkBrush(color='b')
 
 position_graph_obj = GraphObject("Longitude", "Latitude", "DD", "DD", -90, 90, "Ship Positions") # note: this graph's x_range should definitely not be updated with the rest
-ais_obj = AISObject("Ship Positions", 4, "DD", None, other_pen, other_brush, polaris_pen, polaris_brush, graph = position_graph_obj)
+ais_obj = AISObject("Ship Positions", 4, "DD", None, other_brush, [att.value for att in AIS_Attributes], polaris_brush = polaris_brush, graph = position_graph_obj)
 
 # General sensors (pH, water temp, salinity)
 pH_graph_obj = GraphObject("pH", cg.graph_y, None, cg.graph_y_units, 0, 14)
