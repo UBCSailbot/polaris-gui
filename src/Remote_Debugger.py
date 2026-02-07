@@ -91,11 +91,11 @@ class CANWindow(
             self.trimtab_angle = 0
             self.send_trim_tab(from_keyboard=True)
     
+    def show_error(self, msg):
+        QMessageBox.critical(self, "Error", msg)
+        
     # def get_current_time(self):
     #     return time.time() - self.time_start
-
-def show_error(self, msg):
-    QMessageBox.critical(self, "Error", msg)
 
 def key_interrupt_cleanup(a, b):
     sys.exit(app.exec_())
