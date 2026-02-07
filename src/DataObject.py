@@ -1,6 +1,9 @@
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QLabel
 import pyqtgraph as pg
+# import time
+# from datetime import datetime
+import os
 import csv
 import config as cg
 
@@ -14,19 +17,21 @@ def create_label(title, min_width=cg.value_label_min_width, max_height=cg.value_
     label.setStyleSheet(cg.value_style)
     return label
 
-def create_line(graph_obj, name, x_data, y_data, colour, line_width, line_dashed, symbol = None):  
+def create_line(graph_obj, name, x_data, y_data, colour, line_width, line_dashed, symbol_brush = None, symbol = None):  
     '''
     Creates and returns a pyqt5 line attached to the given graph
     '''
     try:
-        pen = pg.mkPen(colour, width=line_width, style=QtCore.Qt.DashLine if line_dashed else None)
+        if colour is not None:
+            pen = pg.mkPen(colour, width=line_width, style=QtCore.Qt.DashLine if line_dashed else None)
 
         new_line = graph_obj.graph.plot(
             x_data,
             y_data,
-            name = name,
-            pen=pen, 
-            symbol = "o" if symbol else None
+            name=name,
+            pen=pen if colour is not None else None, # no line colour indicates no line
+            symbolBrush=symbol_brush,
+            symbol=symbol if symbol else None
         )        
         return new_line
         
@@ -41,7 +46,6 @@ def create_graph(title, x_label, y_label, title_style = cg.graph_title_style, la
     graph.setTitle(title, color=title_style[0], size=title_style[1])
     graph.setLabel("left", y_label, **label_style)
     graph.setLabel("bottom", x_label, **label_style)
-    # graph.setYRange(init_y_min, init_y_max)
     graph.addLegend()
     graph.showGrid(x=True, y=True)
     return graph
@@ -91,7 +95,7 @@ class GraphObject: # struct which keeps together objects needed for a graph
         return self.visible
 
 class DataObject:
-    def __init__(self, name, dp, units, parsing_fn, line_dashed = False, line_colour = None, hasLabel = True, graph: GraphObject = None):
+    def __init__(self, name, dp, units, parsing_fn, line_dashed = False, line_colour = None, symbol_brush = None, hasLabel = True, graph: GraphObject = None):
         self.name = name
         self.dp = dp # number of dp to round to
         self.units = units if units else ""
@@ -99,18 +103,19 @@ class DataObject:
         self.line_dashed = line_dashed # boolean indicating whether line should be dashed or not
         self.line_colour = line_colour # if not graphed, doesn't need line colour
         self.graph_obj = graph # if not graphed, doesn't need a graph
-        if (line_colour is None and graph is not None):
-            raise ValueError("DataObject __init__: Given a graph, but not a line colour")
+        # if (line_colour is None and graph is not None):
+        #     raise ValueError("DataObject __init__: Given a graph, but not a line colour")
         self.data = {} # no data when initialized: of form time:value
         self.current = None # key of most recent data entry datapoint
         self.line = None
         self.hasLabel = hasLabel
+        self.symbol_brush = symbol_brush
         return 
     
-    def initialize(self):
+    def initialize(self, timestamp = None):
         if self.graph_obj:
             if not self.graph_obj.initialized: self.graph_obj.initialize()
-            self.line = create_line(self.graph_obj, self.name, [], [], self.line_colour, cg.linewidth, self.line_dashed, symbol=False) # should automatically create line w/ empty data
+            self.line = create_line(self.graph_obj, self.name, [], [], self.line_colour, cg.linewidth, self.line_dashed, self.symbol_brush, symbol = 'o' if self.symbol_brush else None) # should automatically create line w/ empty data
         if self.hasLabel:
             self.label = create_label(self.name + ": ---- ") # should automatically create label
         else: self.label = None
@@ -169,8 +174,8 @@ class DataObject:
 
     
 class AISObject(DataObject): # NOTE: does this class need to take all arguments of parent class?
-    def __init__(self, name, dp, units, parsing_fn, other_pen, other_brush, polaris_pen = None, polaris_brush = None, graph: GraphObject = None):
-        super().__init__(name, dp, units, None, hasLabel = False, line_colour = other_brush.color(), graph = graph)
+    def __init__(self, name, dp, units, parsing_fn, other_brush, log_value_headers: list[str], polaris_brush = None, graph: GraphObject = None):
+        super().__init__(name, dp, units, None, hasLabel = False, line_colour = None, symbol_brush = other_brush, graph = graph)
         # below all done by super
         # self.name = name
         # self.dp = dp # number of dp to round to
@@ -183,18 +188,30 @@ class AISObject(DataObject): # NOTE: does this class need to take all arguments 
         #     raise ValueError("DataObject __init__: Given a graph, but not a line colour")
         # no data when initialized: of form time:value
         # self.current = None # key of most recent data entry datapoint
-        self.pen = other_pen
         self.brush = other_brush
-        self.polaris_pen = polaris_pen if polaris_pen is not None else other_pen
         self.polaris_brush = polaris_brush if polaris_brush is not None else other_brush
         self.polaris_pos = (None, None) # tuple with polaris's (longitude, latitude)
         # self.datasets is a list of two lists - each list contains several dictionaries; each dict contains all attributes from 1 CAN message
-        self.datasets = [[], []] # contains data for previous cycle and current cycle - each batch of AIS messages is separated
-        self.current_idx = False # index of data for current cycle in self.datasets
+        # self.datasets = [[], []] # contains data for previous cycle and current cycle - each batch of AIS messages is separated
+        self.dataset = [] # contains all data in this batch which must be logged
+        self.log_value_headers = log_value_headers
+        # self.current_idx = False # index of data for current cycle in self.datasets
+
+    def initialize(self, timestamp = None):
+        super().initialize()
+        if timestamp is None: 
+            print("ERROR: AISObject.initialize received null timestamp")
+        self.init_logging(timestamp)
+        # self.polaris_line = self.add_line("POLARIS", [], [], None, None, False, symbol_brush = self.polaris_brush, symbol = 'x')
+        self.polaris_line = create_line(self.graph_obj, "POLARIS", [], [], None, None, False, self.polaris_brush, 'x')
 
     def add_frame(self, x, y, data):
-        self.datasets[self.current_idx].append(data)
-        self.add_datapoint(x, y)
+        # self.datasets[self.current_idx].append(data) # NOTE: maybe I only need to hold on to dataset at a time, not two
+        self.dataset.append(data)
+        self.add_datapoint(x, y) # add (lon, lat) to data
+
+    def add_line(self, name, x_data, y_data, colour, line_width, line_dashed, symbol_brush = None, symbol = None):
+        return create_line(self.graph_obj, name, x_data, y_data, colour, line_width, line_dashed, symbol_brush, symbol)
 
     # def parse_frame(self, parsed): # x_data, y_data are floats, idx = -1 if index is not applicable
     #     # pen/brush used changes depending on frame_id
@@ -209,15 +226,62 @@ class AISObject(DataObject): # NOTE: does this class need to take all arguments 
 
     #     return
 
-    def log_data(self):
+    def clear_data(self):
+        self.data.clear() # remove all old data
+
+    def init_logging(self, timestamp):
+        # TODO: create, set up the csv file and headers - save reference to it
+       
+        """Initialize CSV logging files with timestamped names"""
+        # Create logs directory if it doesn't exist
+        if not os.path.exists('logs'):
+            os.makedirs('logs')
+        
+        # Create timestamped filenames        
+        # Values log file (CAN dump logging is now handled by separate process)
+        self.ais_log_file = os.path.join('logs', f'ais_values_{timestamp}.csv')
+        # self.ais_log_file = "AIS_LOG_FILE"
+        # self.ais_csv_file = open(self.ais_log_file, 'w', newline='')
+        # self.ais_log_writer = csv.writer(self.ais_csv_file)
+
+        # Header names
+        values_header = ['Timestamp', 'Elapsed_Time_s'] + self.log_value_headers
+
+        # Write headers to file
+        with open(self.ais_log_file, 'w', newline='') as csv_file:
+            writer = csv.writer(csv_file)
+            writer.writerow(values_header)
+            csv_file.flush()
+        
+        # self.ais_log_writer.writerow(values_header)
+        # self.ais_csv_file.flush()  # Ensure header is written immediately
+        
+        print(f"Values logging initialized: {self.ais_log_file}")
+
+    def log_data(self, timestamp, elapsed_time):
         # TODO: log current data in csv file 
-        print("Data is logged!")
+        # if (not self.dataset): return # No data in dataset
+        # try:
+        #     values = [timestamp, elapsed_time]
+
+        #     for frame in self.dataset:
+        #         for key in frame.keys(): # get the keys in data
+        #             values.append(self.dataset[key])
+        #         self.ais_log_writer.writerow(values) # write one row for each frame in dataset
+        #     self.ais_csv_file.flush()  # Flush immediately to prevent data loss
+        # except Exception as e:
+        #     print(f"Error logging values: {e}")
+
+        print("AIS data logged!")
+        self.dataset.clear()
         return
     
-    def switch_current(self):
-        '''Switch index of self.dataset between 0 and 1'''
-        self.current = not self.current
-    
     def update_polaris_pos(self, lon, lat):
-        self.polaris_pos = (lon, lat)
+        if lon is None or lat is None: 
+            print("ERR - update_polaris_pos(): POLARIS lon or lat is None, its position cannot be graphed")
+            return # if either is None, can't graph position - just return
+        if self.graph_obj.isVisible():
+            self.polaris_line.setData([lon], [lat])
+        print("polaris_pos updated!")
+        print("self.polaris_line = (", self.polaris_line.xData, ", ", self.polaris_line.yData, ")")
         
