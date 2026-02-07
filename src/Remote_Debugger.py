@@ -763,15 +763,22 @@ class CANWindow(QWidget):
                             try:
                                 raw_data = line.split(']')[-1].strip().split()
                                 parsed = parse_0x060_frame(''.join(raw_data))
+                                # TODO: Should keep track of time since last batch of AIS messages, clear data if none received in the past minute or cycle or so
+                                if parsed[AIS_Attributes.IDX] == 0: # if this is the first in a batch of new AIS messages, remove old ones
+                                    print("clear_data() called")
+                                    ais_obj.clear_data()
                                 ais_obj.add_frame(parsed[AIS_Attributes.LONGITUDE], parsed[AIS_Attributes.LATITUDE], parsed)
+                                # print("current data: ", ais_obj.data)
+                                # print("parsed dict: ", parsed)
                                 # If this is the last frame in the batch
-                                if parsed[AIS_Attributes.IDX] == parsed[AIS_Attributes.TOTAL]:
-                                    ais_obj.log_data()
+                                if parsed[AIS_Attributes.IDX] == (parsed[AIS_Attributes.TOTAL] - 1):
+                                    ais_obj.log_data(datetime.now().isoformat(), time.time() - self.time_start)
                                     # if graph is visible
                                     if ais_obj.graph_obj.isVisible():
                                         ais_obj.update_line_data()
-                                    ais_obj.switch_current()
-
+                                        # ais_obj.update_polaris_pos(gps_lon_obj.get_current()[1], gps_lat_obj.get_current()[1])
+                                #     print("total ships: ", len(ais_obj.data))
+                                #     print("total ships (dataset len): ", len(ais_obj.dataset))
 
                             except Exception as e:
                                 self.output_display.append(f"[PARSE ERROR 0x060] {str(e)}")
@@ -782,6 +789,10 @@ class CANWindow(QWidget):
                                     for obj in gps_objs:
                                         obj.parse_frame(current_time, None, parsed)
                                         obj.update_label()
+
+                                    if ais_obj.graph_obj.isVisible(): # graph POLARIS's current position if graph is visible
+                                        ais_obj.update_polaris_pos(gps_lon_obj.get_current()[1], gps_lat_obj.get_current()[1])
+                                
                                 except Exception as e:
                                     self.output_display.append(f"[PARSE ERROR 0x070] {str(e)}")
 
@@ -942,7 +953,7 @@ if __name__ == "__main__":
 
     app = QApplication(sys.argv)
     for obj in all_objs:
-        obj.initialize() # create QWidgets
+        obj.initialize(timestamp) # create QWidgets
     window = CANWindow(queue, parent_conn, cmd_queue, response_queue, can_log_queue)
     window.show()
 
