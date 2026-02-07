@@ -11,7 +11,7 @@ from . import styles
 from utility import *
 
 # constants
-small_spacing = 2
+SMALL_SPACING = 2
 
 def init_top_bar(self):
     self.logo_label = QLabel()
@@ -51,9 +51,9 @@ def init_desired_heading_input_group(self):
     self.desired_heading_label = QLabel("Heading Angle:")
     self.desired_heading_label.setStyleSheet(input_label_style)
     self.desired_heading_input_layout.addWidget(self.desired_heading_label)
-    self.desired_heading_input_layout.addSpacing(small_spacing)
+    self.desired_heading_input_layout.addSpacing(SMALL_SPACING)
     self.desired_heading_input_layout.addWidget(self.desired_heading_input)
-    self.desired_heading_input_layout.addSpacing(small_spacing)
+    self.desired_heading_input_layout.addSpacing(SMALL_SPACING)
     self.desired_heading_input_layout.addWidget(self.desired_heading_button)
     self.desired_heading_button.clicked.connect(self.send_desired_heading)
     self.desired_heading_input_group = QWidget()
@@ -68,9 +68,9 @@ def init_rudder_input_group(self):
     self.rudder_input_label = QLabel("Rudder Angle:")
     self.rudder_input_label.setStyleSheet(input_label_style)
     self.rudder_input_layout.addWidget(self.rudder_input_label)
-    self.rudder_input_layout.addSpacing(small_spacing)
+    self.rudder_input_layout.addSpacing(SMALL_SPACING)
     self.rudder_input_layout.addWidget(self.rudder_input)
-    self.rudder_input_layout.addSpacing(small_spacing)
+    self.rudder_input_layout.addSpacing(SMALL_SPACING)
     self.rudder_input_layout.addWidget(self.rudder_button)
     self.rudder_button.clicked.connect(self.send_rudder)
     self.rudder_input_group = QWidget()
@@ -87,9 +87,9 @@ def init_trim_input_group(self):
     self.trim_input_label = QLabel("Trim Tab Angle:")
     self.trim_input_label.setStyleSheet(input_label_style)
     self.trim_input_layout.addWidget(self.trim_input_label)
-    self.trim_input_layout.addSpacing(small_spacing)
+    self.trim_input_layout.addSpacing(SMALL_SPACING)
     self.trim_input_layout.addWidget(self.trim_input)
-    self.trim_input_layout.addSpacing(small_spacing)
+    self.trim_input_layout.addSpacing(SMALL_SPACING)
     self.trim_input_layout.addWidget(self.trim_button)
     self.trim_input_group = QWidget()
     self.trim_input_group.setLayout(self.trim_input_layout)

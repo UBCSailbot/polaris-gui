@@ -6,7 +6,6 @@ import time
 from DataObject import *
 from utility import *
 
-
 def can_logging_process(queue: multiprocessing.Queue, log_queue: multiprocessing.Queue, timestamp):
     """Dedicated process for logging CAN messages without blocking graphics"""
     try:
