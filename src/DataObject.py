@@ -122,7 +122,9 @@ class DataObject:
         
     # Return a tuple with the time:value of the most current data point collected
     def get_current(self):
-        val = round(self.data.get(self.current), self.dp) if (self.current is not None) else None
+        val = None
+        if self.current and self.data.get(self.current):
+            val = round(self.data.get(self.current), self.dp)
         return self.current, val # returns the time, value of most recently logged datapoint
     
     # add a datapoint to self.data
@@ -251,21 +253,24 @@ class AISObject(DataObject): # NOTE: does this class need to take all arguments 
         print(f"AIS logging initialized: {self.ais_log_file}")
 
     def log_data(self, timestamp, elapsed_time):
-        # TODO: log current data in csv file 
-        # if (not self.dataset): return # No data in dataset
-        # try:
-        #     values = [timestamp, elapsed_time]
-
-        #     for frame in self.dataset:
-        #         for key in frame.keys(): # get the keys in data
-        #             values.append(self.dataset[key])
-        #         self.ais_log_writer.writerow(values) # write one row for each frame in dataset
-        #     self.ais_csv_file.flush()  # Flush immediately to prevent data loss
-        # except Exception as e:
-        #     print(f"Error logging values: {e}")
+        '''log AIS data from current batch into csv file''' 
+        # TODO: in the function which calls this, the parsing should return the data as None so that None is logged in the csv
+        if (not self.dataset): return # No data in dataset
+        try:
+            with open(self.ais_log_file, 'a', newline='') as csv_file:
+                writer = csv.writer(csv_file)
+                for frame in self.dataset:
+                    # print("frame = ", frame)
+                    values = [timestamp, elapsed_time]
+                    for key in frame.keys(): # get the keys in data
+                        values.append(frame[key])
+                    writer.writerow(values)
+                csv_file.flush()  # Flush immediately to prevent data loss
+        except Exception as e:
+            print(f"Error logging AIS values: {e}")
 
         print("AIS data logged!")
-        self.dataset.clear()
+        self.dataset.clear() # clear data once logged
         return
     
     def update_polaris_pos(self, lon, lat):
