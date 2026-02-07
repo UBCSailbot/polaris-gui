@@ -3,6 +3,7 @@ import time
 
 from utility import *
 
+# Window update functions
 class CANWindowUpdateMixin:
     def update_status(self):
         # Update time independently of CAN messages

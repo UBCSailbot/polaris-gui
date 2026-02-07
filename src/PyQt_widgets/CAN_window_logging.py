@@ -4,6 +4,7 @@ import os
 import time
 from utility import data_objs
 
+# Logging functions
 class CANWindowLoggingMixin: 
     def _init_logging(self):
         """Initialize CSV logging files with timestamped names"""

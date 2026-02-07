@@ -1,5 +1,7 @@
 from .elements import *
+from PyQt5.QtWidgets import QTextEdit, QApplication
 
+# UI creation functions
 class CANWindowUIMixin:
     def init_ui(self):   
           

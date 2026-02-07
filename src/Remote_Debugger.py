@@ -8,7 +8,6 @@ from PyQt5.QtWidgets import (
     QApplication, QWidget, QMessageBox
 )
 from PyQt5.QtCore import QTimer, Qt
-from PyQt5.QtGui import QPixmap, QFont
 
 from DataObject import *
 from utility import *

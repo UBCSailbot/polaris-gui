@@ -9,8 +9,10 @@ from config import *
 from . import styles
 from utility import *
 
-# constants
+# CONSTANTS
 SMALL_SPACING = 2
+
+# Functions to initialize all the ui elements
 
 def init_top_bar(self):
     self.logo_label = QLabel()

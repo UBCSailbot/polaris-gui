@@ -2,7 +2,7 @@ import time
 
 from utility import *
 
-
+# CAN send functions
 class CANWindowControlsMixin:
     def can_send(self, frame_id, data, display_msg):
         '''
