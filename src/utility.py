@@ -393,7 +393,7 @@ sal_obj = DataObject("Salinity", None, "µS/cm", sal_parsing_fn, line_colour='g'
 pdb_objs = [temp1_obj, temp2_obj , temp3_obj, volt1_obj, volt2_obj, volt3_obj, volt4_obj, mppt_hp_obj, mppt_hs_obj, mppt_sp_obj, mppt_ss_obj]
 rudder_objs = [actual_rudder_obj, set_rudder_obj, spd_over_gnd_obj, imu_roll_obj, imu_pitch_obj, integral_obj, derivative_obj, imu_heading_obj] # all objects with data from 0x204 frame (rudder -> mainframe)
 data_objs = [pH_obj, temp_sensor_obj, sal_obj]
-gps_objs = [gps_lat_obj, gps_lon_obj]
+gps_objs = [gps_lon_obj, gps_lat_obj]
 # Only data_objs are logged together in the values csv file; they are all graphed vs. Time and have their values trimmed accordingly over time
 data_objs = gps_objs + data_objs + data_wind_objs + rudder_objs + pdb_objs 
 all_objs = data_objs.copy()
