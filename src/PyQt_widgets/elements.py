@@ -15,7 +15,7 @@ SMALL_SPACING = 2
 
 def init_top_bar(self):
     self.logo_label = QLabel()
-    pixmap = QPixmap("logo.png")
+    pixmap = QPixmap("src/logo.png")
     pixmap = pixmap.scaled(40, 40, Qt.KeepAspectRatio, Qt.SmoothTransformation)
     self.logo_label.setPixmap(pixmap)
 
