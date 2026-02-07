@@ -257,9 +257,9 @@ def parse_0x070_frame(data_hex):
         spd_over_gnd_obj.name: val(16, 20, 1000)
     }
 
-    range_check(parsed[gps_lat_obj.name], -90, 90)
-    range_check(parsed[gps_lon_obj.name], -180, 180)
-    range_check(parsed[spd_over_gnd_obj.name], 0)
+    range_check(gps_lat_obj.name, parsed[gps_lat_obj.name], -90, 90)
+    range_check(gps_lon_obj.name, parsed[gps_lon_obj.name], -180, 180)
+    range_check(spd_over_gnd_obj.name, parsed[spd_over_gnd_obj.name], 0)
 
     return parsed
 
