@@ -1,10 +1,9 @@
 from PyQt5.QtWidgets import (
-    QApplication, QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout,
-    QMessageBox, QTextEdit, QHBoxLayout, QCheckBox, QGridLayout, QComboBox,
-    QSizePolicy
+    QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout,
+    QHBoxLayout, QCheckBox, QGridLayout, QComboBox
 )
 from PyQt5.QtGui import QPixmap, QFont
-from PyQt5.QtCore import QTimer, Qt
+from PyQt5.QtCore import Qt
 
 from config import *
 from . import styles
