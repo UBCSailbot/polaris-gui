@@ -123,7 +123,7 @@ class DataObject:
     # Return a tuple with the time:value of the most current data point collected
     def get_current(self):
         val = None
-        if self.current and self.data.get(self.current):
+        if self.current and self.data.get(self.current) is not None:
             val = round(self.data.get(self.current), self.dp)
         return self.current, val # returns the time, value of most recently logged datapoint
     
