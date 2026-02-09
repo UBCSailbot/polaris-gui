@@ -208,7 +208,8 @@ class AISObject(DataObject): # NOTE: does this class need to take all arguments 
         self.polaris_line = create_line(self.graph_obj, "POLARIS", [], [], None, None, False, self.polaris_brush, 'x')
 
     def add_frame(self, x, y, data):
-        # self.datasets[self.current_idx].append(data) # NOTE: maybe I only need to hold on to dataset at a time, not two
+        if x is None or y is None:
+            print("ERR - add_frame() received None for lat or lon from AIS frame")
         self.dataset.append(data)
         self.add_datapoint(x, y) # add (lon, lat) to data
 
@@ -263,7 +264,9 @@ class AISObject(DataObject): # NOTE: does this class need to take all arguments 
                     # print("frame = ", frame)
                     values = [timestamp, elapsed_time]
                     for key in frame.keys(): # get the keys in data
-                        values.append(frame[key])
+                        if frame[key] is None:
+                            values.append("None")
+                        else: values.append(frame[key])
                     writer.writerow(values)
                 csv_file.flush()  # Flush immediately to prevent data loss
         except Exception as e:
