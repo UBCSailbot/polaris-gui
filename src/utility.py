@@ -29,6 +29,21 @@ class AIS_Attributes(Enum):
     IDX = "index"
     TOTAL = "total_ships"
 
+# This list is ordered according to 0x060 frame conventions as specified on confluence (don't reorder or else heading order will be incorrect)
+ais_attributes = [
+    AIS_Attributes.SID, 
+    AIS_Attributes.LATITUDE,
+    AIS_Attributes.LONGITUDE, 
+    AIS_Attributes.SOG,
+    AIS_Attributes.COG,
+    AIS_Attributes.HEADING,
+    AIS_Attributes.ROT,
+    AIS_Attributes.LENGTH,
+    AIS_Attributes.WIDTH,
+    AIS_Attributes.IDX,
+    AIS_Attributes.TOTAL
+]
+
 ### ----------  Utility Functions ---------- ###
 # Note that these functions are designed to work with positive numbers
 def convert_to_hex(decimal, num_bytes):
@@ -51,6 +66,9 @@ def val(raw_bytes, s, e, div):
 # NOTE: May add functionality to also log if a given data point is out of range (ie. is sus)
 def range_check(quantity, num, minn = None, maxn = None):
     '''Prints error and returns False if given num is not within [min, max] (inclusive); if None is given for either max or min, that boundary is not checked.'''
+    if num is None: 
+        print(f"Warning: {quantity} passed to range_check was None")
+        return
     if (maxn is not None and num > maxn): 
         print(f"ERROR - {quantity} {num} is higher than expected range")
         return False
@@ -276,12 +294,12 @@ def parse_0x060_frame(data_hex):
         AIS_Attributes.SID: val(raw_bytes, 0, 4, 1),
         AIS_Attributes.LATITUDE: val(raw_bytes, 4, 8, 1000000) - 90,
         AIS_Attributes.LONGITUDE: val(raw_bytes, 8, 12, 1000000) - 180,
-        AIS_Attributes.SOG: val(raw_bytes, 12, 14, 10) if (val(raw_bytes, 12, 14, 10) != AIS_Attributes.SOG_NA) else None, 
-        AIS_Attributes.COG: val(raw_bytes, 14, 16, 10) if (val(raw_bytes, 14, 16, 10) != AIS_Attributes.COG_NA) else None, 
-        AIS_Attributes.HEADING: val(raw_bytes, 16, 18, 10) if (val(raw_bytes, 16, 18, 10) != AIS_Attributes.HEADING_NA) else None, 
-        AIS_Attributes.ROT: (val(raw_bytes, 18, 19, 1) - 128) if ((val(raw_bytes, 18, 19, 1) - 128) != AIS_Attributes.ROT_NA) else None, 
-        AIS_Attributes.LENGTH: val(raw_bytes, 19, 21, 1) if (val(raw_bytes, 19, 21, 1) != AIS_Attributes.LENGTH_NA) else None, 
-        AIS_Attributes.WIDTH: val(raw_bytes, 21, 23, 1) if (val(raw_bytes, 21, 23, 1) != AIS_Attributes.WIDTH_NA) else None, 
+        AIS_Attributes.SOG: val(raw_bytes, 12, 14, 10) if (val(raw_bytes, 12, 14, 1) != AIS_Attributes.SOG_NA.value) else None, 
+        AIS_Attributes.COG: val(raw_bytes, 14, 16, 10) if (val(raw_bytes, 14, 16, 1) != AIS_Attributes.COG_NA.value) else None, 
+        AIS_Attributes.HEADING: val(raw_bytes, 16, 18, 1) if (val(raw_bytes, 16, 18, 1) != AIS_Attributes.HEADING_NA.value) else None, 
+        AIS_Attributes.ROT: (val(raw_bytes, 18, 19, 1) - 128) if ((val(raw_bytes, 18, 19, 1) - 128) != AIS_Attributes.ROT_NA.value) else None, 
+        AIS_Attributes.LENGTH: val(raw_bytes, 19, 21, 1) if (val(raw_bytes, 19, 21, 1) != AIS_Attributes.LENGTH_NA.value) else None, 
+        AIS_Attributes.WIDTH: val(raw_bytes, 21, 23, 1) if (val(raw_bytes, 21, 23, 1) != AIS_Attributes.WIDTH_NA.value) else None, 
         AIS_Attributes.IDX: val(raw_bytes, 23, 24, 1),
         AIS_Attributes.TOTAL: val(raw_bytes, 24, 25, 1)
     }
@@ -360,7 +378,7 @@ derivative_obj = DataObject("IMU_derivative", 2, None, None, line_colour="pink",
 
 # Data Wind Sensor
 data_wind_spd_graph_obj = GraphObject("Data_Wind Speed", cg.graph_y, "knots", cg.graph_y_units, 0, 20)
-data_wind_spd_obj = DataObject("Data_Wind_spd", 0, "knots", None, line_colour="turquoise", graph=data_wind_spd_graph_obj)
+data_wind_spd_obj = DataObject("Data_Wind_spd", 1, "knots", None, line_colour="turquoise", graph=data_wind_spd_graph_obj)
 data_wind_dir_graph_obj = GraphObject("Data_Wind Direction", cg.graph_y, "°", cg.graph_y_units, 0, 360)
 data_wind_dir_obj = DataObject("Data_Wind_dir", 0, "°", None, line_colour="orange", graph=data_wind_dir_graph_obj)
 
@@ -377,7 +395,7 @@ polaris_brush = pg.mkBrush(color='r')
 other_brush = pg.mkBrush(color='b')
 
 position_graph_obj = GraphObject("Longitude", "Latitude", "DD", "DD", -90, 90, "Ship Positions") # note: this graph's x_range should definitely not be updated with the rest
-ais_obj = AISObject("Ship Positions", 4, "DD", None, other_brush, [att.value for att in AIS_Attributes], polaris_brush = polaris_brush, graph = position_graph_obj)
+ais_obj = AISObject("Ship Positions", 4, "DD", None, other_brush, [att.value for att in ais_attributes], polaris_brush = polaris_brush, graph = position_graph_obj)
 
 # General sensors (pH, water temp, salinity)
 pH_graph_obj = GraphObject("pH", cg.graph_y, None, cg.graph_y_units, 0, 14)
