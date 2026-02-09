@@ -306,44 +306,47 @@ def send_ais_command(client, num_msgs):
             try:
 
                 id = convert_to_little_endian(convert_to_hex(i * 10000000, 4))
-                lat = convert_to_little_endian(convert_to_hex(int(((y_data * 240) + 0.123499999) * 1000000), 4)) # should change by 1
-                lon = convert_to_little_endian(convert_to_hex(int(((x_data * 31) + 0.987611111) * 1000000), 4))
+                lat = convert_to_little_endian(convert_to_hex(int((slope_data) * 1000000), 4)) # should change by 1
+                lon = convert_to_little_endian(convert_to_hex(int((slope_data) * 1000000), 4))
+                # lat = convert_to_little_endian(convert_to_hex((85 + 90) * 1000000, 4)) # should be received/logged as 85
+                # lon = convert_to_little_endian(convert_to_hex((120 + 180) * 1000000, 4)) # should received/logged as 120
+
                 sog = 0
                 if (i == 3):
                     sog = convert_to_little_endian(convert_to_hex(1023, 2)) # test sog not available 
                 else:
-                    sog = convert_to_little_endian(convert_to_hex(int(slope_data) * 100, 2))
+                    sog = convert_to_little_endian(convert_to_hex(35, 2)) # should be received as 3.5
 
                 cog = 0
                 if (i == 5):
                     cog = convert_to_little_endian(convert_to_hex(3600, 2)) # test cog not available
                 else:
-                    cog = convert_to_little_endian(convert_to_hex(int(slope_data) * 100, 2))    
+                    cog = convert_to_little_endian(convert_to_hex(0, 2)) # received as 0
                 
                 true_heading = 0
                 if (i == 2):
                     true_heading = convert_to_little_endian(convert_to_hex(511, 2)) # test true heading not available
                 else:
-                    true_heading = convert_to_little_endian(convert_to_hex(int(slope_data) * 200, 2)) 
+                    true_heading = convert_to_little_endian(convert_to_hex(359, 2)) # received as 359
 
                 rot = 0
                 if (i == 4):
                     rot = convert_to_little_endian(convert_to_hex(0, 1)) # test rot not available (ROT = -128, sent as ROT + 128)
                 else:
-                    rot = convert_to_little_endian(convert_to_hex(int(slope_data) * 200, 1)) 
+                    rot = convert_to_little_endian(convert_to_hex(-54 + 128, 1)) # received as -54
 
 
                 ship_len = 0
                 if (i == 1):
                     ship_len = convert_to_little_endian(convert_to_hex(0, 2)) # test ship length not available
                 else:
-                    ship_len = convert_to_little_endian(convert_to_hex(int(slope_data) * 250, 2)) 
+                    ship_len = convert_to_little_endian(convert_to_hex(10, 2)) # received as 10
 
                 ship_wid = 0
                 if (i == 0):
                     ship_wid = convert_to_little_endian(convert_to_hex(0, 2)) # test ship length not available
                 else:
-                    ship_wid = convert_to_little_endian(convert_to_hex(int(slope_data) * 70, 2)) 
+                    ship_wid = convert_to_little_endian(convert_to_hex(30, 2)) # received as 30
 
                 idx = convert_to_little_endian(convert_to_hex(i, 1))
 
@@ -353,6 +356,9 @@ def send_ais_command(client, num_msgs):
                 can_message = "cansend " + can_line + " 060##1" + can_data
 
                 # print(len(can_data) / 2)
+                if (i == 3):
+                    print("sending CAN message with idx = 3: ")
+                    pass
 
                 # Execute the cansend command
                 stdin, stdout, stderr = client.exec_command(can_message)
@@ -456,7 +462,7 @@ def main():
                 print("Failed to send command, continuing...")
 
             print(f"Sending AIS command...")
-            success = send_ais_command(client, 20) # TODO: test with larger numbers of ships - test with more than 127 - note: I did do this, might try again later
+            success = send_ais_command(client, 8) # TODO: test with larger numbers of ships - test with more than 127 - note: I did do this, might try again later
             if not success:
                 print("Failed to send command, continuing...")
 
