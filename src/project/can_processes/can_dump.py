@@ -1,8 +1,8 @@
 import multiprocessing
 import time
 import paramiko
-from data_object import *
-from utility import *
+from project.data_object import *
+from project.utility import *
 
 ### ----------  Background CAN Dump Process ---------- ###
 def candump_process(queue: multiprocessing.Queue, testing):

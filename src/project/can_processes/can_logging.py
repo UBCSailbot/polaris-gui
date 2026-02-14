@@ -3,8 +3,8 @@ import os
 import multiprocessing
 import time
 from datetime import datetime
-from data_object import *
-from utility import *
+from project.data_object import *
+from project.utility import *
 
 def can_logging_process(queue: multiprocessing.Queue, log_queue: multiprocessing.Queue, timestamp):
     """Dedicated process for logging CAN messages without blocking graphics"""

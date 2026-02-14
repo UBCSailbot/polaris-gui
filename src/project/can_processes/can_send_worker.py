@@ -1,7 +1,7 @@
 import multiprocessing
 import paramiko
-from data_object import *
-from utility import *
+from project.data_object import *
+from project.utility import *
 
 def cansend_worker(cmd_queue: multiprocessing.Queue, response_queue: multiprocessing.Queue, can_log_queue: multiprocessing.Queue):
     client = paramiko.SSHClient()
