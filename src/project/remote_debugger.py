@@ -786,6 +786,10 @@ class CANWindow(QWidget):
                     # TODO: Use a dictionary with frame id:function - just runs the function associated with frame id?
                     # There's definitely some abstraction that can be done here
                     match frame_id:
+                        case "001": # Sent frame to rudder
+                            pass
+                        case "002": # Sent frame to trim tab
+                            pass
                         case "041": # Data_Wind frame
                             try:
                                 raw_data = line.split(']')[-1].strip().split()
