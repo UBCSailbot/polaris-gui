@@ -65,4 +65,4 @@ scroll_window = 60 # in seconds
 
 # ==== Joystick ====
 movement_sensitivity = 1 # number of decimal point precision
-angle_change = 20 # degrees
+max_angle = 20 # degrees
