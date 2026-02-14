@@ -211,12 +211,16 @@ class AISObject(DataObject): # NOTE: does this class need to take all arguments 
         # self.polaris_line = self.add_line("POLARIS", [], [], None, None, False, symbol_brush = self.polaris_brush, symbol = 'x')
         self.polaris_line = create_line(self.graph_obj, "POLARIS", [], [], None, None, False, self.polaris_brush, 'x')
 
-    def add_frame(self, x, y, key, data):
+    def add_frame(self, x, y, key, data, x_key):
+        '''x_key is the key for the value containing the x_value'''
         if x is None or y is None:
             print("ERR - add_frame() received None for lat or lon from AIS frame")
-        self.dataset[key] = data # TODO: instead of appending, replace on ship MSID or whatever its called - should self.dataset be a dict instead?
+        if (key in self.dataset): # if ship already exists in dataset
+            self.remove_datapoint(self.dataset[key][x_key]) # remove old lon/lat value from graph
+        
+        self.dataset[key] = data # NOTE: instead of appending, replace on ship SID - should self.dataset be a dict instead? Check that everything works like this
         # TODO: note that self.data is a dict with x: y - to replace pts, remove old pt using key(old longitude), then update longitude and put new point using new longitude
-        self.add_datapoint(x, y) # add (lon, lat) to data; 
+        self.add_datapoint(x, y) # add new (lon, lat) of ship to list of datapoints to graph 
 
     def add_line(self, name, x_data, y_data, colour, line_width, line_dashed, symbol_brush = None, symbol = None):
         return create_line(self.graph_obj, name, x_data, y_data, colour, line_width, line_dashed, symbol_brush, symbol)
@@ -247,12 +251,11 @@ class AISObject(DataObject): # NOTE: does this class need to take all arguments 
 
     def log_data(self, timestamp, elapsed_time):
         '''log AIS data from current batch into csv file''' 
-        # TODO: in the function which calls this, the parsing should return the data as None so that None is logged in the csv
         if (not self.dataset): return # No data in dataset
         try:
             with open(self.ais_log_file, 'a', newline='') as csv_file:
                 writer = csv.writer(csv_file)
-                for frame in self.dataset:
+                for frame in self.dataset.values(): # for each frame in the dataset
                     # print("frame = ", frame)
                     values = [timestamp, elapsed_time]
                     for key in frame.keys(): # get the keys in data
@@ -265,7 +268,7 @@ class AISObject(DataObject): # NOTE: does this class need to take all arguments 
             print(f"Error logging AIS values: {e}")
 
         print("AIS data logged!")
-        self.dataset.clear() # clear data once logged
+        # self.dataset.clear() # Don't clear data 
         return
     
     def update_polaris_pos(self, lon, lat):

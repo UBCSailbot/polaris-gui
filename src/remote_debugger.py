@@ -798,21 +798,15 @@ class CANWindow(QWidget):
                                 if parsed[AIS_Attributes.TOTAL] == 0: # if there are no ships
                                     # print("clear_data() called")
                                     ais_obj.clear_data()
-                                    # TODO: log?
+                                    # TODO: log here?                                                                                           
 
-                                
-
-                                ais_obj.add_frame(parsed[AIS_Attributes.LONGITUDE], parsed[AIS_Attributes.LATITUDE], parsed) # TODO: This needs to change
+                                ais_obj.add_frame(parsed[AIS_Attributes.LONGITUDE], parsed[AIS_Attributes.LATITUDE], parsed[AIS_Attributes.SID], parsed, AIS_Attributes.LONGITUDE) # TODO: This needs to change
                                 # print("current data: ", ais_obj.data)
                                 # print("parsed dict: ", parsed)
                                 # print("index = ", parsed[AIS_Attributes.IDX])
                                 # If this is the last frame in the batch
                                 if parsed[AIS_Attributes.IDX] == (parsed[AIS_Attributes.TOTAL] - 1):
                                     ais_obj.log_data(datetime.now().isoformat(), time.time() - self.time_start)
-                                    # if graph is visible
-                                    if ais_obj.graph_obj.isVisible():
-                                        ais_obj.update_line_data()
-                                        # ais_obj.update_polaris_pos(gps_lon_obj.get_current()[1], gps_lat_obj.get_current()[1])
                                     # print("total ships: ", len(ais_obj.data))
                                 #     print("total ships (dataset len): ", len(ais_obj.dataset))
 
