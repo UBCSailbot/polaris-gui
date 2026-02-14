@@ -25,7 +25,7 @@ def create_line(graph_obj, name, x_data, y_data, colour, line_width, line_dashed
         if colour is not None:
             pen = pg.mkPen(colour, width=line_width, style=QtCore.Qt.DashLine if line_dashed else None)
 
-        new_line = graph_obj.graph.plot(
+        new_line = graph_obj.graph.plot( # a line is a PlotDataItem
             x_data,
             y_data,
             name=name,
@@ -215,19 +215,6 @@ class AISObject(DataObject): # NOTE: does this class need to take all arguments 
 
     def add_line(self, name, x_data, y_data, colour, line_width, line_dashed, symbol_brush = None, symbol = None):
         return create_line(self.graph_obj, name, x_data, y_data, colour, line_width, line_dashed, symbol_brush, symbol)
-
-    # def parse_frame(self, parsed): # x_data, y_data are floats, idx = -1 if index is not applicable
-    #     # pen/brush used changes depending on frame_id
-    #     # logs current points and clears all previous points if idx = total, also calls set_data if graph is visible
-
-    #     # Note: This function should contain logic for calculating if idx == total and if total might be more than 127 ships
-    #     # self.add_datapoint(x_data, y_data)
-
-    #     # if parsed[AIS_Attributes.]
-    #     # # plot points if graph is visible
-    #     # if self.graph_obj.isVisible(): self.plot_data(self.datasets[self.current])
-
-    #     return
 
     def clear_data(self):
         self.data.clear() # remove all old data
