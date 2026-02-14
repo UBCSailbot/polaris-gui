@@ -926,8 +926,8 @@ class CANWindow(QWidget):
         if self.js is not None and self.js_enabled:
             pos = round(self.js.get_axis(3), cg.movement_sensitivity)
             if (pos != round(self.js_prev_pos, cg.movement_sensitivity)):
-                print(f"new angle = {pos * cg.angle_change}")
-                self.send_rudder(set_angle = cg.angle_change * pos)
+                print(f"new angle = {pos * cg.max_angle}")
+                self.send_rudder(set_angle = cg.max_angle * pos)
                 self.js_prev_pos = pos
 
             # if (pos > 0.9) and self.js_prev_state is not JS_DIRECTIONS.RIGHT:

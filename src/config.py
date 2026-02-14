@@ -62,3 +62,7 @@ graph_y_units = "s"
 graph_min_width = 250
 graph_min_height = 300
 scroll_window = 60 # in seconds
+
+# ==== Joystick ====
+movement_sensitivity = 1 # number of decimal point precision
+angle_change = 20 # degrees
