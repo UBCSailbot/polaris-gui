@@ -5,6 +5,7 @@ import multiprocessing
 import time
 import csv
 import os
+import pygame
 from datetime import datetime
 
 from PyQt5.QtWidgets import (
@@ -153,7 +154,7 @@ def can_logging_process(queue: multiprocessing.Queue, log_queue: multiprocessing
 
 ### ----------  PyQt5 GUI ---------- ###
 class CANWindow(QWidget):
-    def __init__(self, queue, temp_pipe, cmd_queue, response_queue, can_log_queue):
+    def __init__(self, queue, temp_pipe, cmd_queue, response_queue, can_log_queue, joystick: pygame.joystick.JoystickType = None):
         super().__init__()
         self.queue = queue
         self.temp_pipe = temp_pipe
@@ -171,6 +172,11 @@ class CANWindow(QWidget):
 
         self.time_start = time.time()
         self.time_history = []
+
+        self.js = joystick # joystick
+        self.js_prev_state = None # TODO: modify to be prev_pos instead
+        self.js_prev_pos = 0
+        self.js_enabled = False
 
         # Initialize logging
         self._init_logging()
@@ -548,12 +554,14 @@ class CANWindow(QWidget):
     def set_manual_steer(self, checked):
         self.rudder_input_group.setVisible(checked)
         self.desired_heading_input_group.setVisible(not checked)
+        
 
     def toggle_keyboard_mode(self, checked):
         self.rudder_input.setDisabled(checked)
         self.rudder_button.setDisabled(checked)
         self.trim_input.setDisabled(checked)
         self.trim_button.setDisabled(checked)
+        if self.js is not None: self.js_enabled = checked
 
     def toggle_emergency_buttons(self, state):
         enabled = state == Qt.Checked
@@ -667,20 +675,48 @@ class CANWindow(QWidget):
             print("Exception thrown from send_desired_heading")
             self.show_error("Exception thrown from send_desired_heading")
 
-    def send_rudder(self, from_keyboard=False):
+    def send_rudder(self, from_keyboard=False, set_angle: float = None):
+        '''set_angle is a given angle'''
         try:
-            angle = self.rudder_angle if from_keyboard else int(self.rudder_input.text())
+            if from_keyboard:
+                # print(f"self.rudder_angle = {self.rudder_angle}")
+                angle = self.rudder_angle
+            elif set_angle is not None: 
+                # print(f"set_angle = {round(set_angle, 3)}")
+                angle = round(set_angle, 3)
+            else: 
+                # print(f"in else")
+                angle = int(self.rudder_input.text())
+            # angle = self.rudder_angle if from_keyboard else int(self.rudder_input.text())
             if not from_keyboard:
-                self.rudder_angle = angle
+                self.rudder_angle = angle # TODO: Why is this here? Keep self.rudder_angle up-to-date?
+
+            # print(f"from_keyboard = {from_keyboard}")
+            # print(f"angle = {angle}")
+
             if (angle < -90):
-                raise ValueError("Invalid angle input for Rudder")
-            data = convert_to_little_endian(convert_to_hex((angle+90) * 1000, 4))
+                raise ValueError("ERR - Rudder Angle input < -90")
+            
+            # print("line 700")
+            # step0 = round(angle)+90 * 1000
+            # print("step0 = ", step0)
+            # teststep = 90000
+            # step1 = convert_to_hex(step0, 4)
+            # print("line 701")
+
+            data = convert_to_little_endian(convert_to_hex(round(angle)+90 * 1000, 4))
+            
+            # print("line 703")
+
             status_byte = "80" # a = 1, b = 0, c = 0
             self.can_send("001", data + status_byte, "RUDDER SENT")
             self.rudder_display.setText(f"Current Set Rudder Angle:  {self.rudder_angle} degrees")
             
+            # print("line 709")
+
             set_rudder_obj.add_datapoint(time.time() - self.time_start, angle)
             set_rudder_obj.update_label()
+            # print(f"at the end w/o error")
 
         except ValueError:
             self.show_error("Invalid angle input for Rudder")
@@ -757,16 +793,19 @@ class CANWindow(QWidget):
                             try:
                                 raw_data = line.split(']')[-1].strip().split()
                                 parsed = parse_0x060_frame(''.join(raw_data))
-                                print("returned from parsed")
-                                print("sog: ", parsed[AIS_Attributes.SOG])
-                                # TODO: Do special handling of frame where total_ships = 0 - log "no ships" frame, clear data - any special handling needed? - only look at total_ships, set all attributes to None
-                                if parsed[AIS_Attributes.IDX] == 0: # if this is the first in a batch of new AIS messages, remove old ones
-                                    print("clear_data() called")
+                                # print("returned from parsed")
+                                # print("sog: ", parsed[AIS_Attributes.SOG])
+                                if parsed[AIS_Attributes.TOTAL] == 0: # if there are no ships
+                                    # print("clear_data() called")
                                     ais_obj.clear_data()
-                                ais_obj.add_frame(parsed[AIS_Attributes.LONGITUDE], parsed[AIS_Attributes.LATITUDE], parsed)
+                                    # TODO: log?
+
+                                
+
+                                ais_obj.add_frame(parsed[AIS_Attributes.LONGITUDE], parsed[AIS_Attributes.LATITUDE], parsed) # TODO: This needs to change
                                 # print("current data: ", ais_obj.data)
-                                print("parsed dict: ", parsed)
-                                print("index = ", parsed[AIS_Attributes.IDX])
+                                # print("parsed dict: ", parsed)
+                                # print("index = ", parsed[AIS_Attributes.IDX])
                                 # If this is the last frame in the batch
                                 if parsed[AIS_Attributes.IDX] == (parsed[AIS_Attributes.TOTAL] - 1):
                                     ais_obj.log_data(datetime.now().isoformat(), time.time() - self.time_start)
@@ -852,11 +891,6 @@ class CANWindow(QWidget):
         if len(self.time_history) > 0:
             self._update_plot_ranges(current_time)
 
-        # Add new data point to desired_heading graph every 5 secs - since it's not regularly updated with CAN messages
-        # current_dheading = desired_heading_obj.get_current()
-        # if (current_dheading[1] is not None and ((current_time - current_dheading[0]) > 5)): # if not graphed since 5 seconds ago
-        #     desired_heading_obj.add_datapoint(current_time, current_dheading[1])
-
         # Handle temperature updates with connection status tracking
         if self.temp_pipe.poll():
             connected, value = self.temp_pipe.recv()
@@ -878,6 +912,39 @@ class CANWindow(QWidget):
                 self.output_display.append(f"[ERR] {err.strip()}")
             elif out:
                 self.output_display.append(f"[OUT] {out.strip()}")
+
+        # Handle joystick updates
+        pygame.event.pump() # Update joystick state
+        # if self.js is not None and self.js_enabled:
+        #     if (self.js.get_axis(3) > 0.9 or self.js.get_axis(0) > 0.9) and self.js_prev_state is not JS_DIRECTIONS.RIGHT:
+        #         # print("A joystick is pointed to the right!")
+        #         self.send_rudder(set_angle = cg.right_angle_change)
+        #         self.js_prev_state = JS_DIRECTIONS.RIGHT
+        #     elif(self.js.get_axis(3) < -0.9 or self.js.get_axis(0) < -0.9) and self.js_prev_state is not JS_DIRECTIONS.LEFT:
+        #         # print("A joystick is pointed to the left!")
+        #         self.send_rudder(set_angle = cg.left_angle_change)
+        #         self.js_prev_state = JS_DIRECTIONS.LEFT
+        #     elif (self.js.get_axis(3) == 0 and self.js.get_axis(0) == 0) and self.js_prev_state is not JS_DIRECTIONS.MIDDLE:
+        #         # print("Both joysticks in the middle!")
+        #         self.send_rudder(set_angle = cg.center_angle)
+        #         self.js_prev_state = JS_DIRECTIONS.MIDDLE
+    
+        if self.js is not None and self.js_enabled:
+            pos = round(self.js.get_axis(3), cg.movement_sensitivity)
+            if (pos != round(self.js_prev_pos, cg.movement_sensitivity)):
+                print(f"new angle = {pos * cg.angle_change}")
+                self.send_rudder(set_angle = cg.angle_change * pos)
+                self.js_prev_pos = pos
+
+            # if (pos > 0.9) and self.js_prev_state is not JS_DIRECTIONS.RIGHT:
+            #     self.send_rudder(set_angle = cg.right_angle_change * pos)
+            #     self.js_prev_state = JS_DIRECTIONS.RIGHT
+            # elif(pos < -0.9) and self.js_prev_state is not JS_DIRECTIONS.LEFT:
+            #     self.send_rudder(set_angle = cg.left_angle_change * pos)
+            #     self.js_prev_state = JS_DIRECTIONS.LEFT
+            # elif (pos == 0) and self.js_prev_state is not JS_DIRECTIONS.MIDDLE:
+            #     self.send_rudder(set_angle = cg.center_angle)
+            #     self.js_prev_state = JS_DIRECTIONS.MIDDLE
 
     def _update_plot_ranges(self, current_time):
         # === Auto-scale and scroll X axis ===
@@ -930,6 +997,7 @@ def cleanup():
 if __name__ == "__main__":
     multiprocessing.set_start_method("spawn")
 
+    # Multiprocess initialization
     queue = multiprocessing.Queue()
     parent_conn, child_conn = multiprocessing.Pipe()
     cmd_queue = multiprocessing.Queue()
@@ -947,12 +1015,27 @@ if __name__ == "__main__":
     cansend_proc.start()
     can_logging_proc.start()
 
+    # Cleanup (CTRL + C) initialization
     signal.signal(signal.SIGINT, key_interrupt_cleanup)
+
+    # Joystick initialization
+    pygame.init()
+    pygame.joystick.init()
+
+    if pygame.joystick.get_count() == 0:
+        print("No joystick detected.")
+    try:
+        js = pygame.joystick.Joystick(0)
+        js.init()
+        print(f"Connected to: {js.get_name()}")
+    except Exception as e:
+        js = None
+        print(f"Joystick Connection Error: {e}")
 
     app = QApplication(sys.argv)
     for obj in all_objs:
         obj.initialize(timestamp) # create QWidgets
-    window = CANWindow(queue, parent_conn, cmd_queue, response_queue, can_log_queue)
+    window = CANWindow(queue, parent_conn, cmd_queue, response_queue, can_log_queue, joystick = js)
     window.show()
 
     try:
