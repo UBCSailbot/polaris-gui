@@ -651,7 +651,7 @@ class CANWindow(QWidget):
             self.cansend_queue.put(msg)
             self.output_display.append(f"[{display_msg}] {msg}")
         except Exception as e:
-            print(f"ERROR - Command not logged: {str(e)}")
+            print(f"ERROR - Command not sent: {str(e)}")
 
     def send_trim_tab(self, from_keyboard=False):
         try:

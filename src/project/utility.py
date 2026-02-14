@@ -315,7 +315,7 @@ def make_pretty(cmd):
     Helper function for putting cansend commands into the same format as candump received messages\n
     '''
     try:
-        frame_id = cmd[12:15]
+        frame_id = cmd[12:16]
         data = cmd[18:]
         data_length = int(len(data) / 2)
         padding = "0" if (data_length < 10) else ""
@@ -325,6 +325,7 @@ def make_pretty(cmd):
             if ((i % 2) == 1):
                 data_nice += " "
         msg = can_line + "  " + frame_id + "  [" + padding + str(data_length) + "]  " + data_nice
+        # print("pretty_CAN msg = ", msg)
     except Exception as e:
         print(f"ERROR - Command not logged: {str(e)}")
     
