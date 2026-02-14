@@ -1,5 +1,5 @@
 from enum import Enum
-from DataObject import *
+from data_object import *
 from config import *
 
 # SSH Credentials
