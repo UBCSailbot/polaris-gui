@@ -5,7 +5,7 @@ import pyqtgraph as pg
 # from datetime import datetime
 import os
 import csv
-import config as cg
+import project.config as cg
 
 graph_margin = 0.2
 

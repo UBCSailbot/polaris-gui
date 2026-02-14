@@ -1,6 +1,6 @@
 from enum import Enum
-from data_object import *
-from config import *
+from project.data_object import *
+from project.config import *
 
 # SSH Credentials
 hostname = "192.168.0.10"
