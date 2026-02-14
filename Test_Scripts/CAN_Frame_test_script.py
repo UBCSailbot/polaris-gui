@@ -20,7 +20,7 @@ password = "sailbot"
 can_line = "can0"
 
 # Time between sent frames (in secs)
-delay = 1
+delay = 0.2
 
 # CAN Frame IDs
 temp_sensor_id = "100" # 0x10X
@@ -301,13 +301,13 @@ def send_ais_command(client, num_msgs):
         for i in range(num_msgs):
             # x_data = data_points[i % len(data_points)] # prevent errors for too-short array
             # y_data = data_points[len(data_points) - 1 - (i % len(data_points))]
-            x_data = random.random() * 10
-            y_data = random.random()
+            x_data = random.random() * 75
+            y_data = random.random() * 150
             try:
 
                 id = convert_to_little_endian(convert_to_hex(i * 10000000, 4))
-                lat = convert_to_little_endian(convert_to_hex(int((slope_data) * 1000000), 4)) # should change by 1
-                lon = convert_to_little_endian(convert_to_hex(int((slope_data) * 1000000), 4))
+                lat = convert_to_little_endian(convert_to_hex(int((x_data) * 1000000), 4)) # should change by 1
+                lon = convert_to_little_endian(convert_to_hex(int((y_data) * 1000000), 4))
                 # lat = convert_to_little_endian(convert_to_hex((85 + 90) * 1000000, 4)) # should be received/logged as 85
                 # lon = convert_to_little_endian(convert_to_hex((120 + 180) * 1000000, 4)) # should received/logged as 120
 
@@ -436,24 +436,24 @@ def main():
             # time.sleep(delay)
             # success = send_rudder_command(client)
 
-            # pH_data = round(slope_data * 15)
-            # temp_sensor_data = round((slope_data * 1100.0) + 273.15, 3)
-            # sal_data = round(slope_data * 575000, 3)
+            pH_data = round(slope_data * 15)
+            temp_sensor_data = round((slope_data * 1100.0) + 273.15, 3)
+            sal_data = round(slope_data * 575000, 3)
 
-            # print(f"generated pH_data = {pH_data}")
-            # success = send_sensor_command(client, pH_id, pH_data)
-            # if not success:
-            #     print("Failed to send command, continuing...")
+            print(f"generated pH_data = {pH_data}")
+            success = send_sensor_command(client, pH_id, pH_data)
+            if not success:
+                print("Failed to send command, continuing...")
 
-            # print(f"generated temp_sensor_data = {temp_sensor_data}")
-            # success = send_sensor_command(client, temp_sensor_id, temp_sensor_data)
-            # if not success:
-            #     print("Failed to send command, continuing...")
+            print(f"generated temp_sensor_data = {temp_sensor_data}")
+            success = send_sensor_command(client, temp_sensor_id, temp_sensor_data)
+            if not success:
+                print("Failed to send command, continuing...")
 
-            # print(f"generated sal_data = {sal_data}")
-            # success = send_sensor_command(client, sal_id, sal_data)
-            # if not success:
-            #     print("Failed to send command, continuing...")
+            print(f"generated sal_data = {sal_data}")
+            success = send_sensor_command(client, sal_id, sal_data)
+            if not success:
+                print("Failed to send command, continuing...")
 
             # time.sleep(delay)
             print(f"Sending gps command...")
@@ -462,7 +462,7 @@ def main():
                 print("Failed to send command, continuing...")
 
             print(f"Sending AIS command...")
-            success = send_ais_command(client, 8) # TODO: test with larger numbers of ships - test with more than 127 - note: I did do this, might try again later
+            success = send_ais_command(client, 10) # TODO: test with larger numbers of ships - test with more than 127 - note: I did do this, might try again later
             if not success:
                 print("Failed to send command, continuing...")
 
