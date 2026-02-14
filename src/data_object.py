@@ -135,6 +135,12 @@ class DataObject:
             self.update_line_data()
         return
     
+    def remove_datapoint(self, x):
+        try:
+            del self.data[x]
+        except KeyError:
+            print(f"ERR - trying to apply remove_datapoint() on a point which does not exist")
+    
     def update_line_data(self):
         if (self.line is not None):
             values = []
@@ -193,11 +199,9 @@ class AISObject(DataObject): # NOTE: does this class need to take all arguments 
         self.brush = other_brush
         self.polaris_brush = polaris_brush if polaris_brush is not None else other_brush
         self.polaris_pos = (None, None) # tuple with polaris's (longitude, latitude)
-        # self.datasets is a list of two lists - each list contains several dictionaries; each dict contains all attributes from 1 CAN message
-        # self.datasets = [[], []] # contains data for previous cycle and current cycle - each batch of AIS messages is separated
-        self.dataset = [] # contains all data in this batch which must be logged
+        self.dataset_list = [] # a list of dictionaries, where each dictionary contains all data for one frame
+        self.dataset = {} # same as above but is a dictionary containing a bunch of frames instead, of the form MSID: dictionary
         self.log_value_headers = log_value_headers
-        # self.current_idx = False # index of data for current cycle in self.datasets
 
     def initialize(self, timestamp = None):
         super().initialize()
@@ -207,11 +211,12 @@ class AISObject(DataObject): # NOTE: does this class need to take all arguments 
         # self.polaris_line = self.add_line("POLARIS", [], [], None, None, False, symbol_brush = self.polaris_brush, symbol = 'x')
         self.polaris_line = create_line(self.graph_obj, "POLARIS", [], [], None, None, False, self.polaris_brush, 'x')
 
-    def add_frame(self, x, y, data):
+    def add_frame(self, x, y, key, data):
         if x is None or y is None:
             print("ERR - add_frame() received None for lat or lon from AIS frame")
-        self.dataset.append(data)
-        self.add_datapoint(x, y) # add (lon, lat) to data
+        self.dataset[key] = data # TODO: instead of appending, replace on ship MSID or whatever its called - should self.dataset be a dict instead?
+        # TODO: note that self.data is a dict with x: y - to replace pts, remove old pt using key(old longitude), then update longitude and put new point using new longitude
+        self.add_datapoint(x, y) # add (lon, lat) to data; 
 
     def add_line(self, name, x_data, y_data, colour, line_width, line_dashed, symbol_brush = None, symbol = None):
         return create_line(self.graph_obj, name, x_data, y_data, colour, line_width, line_dashed, symbol_brush, symbol)
