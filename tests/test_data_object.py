@@ -1,17 +1,13 @@
 import pytest
-from enum import Enum
 from PyQt5.QtWidgets import QLabel
 from PyQt5.QtCore import Qt
 
+from tests.helpers import Outcome
 import project.config as cg
 
 from project.data_object import (
     create_label, create_line, create_graph, DataObject, AISObject
 )
-
-class Outcome(Enum):
-    SUCCESS = 0,
-    VALUE_EXCEPTION = 1
 
 @pytest.mark.parametrize(
         "arguments, expected_result",
@@ -19,9 +15,9 @@ class Outcome(Enum):
             ({"title":"Label A", "min_width": None, "max_height": None}, Outcome.SUCCESS),
             ({"title":"Label B", "min_width": 100, "max_height": 200}, Outcome.SUCCESS),
             ({"title":"", "min_width": None, "max_height": 400}, Outcome.SUCCESS),
-            ({"title":"Broken Label", "min_width": None, "max_height": 0}, Outcome.VALUE_EXCEPTION),
-            ({"title":"Broken 2", "min_width": 0, "max_height": 300}, Outcome.VALUE_EXCEPTION),
-            ({"title":"Broken 3.455", "min_width": -30, "max_height": None}, Outcome.VALUE_EXCEPTION),
+            ({"title":"Broken Label", "min_width": None, "max_height": 0}, Outcome.VALUE_ERROR),
+            ({"title":"Broken 2", "min_width": 0, "max_height": 300}, Outcome.VALUE_ERROR),
+            ({"title":"Broken 3.455", "min_width": -30, "max_height": None}, Outcome.VALUE_ERROR),
         ],
 )
 def test_create_label(arguments, expected_result, qtbot):
@@ -36,7 +32,7 @@ def test_create_label(arguments, expected_result, qtbot):
         assert label.styleSheet() == cg.value_style
         
     except ValueError:
-        assert expected_result == Outcome.VALUE_EXCEPTION
+        assert expected_result == Outcome.VALUE_ERROR
         return
     except Exception:
         assert False
