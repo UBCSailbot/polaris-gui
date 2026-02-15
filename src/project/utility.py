@@ -47,11 +47,28 @@ ais_attributes = [
 ### ----------  Utility Functions ---------- ###
 # Note that these functions are designed to work with positive numbers
 def convert_to_hex(decimal, num_bytes):
-    return format(decimal, "X").zfill(2 * num_bytes)
+    if (decimal < 0 or num_bytes <= 0): 
+        print("ERROR - convert_to_hex received unexpected argument")
+        raise ValueError
+    ret = format(decimal, "X").zfill(2 * num_bytes)
+    if (len(ret) > (2 * num_bytes)):
+        print("ERROR - convert_to_hex received number too large for given number of bytes")
+        raise ValueError
+    if (len(ret) != (2 * num_bytes)):
+        print("ERROR - convert_to_hex converted to string of unexpected length")
+        raise Exception
+    return ret
 
 def convert_to_little_endian(hex_str):
-    raw = bytes.fromhex(hex_str)
-    return raw[::-1].hex()
+    try:
+        raw = bytes.fromhex(hex_str)
+        return raw[::-1].hex()
+    except TypeError:
+        print("ERROR - convert_to_little_endian() received unexpected argument")
+        raise TypeError
+    except ValueError:
+        print("ERROR - convert_to_little_endian() received unexpected string")
+        raise ValueError
 
 def convert_from_little_endian_str(hex_str):
     raw = bytes.fromhex(hex_str)
