@@ -9,7 +9,10 @@ import project.config as cg
 
 graph_margin = 0.2
 
-def create_label(title, min_width=cg.value_label_min_width, max_height=cg.value_label_max_height):
+def create_label(title, min_width=None, max_height=None):
+    if (min_width is None): min_width = cg.value_label_min_width
+    if (max_height is None): max_height = cg.value_label_max_height
+    if (min_width <= 0 or max_height <= 0): raise ValueError
     label = QLabel(title)
     label.setMinimumWidth(min_width)
     label.setMaximumHeight(max_height)
