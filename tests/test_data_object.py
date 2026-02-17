@@ -93,26 +93,26 @@ class Test_GraphObject:
         obj = init_obj
 
         # Setup check
-        assert obj.visible == False
         assert obj.graph.isVisible() == False 
+        assert obj.isVisible() == False
 
         # hide when already hidden
         obj.hide()
-        assert obj.visible == False
+        assert obj.isVisible() == False
         assert obj.graph.isVisible() == False 
 
         obj.show()
-        assert obj.visible == True
+        assert obj.isVisible() == True
         assert obj.graph.isVisible() == True
 
         # show when already visible
         obj.show()
-        assert obj.visible == True
+        assert obj.isVisible() == True
         assert obj.graph.isVisible() == True 
 
         obj.hide()
         obj.show()
-        assert obj.visible == True
+        assert obj.isVisible() == True
         assert obj.graph.isVisible() == True
         
 
