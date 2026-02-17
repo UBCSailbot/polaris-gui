@@ -52,7 +52,7 @@ graph_object_params = [
 
 @pytest.fixture()
 def init_obj(params, qtbot):
-    obj = GraphObject(params["x_name"], params["y_name"], params["x_units"], params["y_units"], params["minn"], params["maxn"], params["dropdown_label"])
+    obj = GraphObject(params["y_name"], params["x_name"], params["y_units"], params["x_units"], params["minn"], params["maxn"], params["dropdown_label"])
     obj.initialize()
     qtbot.addWidget(obj.graph) # add graph to visible application window
     return obj
@@ -61,7 +61,6 @@ def init_obj(params, qtbot):
 class Test_GraphObject:
 
     def test_constructor(self, init_obj, params, expected_outcome):
-        # TODO: complete implementation - add asserts
         obj = init_obj
 
         assert obj.x_name == params["x_name"]
@@ -74,7 +73,7 @@ class Test_GraphObject:
         assert obj.initialized == True
         assert obj.graph.isVisible() == False
         if (params["dropdown_label"] is None):
-            assert obj.dropdown_label == obj.x_name
+            assert obj.dropdown_label == obj.y_name
         else:
             assert obj.dropdown_label == params["dropdown_label"]
         
