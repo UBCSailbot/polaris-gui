@@ -102,7 +102,7 @@ class GraphObject: # struct which keeps together objects needed for a graph
         return self.visible
 
 class DataObject:
-    def __init__(self, name, dp, units, parsing_fn, line_dashed = False, line_colour = None, symbol_brush = None, hasLabel = True, graph: GraphObject = None):
+    def __init__(self, name, dp, units, parsing_fn, line_dashed = False, line_colour = None, symbol_brush = None, has_label = True, graph: GraphObject = None):
         self.name = name
         self.dp = dp # number of dp to round to
         self.units = units if units else ""
@@ -115,7 +115,7 @@ class DataObject:
         self.data = {} # no data when initialized: of form time:value
         self.current = None # key of most recent data entry datapoint
         self.line = None
-        self.hasLabel = hasLabel
+        self.has_label = has_label
         self.symbol_brush = symbol_brush
         return 
     
@@ -123,7 +123,7 @@ class DataObject:
         if self.graph_obj:
             if not self.graph_obj.initialized: self.graph_obj.initialize()
             self.line = create_line(self.graph_obj, self.name, [], [], self.line_colour, cg.linewidth, self.line_dashed, self.symbol_brush, symbol = 'o' if self.symbol_brush else None) # should automatically create line w/ empty data
-        if self.hasLabel:
+        if self.has_label:
             self.label = create_label(self.name + ": ---- ") # should automatically create label
         else: self.label = None
         
@@ -190,7 +190,7 @@ class DataObject:
     
 class AISObject(DataObject): # NOTE: does this class need to take all arguments of parent class?
     def __init__(self, name, dp, units, parsing_fn, other_brush, log_value_headers: list[str], polaris_brush = None, graph: GraphObject = None):
-        super().__init__(name, dp, units, None, hasLabel = False, line_colour = None, symbol_brush = other_brush, graph = graph)
+        super().__init__(name, dp, units, None, has_label = False, line_colour = None, symbol_brush = other_brush, graph = graph)
         # below all done by super
         # self.name = name
         # self.dp = dp # number of dp to round to
