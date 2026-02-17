@@ -413,7 +413,7 @@ polaris_brush = pg.mkBrush(color='r')
 # other_pen = pg.mkPen(color='b', width=1)
 other_brush = pg.mkBrush(color='b')
 
-position_graph_obj = GraphObject("Longitude", "Latitude", "DD", "DD", -90, 90, "Ship Positions") # note: this graph's x_range should definitely not be updated with the rest
+position_graph_obj = GraphObject("Latitude", "Longitude", "DD", "DD", -90, 90, "Ship Positions") # note: this graph's x_range should definitely not be updated with the rest
 ais_obj = AISObject("Ship Positions", 4, "DD", None, other_brush, [att.value for att in ais_attributes], polaris_brush = polaris_brush, graph = position_graph_obj)
 
 # General sensors (pH, water temp, salinity)

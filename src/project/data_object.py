@@ -42,6 +42,9 @@ def create_line(graph_obj, name, x_data, y_data, colour, line_width, line_dashed
         raise ValueError(f"Error creating line: {e}")
     
 def create_graph(title, x_label, y_label, title_style = cg.graph_title_style, label_style = cg.graph_label_style):
+    
+    # print("title of graph = ", title, "\nx_label (bottom) = ", x_label, "\ny_label (left) = ", y_label, "\n")
+
     graph = pg.PlotWidget()
     graph.setBackground(cg.graph_bg)
     graph.setMinimumSize(cg.graph_min_width, cg.graph_min_height)
@@ -55,7 +58,7 @@ def create_graph(title, x_label, y_label, title_style = cg.graph_title_style, la
 
 # data is a dictionary with values = data logged, keys = time logged
 class GraphObject: # struct which keeps together objects needed for a graph
-    def __init__(self, x_name, y_name, x_units, y_units, minn, maxn, dropdown_label = None): # data = history?
+    def __init__(self, y_name, x_name, y_units, x_units, minn, maxn, dropdown_label = None): # data = history?
         '''
         Initialization for GraphObject\n
         minn : minimum data value expected over graph lifetime\n
@@ -65,19 +68,22 @@ class GraphObject: # struct which keeps together objects needed for a graph
         self.y_name = y_name
         self.x_units = x_units
         self.y_units = y_units
+
+        print("New GraphObject:\nx_name = ", self.x_name, "\ny_name = ", self.y_name, "\n")
+
         self.minn = minn # min data value expected
         self.maxn = maxn # max data value expected
         self.initialized = False # indicates if graph widget was created or not
         self.visible = False
         if dropdown_label is None:
-            self.dropdown_label = self.x_name
+            self.dropdown_label = self.y_name
         else:
             self.dropdown_label = dropdown_label
         return
     
     def initialize(self):
         self.graph = create_graph(self.dropdown_label if self.dropdown_label != self.x_name else f"{self.x_name} vs. {self.y_name}", f"{self.x_name} ({self.x_units})" if self.x_units else f"{self.x_name}", 
-                                  f"{self.y_name} ({self.y_units})")
+                                  f"{self.y_name} ({self.y_units})" if self.y_units else f"{self.y_name}")
         self.graph.hide()
         self.initialized = True 
 
