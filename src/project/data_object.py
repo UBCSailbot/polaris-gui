@@ -42,9 +42,6 @@ def create_line(graph_obj, name, x_data, y_data, colour, line_width, line_dashed
         raise ValueError(f"Error creating line: {e}")
     
 def create_graph(title, x_label, y_label, title_style = cg.graph_title_style, label_style = cg.graph_label_style):
-    
-    # print("title of graph = ", title, "\nx_label (bottom) = ", x_label, "\ny_label (left) = ", y_label, "\n")
-
     graph = pg.PlotWidget()
     graph.setBackground(cg.graph_bg)
     graph.setMinimumSize(cg.graph_min_width, cg.graph_min_height)
@@ -68,8 +65,6 @@ class GraphObject: # struct which keeps together objects needed for a graph
         self.y_name = y_name
         self.x_units = x_units
         self.y_units = y_units
-
-        print("New GraphObject:\nx_name = ", self.x_name, "\ny_name = ", self.y_name, "\n")
 
         # NOTE: minn and maxn are not used currently - limit y-range using these?
         # Currently I'm not setting y-range with these values because that turns the autorange off
