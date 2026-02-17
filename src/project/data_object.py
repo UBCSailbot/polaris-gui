@@ -71,8 +71,11 @@ class GraphObject: # struct which keeps together objects needed for a graph
 
         print("New GraphObject:\nx_name = ", self.x_name, "\ny_name = ", self.y_name, "\n")
 
+        # NOTE: minn and maxn are not used currently - limit y-range using these?
+        # Currently I'm not setting y-range with these values because that turns the autorange off
         self.minn = minn # min data value expected
         self.maxn = maxn # max data value expected
+
         self.initialized = False # indicates if graph widget was created or not
         self.visible = False
         if dropdown_label is None:
