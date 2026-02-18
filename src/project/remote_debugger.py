@@ -160,7 +160,7 @@ from project.utility import *
 
 ### ----------  PyQt5 GUI ---------- ###
 class CANWindow(QWidget):
-    def __init__(self, queue, temp_pipe, cmd_queue, response_queue, can_log_queue, joystick: pygame.joystick.JoystickType = None):
+    def __init__(self, queue, temp_pipe, cmd_queue, response_queue, can_log_queue, timestamp, joystick: pygame.joystick.JoystickType = None):
         super().__init__()
         self.queue = queue
         self.temp_pipe = temp_pipe
@@ -185,7 +185,7 @@ class CANWindow(QWidget):
         self.js_enabled = False
 
         # Initialize logging
-        self._init_logging()
+        self._init_logging(timestamp)
 
         self.init_ui()
 
@@ -193,7 +193,7 @@ class CANWindow(QWidget):
         self.timer.timeout.connect(self.update_status)
         self.timer.start(gui_update_freq) # Updates every update_freq milliseconds
 
-    def _init_logging(self):
+    def _init_logging(self, timestamp):
         """Initialize CSV logging files with timestamped names"""
         # Create logs directory if it doesn't exist
         if not os.path.exists('logs'):
@@ -911,29 +911,16 @@ class CANWindow(QWidget):
 
         # Handle CAN send responses
         while not self.cansend_response_queue.empty():
+            print()
             cmd, out, err = self.cansend_response_queue.get()
             if err:
                 self.output_display.append(f"[ERR] {err.strip()}")
             elif out:
                 self.output_display.append(f"[OUT] {out.strip()}")
 
-        # Handle joystick updates
-        pygame.event.pump() # Update joystick state
-        # if self.js is not None and self.js_enabled:
-        #     if (self.js.get_axis(3) > 0.9 or self.js.get_axis(0) > 0.9) and self.js_prev_state is not JS_DIRECTIONS.RIGHT:
-        #         # print("A joystick is pointed to the right!")
-        #         self.send_rudder(set_angle = cg.right_angle_change)
-        #         self.js_prev_state = JS_DIRECTIONS.RIGHT
-        #     elif(self.js.get_axis(3) < -0.9 or self.js.get_axis(0) < -0.9) and self.js_prev_state is not JS_DIRECTIONS.LEFT:
-        #         # print("A joystick is pointed to the left!")
-        #         self.send_rudder(set_angle = cg.left_angle_change)
-        #         self.js_prev_state = JS_DIRECTIONS.LEFT
-        #     elif (self.js.get_axis(3) == 0 and self.js.get_axis(0) == 0) and self.js_prev_state is not JS_DIRECTIONS.MIDDLE:
-        #         # print("Both joysticks in the middle!")
-        #         self.send_rudder(set_angle = cg.center_angle)
-        #         self.js_prev_state = JS_DIRECTIONS.MIDDLE
-    
+        # Handle joystick updates    
         if self.js is not None and self.js_enabled:
+            pygame.event.pump() # Update joystick state
             pos = round(self.js.get_axis(3), cg.movement_sensitivity)
             if (pos != round(self.js_prev_pos, cg.movement_sensitivity)):
                 print(f"new angle = {pos * cg.max_angle}")
@@ -1039,7 +1026,7 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     for obj in all_objs:
         obj.initialize(timestamp) # create QWidgets
-    window = CANWindow(queue, parent_conn, cmd_queue, response_queue, can_log_queue, joystick = js)
+    window = CANWindow(queue, parent_conn, cmd_queue, response_queue, can_log_queue, timestamp, joystick = js)
     window.show()
 
     try:
