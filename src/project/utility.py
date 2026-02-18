@@ -328,13 +328,13 @@ def parse_0x060_frame(data_hex):
 
     return parsed
 
-def make_pretty(cmd):
+def make_pretty(cmd: str):
     '''
     Helper function for putting cansend commands into the same format as candump received messages\n
     '''
     try:
-        frame_id = cmd[12:16]
-        data = cmd[18:]
+        frame_id = cmd[12:16]  # TODO: changed from 12 to 13, see if this is a problem
+        data = cmd[18:]     # TODO: changed from 18 to 19, see if this is a problem
         data_length = int(len(data) / 2)
         padding = "0" if (data_length < 10) else ""
         data_nice = ""
