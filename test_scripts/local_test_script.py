@@ -7,8 +7,18 @@ Use Ctrl+C or Space to stop sending
 """
 
 import sys
+from time import sleep
+from datetime import datetime
+import random
 import multiprocessing
-from src import Remote_Debugger
+from PyQt5.QtWidgets import (
+    QApplication
+)
+
+import project.utility as util
+from project.remote_debugger import (
+    CANWindow
+)
 
 
 
@@ -49,7 +59,28 @@ def generate_slope_data():
 
     slope_data += slope
 
-def produce_gps_data(client):
+def make_pretty(cmd: str):
+    '''
+    Helper function for putting cansend commands into the same format as candump received messages\n
+    '''
+    try:
+        frame_id = cmd[13:16]  # TODO: changed from 12 to 13, see if this is a problem
+        data = cmd[19:]     # TODO: changed from 18 to 19, see if this is a problem
+        data_length = int(len(data) / 2)
+        padding = "0" if (data_length < 10) else ""
+        data_nice = ""
+        for i in range(len(data)):
+            data_nice += data[i]
+            if ((i % 2) == 1):
+                data_nice += " "
+        msg = can_line + "  " + frame_id + "  [" + padding + str(data_length) + "]  " + data_nice
+        # print("pretty_CAN msg = ", msg)
+    except Exception as e:
+        print(f"ERROR - Command not logged: {str(e)}")
+    
+    return msg
+
+def generate_gps_msg():
     '''
     [31:0] uint32_t latitude
     Latitude in (Decimal Degrees + 90) * 1,000,000
@@ -84,7 +115,83 @@ def produce_gps_data(client):
 
         can_data = lat + lon + secs + mins + hrs + unused + sog
         can_message = "cansend " + can_line + " 070##1" + can_data
+        print("generated can_message: ")
+        return can_message
+            
+    except Exception as e:
+        print(f"Exception creating rudder command: {e}")
+        return None
+    
+def generate_ais_msgs(num_msgs):
+        # TODO: Send num_msgs can messages (multiple commands) to reflect actual AIS behaviour
+        # note: should ais_obj be a subclass of dataobject?
 
+        data_points = [1, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1]
+        # data_points.reverse()
+
+        for i in range(num_msgs):
+            # x_data = data_points[i % len(data_points)] # prevent errors for too-short array
+            # y_data = data_points[len(data_points) - 1 - (i % len(data_points))]
+            x_data = random.random() * 75
+            y_data = random.random() * 150
+            try:
+
+                id = convert_to_little_endian(convert_to_hex(i * 10000000, 4))
+                lat = convert_to_little_endian(convert_to_hex(int((x_data) * 1000000), 4)) # should change by 1
+                lon = convert_to_little_endian(convert_to_hex(int((y_data) * 1000000), 4))
+                # lat = convert_to_little_endian(convert_to_hex((85 + 90) * 1000000, 4)) # should be received/logged as 85
+                # lon = convert_to_little_endian(convert_to_hex((120 + 180) * 1000000, 4)) # should received/logged as 120
+
+                sog = 0
+                if (i == 3):
+                    sog = convert_to_little_endian(convert_to_hex(1023, 2)) # test sog not available 
+                else:
+                    sog = convert_to_little_endian(convert_to_hex(35, 2)) # should be received as 3.5
+
+                cog = 0
+                if (i == 5):
+                    cog = convert_to_little_endian(convert_to_hex(3600, 2)) # test cog not available
+                else:
+                    cog = convert_to_little_endian(convert_to_hex(0, 2)) # received as 0
+                
+                true_heading = 0
+                if (i == 2):
+                    true_heading = convert_to_little_endian(convert_to_hex(511, 2)) # test true heading not available
+                else:
+                    true_heading = convert_to_little_endian(convert_to_hex(359, 2)) # received as 359
+
+                rot = 0
+                if (i == 4):
+                    rot = convert_to_little_endian(convert_to_hex(0, 1)) # test rot not available (ROT = -128, sent as ROT + 128)
+                else:
+                    rot = convert_to_little_endian(convert_to_hex(-54 + 128, 1)) # received as -54
+
+
+                ship_len = 0
+                if (i == 1):
+                    ship_len = convert_to_little_endian(convert_to_hex(0, 2)) # test ship length not available
+                else:
+                    ship_len = convert_to_little_endian(convert_to_hex(10, 2)) # received as 10
+
+                ship_wid = 0
+                if (i == 0):
+                    ship_wid = convert_to_little_endian(convert_to_hex(0, 2)) # test ship length not available
+                else:
+                    ship_wid = convert_to_little_endian(convert_to_hex(30, 2)) # received as 30
+
+                idx = convert_to_little_endian(convert_to_hex(i, 1))
+
+                num_ships = convert_to_little_endian(convert_to_hex(num_msgs, 1))
+
+                can_data = id + lat + lon + sog + cog + true_heading + rot + ship_len + ship_wid + idx + num_ships
+                can_message = "cansend " + can_line + " 060##1" + can_data
+                return can_message
+            
+            except Exception as e:
+                print(f"ERROR - send_ais_command threw error {e}")
+
+def send_message(client, can_message):
+    try:
         # Execute the cansend command
         stdin, stdout, stderr = client.exec_command(can_message)
         
@@ -98,27 +205,149 @@ def produce_gps_data(client):
         else:
             print(f"✓ Sent - CAN message: {can_message}")
             return True
-            
     except Exception as e:
-        print(f"Exception sending rudder command: {e}")
-        return False
+        print(f"ERROR - send_message threw error {e}")
+
+# def init_joystick():
+#     # Joystick initialization
+#     pygame.init()
+#     pygame.joystick.init()
+
+#     if pygame.joystick.get_count() == 0:
+#         print("No joystick detected.")
+#     try:
+#         js = pygame.joystick.Joystick(0)
+#         js.init()
+#         print(f"Connected to: {js.get_name()}")
+#     except Exception as e:
+#         js = None
+#         print(f"Joystick Connection Error: {e}")
+
+def simple_consumer(queue: multiprocessing.Queue, delay):
+    while True:
+        try:
+            queue.get()
+            sleep(delay)
+        except KeyboardInterrupt:
+            print("simple_consumer() process closed!")
+            return
+        except Exception as e:
+            print(f"ERROR - simple_consumer() threw exception {e}")
+
+def start_remote_debugger(timestamp: str, queue, parent_conn, cmd_queue, response_queue, can_log_queue, joystick = None):
+    app = QApplication(sys.argv)
+    for obj in util.all_objs:
+        obj.initialize(timestamp) # create QWidgets
+    window = CANWindow(queue, parent_conn, cmd_queue, response_queue, can_log_queue, timestamp, joystick = joystick)
+    window.show()
+
+    print("Remote debugger has been setup!")
+
+    try:
+        sys.exit(app.exec_())
+    except KeyboardInterrupt: # note: Ctrl+C doesn't work due to QT loop taking over
+        print("\nKeyboard interrupt received, shutting down...")
+    except Exception as e:
+        print(f"Unexpected error: {e}")
 
 
-def run_local_test(data = None):
+def run_local_test(msg_queue: multiprocessing.Queue, delay, data = None):
+    '''
+    msg_queue is the queue in which to put the data\n
+    delay is the delay between messages\n
+    data is not yet defined but I'm thinking it could be smth that's just sent?'''
     # TODO
     # This should setup and run the Remote debugger
     # take data as an input and feed it into can_dump process with testing = true,
     # this should remove the need to ssh and simplify testing
-    print("local tests started running!")
-    generate_slope_data()
-    return
+    # This repeatedly sends messages at regular intervals: has a while loop which is broken out of by 
+    # What I want to figure out is a good way to send different types of data, different commands etc.
+        # enable some, disable other messages easily
+    
+    cycle = 0
+    
+    while True:
+        try:
+            print(f"--- CYCLE {cycle} ---")
+            cycle += 1
+
+            data = generate_gps_msg()
+            print("original: ", data)
+            msg = make_pretty(data)
+            msg_queue.put(msg)  # NOTE: do I need to make this non-blocking or smth?
+            print(f"Message: {msg}")
+
+            generate_slope_data()
+            sleep(delay)
+        except KeyboardInterrupt:
+            print("Test stopped by user")
+            return
+        except Exception as e:
+            print(f"ERROR - run_local_test threw error {e}")
+            return
+    
+
 
 def main():
-    run_local_test()
-    print("local tests executed successfully!")
+    multiprocessing.set_start_method("spawn")
+
+    # Queue initialization
+    msg_queue = multiprocessing.Queue()
+    dump_queue = multiprocessing.Queue() # here goes all the stuff I don't want to deal with
+    empty_queue = multiprocessing.Queue() # here is an empty queue for functions that take input from a queue
+    parent_conn, child_conn = multiprocessing.Pipe() # TODO: do I need a simple_pipe_consumer() ? Will there be a problem if I don't connect the child end?
+
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+
+    # NOTE: For now, I'll ignore pretty much all 'extra' processes: 
+    # - temp_reader (just show disconnected)
+    # - can_send_worker (msgs will just go into a queue and not be sent)
+    # - can_logging_process (msgs will just go into a queue and not be sent)
+    #   - a mock consumer process will remove messages from the above queues
+    # Later I may create a simulator for temp reader
+    # can_dump will be replaced by run_local_test
+    # 
+
+    dump_proc = multiprocessing.Process(target=simple_consumer, args=(dump_queue, delay / 2))
+    # TODO 1: I would like to implement a keyboard-press thing that can pause and unpause sending data
+    data_proc = multiprocessing.Process(target=run_local_test, args=(msg_queue, delay))
+
+    dump_proc.start()
+    data_proc.start()
+
+    # Cleanup (CTRL + C) initialization # TODO: implement later? 
+    # signal.signal(signal.SIGINT, key_interrupt_cleanup)
+
+    # TODO: Implement later?
+    # init joystick() - ctrl+f to find this commented-out fn
+
+    print("=" * 60)
+    print("Local test script - Sets up and passes sample data into an instance of a CANWindow application")
+    print("=" * 60)
+
+    start_remote_debugger(timestamp, msg_queue, parent_conn, dump_queue, empty_queue, dump_queue)
+
+    # TODO: clean up all processes etc. here
+    print("Cleaning up...")
+    dump_proc.terminate()
+    data_proc.terminate()
+
+    dump_proc.join(timeout=2)
+    data_proc.join(timeout=2)
+
+    parent_conn.close()
+    child_conn.close()
+
+    msg_queue.close()
+    dump_queue.close()
+    empty_queue.close()
+
+    print("Cleanup complete.")
+
+    print("=" * 60)
+    print("local_test_script finished")
+    print("=" * 60)
 
 if __name__ == "__main__":
-    # print("syspath: ", end="")
-    # print(sys.path[0])
     main()
     
