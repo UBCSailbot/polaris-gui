@@ -25,7 +25,7 @@ from project.remote_debugger import (
 can_line = "can0"
 
 # Time between sent frames (in secs)
-delay = 1
+delay = 0.5
 
 # CAN Frame IDs
 temp_sensor_id = "100" 
@@ -105,8 +105,10 @@ def generate_gps_msg():
     '''
 
     try:
-        lat = convert_to_little_endian(convert_to_hex(int((slope_data + 90) * 1000000), 4))
-        lon = convert_to_little_endian(convert_to_hex(int((slope_data + 90) * 1000000), 4))
+        # lat = convert_to_little_endian(convert_to_hex(int((slope_data + 90) * 1000000), 4))
+        # lon = convert_to_little_endian(convert_to_hex(int((slope_data + 90) * 1000000), 4))
+        lat = convert_to_little_endian(convert_to_hex(int((49.2621 + 90) * 1000000), 4))
+        lon = convert_to_little_endian(convert_to_hex(int((-33.2482 + 90) * 1000000), 4)) 
         secs = convert_to_little_endian(convert_to_hex(10, 2))
         mins = convert_to_little_endian(convert_to_hex(20, 2))
         hrs = convert_to_little_endian(convert_to_hex(30, 2))
@@ -115,7 +117,6 @@ def generate_gps_msg():
 
         can_data = lat + lon + secs + mins + hrs + unused + sog
         can_message = "cansend " + can_line + " 070##1" + can_data
-        print("generated can_message: ")
         return can_message
             
     except Exception as e:
@@ -137,38 +138,51 @@ def generate_ais_msgs(num_msgs):
             try:
 
                 id = convert_to_little_endian(convert_to_hex(i * 10000000, 4))
-                lat = convert_to_little_endian(convert_to_hex(int((x_data) * 1000000), 4)) # should change by 1
-                lon = convert_to_little_endian(convert_to_hex(int((y_data) * 1000000), 4))
-                # lat = convert_to_little_endian(convert_to_hex((85 + 90) * 1000000, 4)) # should be received/logged as 85
-                # lon = convert_to_little_endian(convert_to_hex((120 + 180) * 1000000, 4)) # should received/logged as 120
-
+                # lat = convert_to_little_endian(convert_to_hex(int((x_data) * 1000000), 4)) # should change by 1
+                # lon = convert_to_little_endian(convert_to_hex(int((y_data) * 1000000), 4))
+                
+                lat_float = (49.2629 + (slope_data * 0.0001) + 90) * 1000000
+                lon_float = (100.4489 + (slope_data * 0.0001) + 180) * 1000000
+                lat_value = int(lat_float)
+                lon_value = int(lon_float)
+                # print("lat_float = ", lat_float)
+                # print("lon_float = ", lon_float)
+                # print("lat = ", lat_value)
+                # print("lon = ", lon_value)
+                lat = convert_to_little_endian(convert_to_hex(lat_value, 4)) # should be received/logged as 85
+                lon = convert_to_little_endian(convert_to_hex(lon_value, 4)) # should received/logged as 120
+                # print("lat sent = ", lat)
+                # print("lon sent = ", lon)
                 sog = 0
                 if (i == 3):
                     sog = convert_to_little_endian(convert_to_hex(1023, 2)) # test sog not available 
                 else:
-                    sog = convert_to_little_endian(convert_to_hex(35, 2)) # should be received as 3.5
+                    # sog = convert_to_little_endian(convert_to_hex(35, 2)) # should be received as 3.5
+                    sog = convert_to_little_endian(convert_to_hex(0, 2)) # should be received as 0
 
                 cog = 0
-                if (i == 5):
+                if (i == 0):
                     cog = convert_to_little_endian(convert_to_hex(3600, 2)) # test cog not available
                 else:
                     cog = convert_to_little_endian(convert_to_hex(0, 2)) # received as 0
                 
                 true_heading = 0
-                if (i == 2):
+                if (i == 0):
                     true_heading = convert_to_little_endian(convert_to_hex(511, 2)) # test true heading not available
                 else:
-                    true_heading = convert_to_little_endian(convert_to_hex(359, 2)) # received as 359
+                    # true_heading = convert_to_little_endian(convert_to_hex(359, 2)) # received as 359
+                    true_heading = convert_to_little_endian(convert_to_hex(0, 2)) # received as 0
 
                 rot = 0
                 if (i == 4):
                     rot = convert_to_little_endian(convert_to_hex(0, 1)) # test rot not available (ROT = -128, sent as ROT + 128)
                 else:
-                    rot = convert_to_little_endian(convert_to_hex(-54 + 128, 1)) # received as -54
+                    # rot = convert_to_little_endian(convert_to_hex(-54 + 128, 1)) # received as -54
+                    rot = convert_to_little_endian(convert_to_hex(0 + 128, 1)) # received as 0
 
 
                 ship_len = 0
-                if (i == 1):
+                if (i == 0):
                     ship_len = convert_to_little_endian(convert_to_hex(0, 2)) # test ship length not available
                 else:
                     ship_len = convert_to_little_endian(convert_to_hex(10, 2)) # received as 10
@@ -271,11 +285,15 @@ def run_local_test(msg_queue: multiprocessing.Queue, delay, data = None):
             print(f"--- CYCLE {cycle} ---")
             cycle += 1
 
-            data = generate_gps_msg()
-            print("original: ", data)
-            msg = make_pretty(data)
-            msg_queue.put(msg)  # NOTE: do I need to make this non-blocking or smth?
-            print(f"Message: {msg}")
+            ais_msg = make_pretty(generate_ais_msgs(1))
+            msg_queue.put(ais_msg)
+            print(f"Message: {ais_msg}")
+
+            if (cycle % 4 == 0):
+                gps_data = generate_gps_msg()
+                msg = make_pretty(gps_data)
+                msg_queue.put(msg)  # NOTE: do I need to make this non-blocking or smth?
+                print(f"Message: {msg}")
 
             generate_slope_data()
             sleep(delay)
