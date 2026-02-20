@@ -305,21 +305,19 @@ def parse_0x060_frame(data_hex):
         print("number of raw_bytes = ", len(raw_bytes))
         raise ValueError("Incorrect data length (num bytes): ID 0x060")
     
-    # temp is in format of temp * 1000
-
     parsed = {
         # actual_rudder_obj.name: val(0, 2, 100.0) - 90,
         AIS_Attributes.SID: val(raw_bytes, 0, 4, 1),
-        AIS_Attributes.LATITUDE: val(raw_bytes, 4, 8, 1000000) - 90,
-        AIS_Attributes.LONGITUDE: val(raw_bytes, 8, 12, 1000000) - 180,
-        AIS_Attributes.SOG: val(raw_bytes, 12, 14, 10) if (val(raw_bytes, 12, 14, 1) != AIS_Attributes.SOG_NA.value) else None, 
-        AIS_Attributes.COG: val(raw_bytes, 14, 16, 10) if (val(raw_bytes, 14, 16, 1) != AIS_Attributes.COG_NA.value) else None, 
-        AIS_Attributes.HEADING: val(raw_bytes, 16, 18, 1) if (val(raw_bytes, 16, 18, 1) != AIS_Attributes.HEADING_NA.value) else None, 
-        AIS_Attributes.ROT: (val(raw_bytes, 18, 19, 1) - 128) if ((val(raw_bytes, 18, 19, 1) - 128) != AIS_Attributes.ROT_NA.value) else None, 
-        AIS_Attributes.LENGTH: val(raw_bytes, 19, 21, 1) if (val(raw_bytes, 19, 21, 1) != AIS_Attributes.LENGTH_NA.value) else None, 
-        AIS_Attributes.WIDTH: val(raw_bytes, 21, 23, 1) if (val(raw_bytes, 21, 23, 1) != AIS_Attributes.WIDTH_NA.value) else None, 
-        AIS_Attributes.IDX: val(raw_bytes, 23, 24, 1),
-        AIS_Attributes.TOTAL: val(raw_bytes, 24, 25, 1)
+        AIS_Attributes.LATITUDE: round(val(raw_bytes, 4, 8, 1000000) - 90, ais_obj.dp),
+        AIS_Attributes.LONGITUDE: round(val(raw_bytes, 8, 12, 1000000) - 180, ais_obj.dp),
+        AIS_Attributes.SOG: round(val(raw_bytes, 12, 14, 10)) if (val(raw_bytes, 12, 14, 1) != AIS_Attributes.SOG_NA.value) else None, 
+        AIS_Attributes.COG: round(val(raw_bytes, 14, 16, 10)) if (val(raw_bytes, 14, 16, 1) != AIS_Attributes.COG_NA.value) else None, 
+        AIS_Attributes.HEADING: round(val(raw_bytes, 16, 18, 1)) if (val(raw_bytes, 16, 18, 1) != AIS_Attributes.HEADING_NA.value) else None, 
+        AIS_Attributes.ROT: round((val(raw_bytes, 18, 19, 1) - 128)) if ((val(raw_bytes, 18, 19, 1) - 128) != AIS_Attributes.ROT_NA.value) else None, 
+        AIS_Attributes.LENGTH: int(val(raw_bytes, 19, 21, 1)) if (val(raw_bytes, 19, 21, 1) != AIS_Attributes.LENGTH_NA.value) else None, 
+        AIS_Attributes.WIDTH: int(val(raw_bytes, 21, 23, 1)) if (val(raw_bytes, 21, 23, 1) != AIS_Attributes.WIDTH_NA.value) else None, 
+        AIS_Attributes.IDX: int(val(raw_bytes, 23, 24, 1)),
+        AIS_Attributes.TOTAL: int(val(raw_bytes, 24, 25, 1))
     }
 
     range_check(AIS_Attributes.LATITUDE, parsed[AIS_Attributes.LATITUDE], -90, 90)
