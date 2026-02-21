@@ -1,8 +1,7 @@
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QLabel
+from enum import Enum
 import pyqtgraph as pg
-# import time
-# from datetime import datetime
 import os
 import csv
 import project.config as cg
@@ -233,7 +232,15 @@ class AISObject(DataObject): # NOTE: does this class need to take all arguments 
         return create_line(self.graph_obj, name, x_data, y_data, colour, line_width, line_dashed, symbol_brush, symbol)
 
     def clear_data(self):
-        self.data.clear() # remove all old data
+        self.data.clear()
+
+    def update_data(self, current_time, scroll_window):
+        '''Remove datapoints which have not been updated for a while (cg.data_timeout secs)'''
+        for key, frame in self.dataset.items():
+            if (current_time - frame[cg.LAST_UPDATED] > cg.data_timeout): # if data has not been updated for long enough: remove dp
+                self.remove_datapoint(frame[AIS_Attributes.LONGITUDE])
+                del self.dataset[key]
+
 
     def init_logging(self, timestamp):       
         """Initialize CSV logging files with timestamped names"""
@@ -276,6 +283,7 @@ class AISObject(DataObject): # NOTE: does this class need to take all arguments 
 
         print("AIS data logged!")
         # self.dataset.clear() # Don't clear data 
+        # TODO: clear data only if it's been more than 5 minutes since it was updated
         return
     
     def update_polaris_pos(self, lon, lat):
@@ -287,3 +295,39 @@ class AISObject(DataObject): # NOTE: does this class need to take all arguments 
         print("polaris_pos updated!")
         print("self.polaris_line = (", self.polaris_line.xData, ", ", self.polaris_line.yData, ")")
         
+
+    
+### ----------  Structs/Enums ---------- ###
+class AIS_Attributes(Enum):
+    SID = "ship_id"
+    LONGITUDE = "longitude"
+    LATITUDE = "latitude"
+    SOG = "speed_over_gnd"
+    SOG_NA = 1023
+    COG = "course_over_gnd"
+    COG_NA = 3600
+    HEADING = "true_heading"
+    HEADING_NA = 511
+    ROT = "rate_of_turn"
+    ROT_NA = -128
+    LENGTH = "ship_length"
+    LENGTH_NA = 0
+    WIDTH = "ship_width"
+    WIDTH_NA = 0
+    IDX = "index"
+    TOTAL = "total_ships"
+
+# This list is ordered according to 0x060 frame conventions as specified on confluence (don't reorder or else heading order will be incorrect)
+ais_attributes = [
+    AIS_Attributes.SID, 
+    AIS_Attributes.LATITUDE,
+    AIS_Attributes.LONGITUDE, 
+    AIS_Attributes.SOG,
+    AIS_Attributes.COG,
+    AIS_Attributes.HEADING,
+    AIS_Attributes.ROT,
+    AIS_Attributes.LENGTH,
+    AIS_Attributes.WIDTH,
+    AIS_Attributes.IDX,
+    AIS_Attributes.TOTAL
+]
