@@ -286,9 +286,6 @@ class AISObject(DataObject): # NOTE: does this class need to take all arguments 
         except Exception as e:
             print(f"Error logging AIS values: {e}")
 
-        print("AIS data logged!")
-        # self.dataset.clear() # Don't clear data 
-        # TODO: clear data only if it's been more than 5 minutes since it was updated
         return
     
     def update_polaris_pos(self, lon, lat):

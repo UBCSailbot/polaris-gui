@@ -621,12 +621,12 @@ class CANWindow(QWidget):
 
         key = event.key()
         if key == Qt.Key_A:
-            self.rudder_angle = max(self.rudder_angle - 3, -45)
+            self.rudder_angle = min(self.rudder_angle + 3, 45)
             self.send_rudder(from_keyboard=True)
             # self.send_rudder(set_angle = max(self.rudder_angle - 3, -45))
             # NOTE: now that send_rudder() takes a set_angle, can probably use that instead of setting self.rudder_angle and from_keyboard=True
         elif key == Qt.Key_D:
-            self.rudder_angle = min(self.rudder_angle + 3, 45)
+            self.rudder_angle = max(self.rudder_angle - 3, -45)
             self.send_rudder(from_keyboard=True)
         elif key == Qt.Key_S:
             self.rudder_angle = 0
@@ -728,7 +728,7 @@ class CANWindow(QWidget):
 
             set_rudder_obj.add_datapoint(time.time() - self.time_start, angle)
             set_rudder_obj.update_label()
-            print("Set rudder current = ", set_rudder_obj.get_current()[1])
+            # print("Set rudder current = ", set_rudder_obj.get_current()[1])
             # print(f"at the end w/o error")
 
         except ValueError:
@@ -808,7 +808,6 @@ class CANWindow(QWidget):
                                 self.output_display.append(f"[PARSE ERROR 0x041] {str(e)}")
                         case "060": # AIS frame
                             try:
-                                print("AIS Data received!")
                                 raw_data = line.split(']')[-1].strip().split()
                                 parsed = parse_0x060_frame(''.join(raw_data), current_time)
                                 # print("returned from parsed")
