@@ -63,6 +63,9 @@ graph_min_width = 250
 graph_min_height = 300
 scroll_window = 60 # in seconds
 
+LAST_UPDATED = "time_since_last_update" # tracks amount of time since a datapoint was updated 
+data_timeout = 5 * 60 # amt of time (in seconds) before data gets removed
+
 # ==== Joystick ====
 movement_sensitivity = 1 # number of decimal point precision
 max_angle = 20 # degrees
