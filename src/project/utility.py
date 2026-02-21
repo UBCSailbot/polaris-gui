@@ -29,6 +29,8 @@ class AIS_Attributes(Enum):
     IDX = "index"
     TOTAL = "total_ships"
 
+LAST_UPDATED = "time_since_last_update" # tracks amount of time since the datapoint was updated 
+
 # This list is ordered according to 0x060 frame conventions as specified on confluence (don't reorder or else heading order will be incorrect)
 ais_attributes = [
     AIS_Attributes.SID, 
@@ -289,7 +291,7 @@ def parse_0x070_frame(data_hex):
     parsed = {
         # actual_rudder_obj.name: val(0, 2, 100.0) - 90,
         gps_lat_obj.name: val(0, 4, 1000000) - 90,
-        gps_lon_obj.name: val(4, 8, 1000000) - 90,
+        gps_lon_obj.name: val(4, 8, 1000000) - 180,
         spd_over_gnd_obj.name: val(16, 20, 1000)
     }
 
@@ -307,7 +309,7 @@ def parse_0x060_frame(data_hex):
     
     parsed = {
         # actual_rudder_obj.name: val(0, 2, 100.0) - 90,
-        AIS_Attributes.SID: val(raw_bytes, 0, 4, 1),
+        AIS_Attributes.SID: int(val(raw_bytes, 0, 4, 1)),
         AIS_Attributes.LATITUDE: round(val(raw_bytes, 4, 8, 1000000) - 90, ais_obj.dp),
         AIS_Attributes.LONGITUDE: round(val(raw_bytes, 8, 12, 1000000) - 180, ais_obj.dp),
         AIS_Attributes.SOG: round(val(raw_bytes, 12, 14, 10)) if (val(raw_bytes, 12, 14, 1) != AIS_Attributes.SOG_NA.value) else None, 
@@ -317,7 +319,8 @@ def parse_0x060_frame(data_hex):
         AIS_Attributes.LENGTH: int(val(raw_bytes, 19, 21, 1)) if (val(raw_bytes, 19, 21, 1) != AIS_Attributes.LENGTH_NA.value) else None, 
         AIS_Attributes.WIDTH: int(val(raw_bytes, 21, 23, 1)) if (val(raw_bytes, 21, 23, 1) != AIS_Attributes.WIDTH_NA.value) else None, 
         AIS_Attributes.IDX: int(val(raw_bytes, 23, 24, 1)),
-        AIS_Attributes.TOTAL: int(val(raw_bytes, 24, 25, 1))
+        AIS_Attributes.TOTAL: int(val(raw_bytes, 24, 25, 1)),
+        LAST_UPDATED: 0
     }
 
     range_check(AIS_Attributes.LATITUDE, parsed[AIS_Attributes.LATITUDE], -90, 90)
