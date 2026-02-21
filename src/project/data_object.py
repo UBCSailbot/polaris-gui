@@ -236,10 +236,15 @@ class AISObject(DataObject): # NOTE: does this class need to take all arguments 
 
     def update_data(self, current_time, scroll_window):
         '''Remove datapoints which have not been updated for a while (cg.data_timeout secs)'''
+        points_to_delete = []
         for key, frame in self.dataset.items():
             if (current_time - frame[cg.LAST_UPDATED] > cg.data_timeout): # if data has not been updated for long enough: remove dp
-                self.remove_datapoint(frame[AIS_Attributes.LONGITUDE])
-                del self.dataset[key]
+                points_to_delete.append(key)
+        for key in points_to_delete:
+            self.remove_datapoint(self.dataset[key][AIS_Attributes.LONGITUDE])
+            del self.dataset[key]
+        if (self.graph_obj and self.graph_obj.graph.isVisible()):
+            self.update_line_data()
 
 
     def init_logging(self, timestamp):       
