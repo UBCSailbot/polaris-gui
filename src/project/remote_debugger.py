@@ -46,7 +46,7 @@ class CANWindow(QWidget):
         self.time_history = []
 
         self.js = joystick # joystick
-        self.js_prev_state = None # TODO: modify to be prev_pos instead
+        self.js_prev_state = None # TODO: Delete this if not in use
         self.js_prev_pos = 0
         self.js_enabled = False
 
