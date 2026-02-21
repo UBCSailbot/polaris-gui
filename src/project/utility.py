@@ -1,4 +1,3 @@
-from enum import Enum
 from project.data_object import *
 from project.config import *
 
@@ -8,43 +7,6 @@ username = "sailbot"
 password = "sailbot"
 
 can_line = "can0"
-
-### ----------  Structs/Enums ---------- ###
-class AIS_Attributes(Enum):
-    SID = "ship_id"
-    LONGITUDE = "longitude"
-    LATITUDE = "latitude"
-    SOG = "speed_over_gnd"
-    SOG_NA = 1023
-    COG = "course_over_gnd"
-    COG_NA = 3600
-    HEADING = "true_heading"
-    HEADING_NA = 511
-    ROT = "rate_of_turn"
-    ROT_NA = -128
-    LENGTH = "ship_length"
-    LENGTH_NA = 0
-    WIDTH = "ship_width"
-    WIDTH_NA = 0
-    IDX = "index"
-    TOTAL = "total_ships"
-
-LAST_UPDATED = "time_since_last_update" # tracks amount of time since the datapoint was updated 
-
-# This list is ordered according to 0x060 frame conventions as specified on confluence (don't reorder or else heading order will be incorrect)
-ais_attributes = [
-    AIS_Attributes.SID, 
-    AIS_Attributes.LATITUDE,
-    AIS_Attributes.LONGITUDE, 
-    AIS_Attributes.SOG,
-    AIS_Attributes.COG,
-    AIS_Attributes.HEADING,
-    AIS_Attributes.ROT,
-    AIS_Attributes.LENGTH,
-    AIS_Attributes.WIDTH,
-    AIS_Attributes.IDX,
-    AIS_Attributes.TOTAL
-]
 
 ### ----------  Utility Functions ---------- ###
 # Note that these functions are designed to work with positive numbers
@@ -301,7 +263,7 @@ def parse_0x070_frame(data_hex):
 
     return parsed
 
-def parse_0x060_frame(data_hex):
+def parse_0x060_frame(data_hex, current_time):
     raw_bytes = bytes.fromhex(data_hex)
     if len(raw_bytes) < 25: # candump pads the frame to make it 32 bytes
         print("number of raw_bytes = ", len(raw_bytes))
@@ -320,7 +282,7 @@ def parse_0x060_frame(data_hex):
         AIS_Attributes.WIDTH: int(val(raw_bytes, 21, 23, 1)) if (val(raw_bytes, 21, 23, 1) != AIS_Attributes.WIDTH_NA.value) else None, 
         AIS_Attributes.IDX: int(val(raw_bytes, 23, 24, 1)),
         AIS_Attributes.TOTAL: int(val(raw_bytes, 24, 25, 1)),
-        LAST_UPDATED: 0
+        cg.LAST_UPDATED: current_time
     }
 
     range_check(AIS_Attributes.LATITUDE, parsed[AIS_Attributes.LATITUDE], -90, 90)
