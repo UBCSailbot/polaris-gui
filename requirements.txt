@@ -19,3 +19,4 @@ PyQt5==5.15.11
 pyqtgraph==0.14.0
 python-dateutil==2.9.0.post0
 six==1.17.0
+pygame==2.6.1

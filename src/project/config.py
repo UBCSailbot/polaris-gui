@@ -10,8 +10,8 @@ password = "sailbot"
 window_height = 450
 window_width = 1350
 
-update_freq = 100 # frequency at which CAN messages are collected & processed
-gui_update_freq = 100 # frequency of UI update in millis
+# update_freq = 100 # frequency at which CAN messages are collected & processed - TODO: implement separation of CAN msg processing and gui updating
+gui_update_freq = 50 # frequency of UI update in millis
 
 # ==== Live Values ====
 value_label_min_width = 300
@@ -62,3 +62,10 @@ graph_y_units = "s"
 graph_min_width = 250
 graph_min_height = 300
 scroll_window = 60 # in seconds
+
+LAST_UPDATED = "time_since_last_update" # tracks amount of time since a datapoint was updated 
+data_timeout = 5 * 60 # amt of time (in seconds) before data gets removed
+
+# ==== Joystick ====
+movement_sensitivity = 1 # number of decimal point precision
+max_angle = 20 # degrees

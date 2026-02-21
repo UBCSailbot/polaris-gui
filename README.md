@@ -9,9 +9,11 @@ This repository contains source code for the GUI application designed to interfa
 3. Activate the python virtual environment. You can either:
     1. Associate the `.venv` folder with the project in VSCode (`cmd + shift + p` to open command palette > `Python: Select Interpreter`)
     2. Run `source .venv/bin/activate` you will need to do this whenever open a new terminal
+        * Note: On Windows run `.\.venv\Scripts\activate`. If you get an error saying "Running scripts is disabled on this system", run `Set-ExecutionPolicy Unrestricted -Scope Process` and then try the activation command again.
 4. Install project dependencies with `pip install -r requirements.txt`
 5. Run the application with `python .\src\Remote_Debugger_V15.py`
 6. Deactive the virtual environment with `deactivate`
+    * Note: `deactivate` should work for both Linux and Windows.
 
 ## Important usage notes
 
@@ -19,6 +21,11 @@ This repository contains source code for the GUI application designed to interfa
 - salinity is measured in big numbers - assumes range is between 40,000 and 55,000, graphs values in units of µS/cm * 1000
 - temp is assumed to be between -15 and 140 degrees celsius
 - If Raspberry pi is returning the message "device or resource busy" when attempting to put up CAN1 line with loopback on, and you have confirmed no other application/session is using the pi, try "sudo reboot"
+
+## Comments on repo structure
+* \test_scripts contains automation scripts for manual and hardware-in-the-loop testing of the GUI
+* \tests contains automated pytest tests
+* \src\test_files contains files used to produce simpler & experimental versions of features and functions used in the GUI
 
 ## Steps for setting up mainframe/CAN stuff (for testing)
 

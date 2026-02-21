@@ -1,6 +1,6 @@
 """
-Simple CAN Frame send Test Script for Temperature/Voltage data
-Automatically SSHes into rpi and sends a CAN Frame simulating PDB every delay secs
+Simple CAN Frame send Test Script
+Automatically SSHes into rpi and sends a CAN Frame simulating external system/data every delay secs
 Outputs support messages through terminal
 
 Use Ctrl+C to stop the test
@@ -10,6 +10,7 @@ import paramiko
 import time
 import random
 from datetime import datetime
+# from In_Progress import Remote_Debugger_V15 # this should eventually change so that it imports the different process scripts etc.
 
 # SSH Credentials
 hostname = "192.168.0.10"
@@ -19,38 +20,16 @@ password = "sailbot"
 can_line = "can0"
 
 # Time between sent frames (in secs)
-delay = 1
+delay = 0.2
 
 # CAN Frame IDs
 temp_sensor_id = "100" # 0x10X
 pH_id = "110" # 0x11X
 sal_id = "120" # 0x12X
 
-# Hex Two's complement conversion dict
-hex_conversion = {
-    "0": "f",
-    "1": "e",
-    "2": "d",
-    "3": "c",
-    "4": "b",
-    "5": "a",
-    "6": "9",
-    "7": "8",
-    "8": "7",
-    "9": "6",
-    "a": "5",
-    "b": "4",
-    "c": "3",
-    "d": "2",
-    "e": "1",
-    "f": "0",
-}
-
-negative_hex_starting_digits = ["8", "9", "a", "b", "c", "d", "e", "f"]
-
-slope = -0.1
+slope = 0.1
 data_min = 0.2
-data_max = 0.95
+data_max = 0.8
 slope_data = data_min
 
 ### ----------  Utility Functions ---------- ###
@@ -74,20 +53,41 @@ def generate_slope_data():
         slope *= -1
 
     slope_data += slope
-    slope_data = round(slope_data, 2)
 
     # return slope_data
     
-
-def send_pdb_command(client):
+# Sends a frame with set data (not random, always same)
+def send_set_pdb_command(client):
     try:
         # Send sample pdb command with data: 
         # volt1: 3 volt2: 2.4 volt3: 0.8 volt4: 1.3 temp1: 1.5 temp2: 57.8 temp3: 126.32
-        # Convert data to CAN format (each is a 2-byte hex number in little endian)
+        # Convert data to CAN format (2-byte hex number in little endian)
         # Multiplied by 1000 by CAN Frame documentation
         # can_data = 0x5dc0 0096 1f40 e1c8 3158 7530
-                    # pH_data = round(slope_data * 15)
+        can_data = "c05d9600401fc9416075c8325831"
+        can_msg = f"cansend {can_line} 206##1" + can_data
 
+        # Execute the cansend command
+        stdin, stdout, stderr = client.exec_command(can_msg)
+        
+        # Check for errors
+        error = stderr.read().decode().strip()
+        output = stdout.read().decode().strip()
+
+        if error:
+            print(f"ERROR sending command: {error}")
+            return False
+        else:
+            print(f"✓ Sample PDB msg sent: {can_msg}")
+            return True
+
+    except Exception as e:
+        print(f"Error sending cansend command: {e}")
+        return False
+    pass
+
+def send_pdb_command(client):
+    try:
         # designed so that volt1 < volt2 < volt3 < volt4 and temp1 < temp2 < temp3 for easy debugging
         volt1 = convert_to_little_endian(convert_to_hex(int((slope_data - 0.05) * 3.8 * 10000), 2))
         volt2 = convert_to_little_endian(convert_to_hex(int((slope_data * 3.8) * 10000), 2))
@@ -148,7 +148,7 @@ def send_sensor_command(client, frame_id, data: float):
         # print("data converted to hex: ", hexed_data)
         hex_bytes = convert_to_little_endian(hexed_data)
         print("hex_bytes: ", hex_bytes)
-        can_msg = "cansend " + can_line + " " + frame_id + "##1" + hex_bytes
+        can_msg = f"cansend {can_line} " + frame_id + "##1" + hex_bytes
 
         # Execute the cansend command
         stdin, stdout, stderr = client.exec_command(can_msg)
@@ -169,7 +169,7 @@ def send_sensor_command(client, frame_id, data: float):
         print(f"Error sending cansend command: {e}")
         print(f"Attempted command: {can_msg}")
         return False
-
+    
 def send_rudder_command(client):
     """Send rudder CAN message via SSH"""
     try:
@@ -236,14 +236,159 @@ def send_data_wind_command(client):
     except Exception as e:
         print(f"Exception sending wind sensor command: {e}")
         return False
+    
+def send_gps_command(client):
+    '''
+    [31:0] uint32_t latitude
+    Latitude in (Decimal Degrees + 90) * 1,000,000
+
+    [63:32] uint32_t longitude
+    Longitude in (Decimal Degrees + 180) * 1,000,000
+
+    [95:64] uint32_t seconds
+    UTC seconds * 1000.
+
+    [103:96] uint8_t minutes
+    UTC minutes.
+
+    [111:104] uint8_t hours
+    UTC hours.
+
+    [127:112] reserved
+    unused
+
+    [159:128] uint32_t speed
+    Speed over ground in km/h * 1000.
+    '''
+
+    try:
+        lat = convert_to_little_endian(convert_to_hex(int(((slope_data * 150) + 0.123499999) * 1000000), 4)) # should increase by 1
+        lon = convert_to_little_endian(convert_to_hex(int(((slope_data * 100) + 0.987611111) * 1000000), 4))
+        secs = convert_to_little_endian(convert_to_hex(10, 2))
+        mins = convert_to_little_endian(convert_to_hex(20, 2))
+        hrs = convert_to_little_endian(convert_to_hex(30, 2))
+        unused = convert_to_little_endian(convert_to_hex(0, 2))
+        sog = convert_to_little_endian(convert_to_hex(int(slope_data) * 1000, 4))
+
+        can_data = lat + lon + secs + mins + hrs + unused + sog
+        can_message = "cansend " + can_line + " 070##1" + can_data
+
+        # Execute the cansend command
+        stdin, stdout, stderr = client.exec_command(can_message)
+        
+        # Check for errors
+        error = stderr.read().decode().strip()
+        output = stdout.read().decode().strip()
+        
+        if error:
+            print(f"ERROR sending command: {error}")
+            return False
+        else:
+            print(f"✓ Sent - CAN message: {can_message}")
+            return True
+            
+    except Exception as e:
+        print(f"Exception sending gps command: {e}")
+        return False
+    
+def send_ais_command(client, num_msgs):
+        # TODO: Send num_msgs can messages (multiple commands) to reflect actual AIS behaviour
+        # note: should ais_obj be a subclass of dataobject?
+
+        data_points = [1, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1]
+        # data_points.reverse()
+
+        for i in range(num_msgs):
+            # x_data = data_points[i % len(data_points)] # prevent errors for too-short array
+            # y_data = data_points[len(data_points) - 1 - (i % len(data_points))]
+            x_data = random.random() * 75
+            y_data = random.random() * 150
+            try:
+
+                id = convert_to_little_endian(convert_to_hex(i * 10000000, 4))
+                lat = convert_to_little_endian(convert_to_hex(int((x_data) * 1000000), 4)) # should change by 1
+                lon = convert_to_little_endian(convert_to_hex(int((y_data) * 1000000), 4))
+                # lat = convert_to_little_endian(convert_to_hex((85 + 90) * 1000000, 4)) # should be received/logged as 85
+                # lon = convert_to_little_endian(convert_to_hex((120 + 180) * 1000000, 4)) # should received/logged as 120
+
+                sog = 0
+                if (i == 3):
+                    sog = convert_to_little_endian(convert_to_hex(1023, 2)) # test sog not available 
+                else:
+                    sog = convert_to_little_endian(convert_to_hex(35, 2)) # should be received as 3.5
+
+                cog = 0
+                if (i == 5):
+                    cog = convert_to_little_endian(convert_to_hex(3600, 2)) # test cog not available
+                else:
+                    cog = convert_to_little_endian(convert_to_hex(0, 2)) # received as 0
+                
+                true_heading = 0
+                if (i == 2):
+                    true_heading = convert_to_little_endian(convert_to_hex(511, 2)) # test true heading not available
+                else:
+                    true_heading = convert_to_little_endian(convert_to_hex(359, 2)) # received as 359
+
+                rot = 0
+                if (i == 4):
+                    rot = convert_to_little_endian(convert_to_hex(0, 1)) # test rot not available (ROT = -128, sent as ROT + 128)
+                else:
+                    rot = convert_to_little_endian(convert_to_hex(-54 + 128, 1)) # received as -54
+
+
+                ship_len = 0
+                if (i == 1):
+                    ship_len = convert_to_little_endian(convert_to_hex(0, 2)) # test ship length not available
+                else:
+                    ship_len = convert_to_little_endian(convert_to_hex(10, 2)) # received as 10
+
+                ship_wid = 0
+                if (i == 0):
+                    ship_wid = convert_to_little_endian(convert_to_hex(0, 2)) # test ship length not available
+                else:
+                    ship_wid = convert_to_little_endian(convert_to_hex(30, 2)) # received as 30
+
+                idx = convert_to_little_endian(convert_to_hex(i, 1))
+
+                num_ships = convert_to_little_endian(convert_to_hex(num_msgs, 1))
+
+                can_data = id + lat + lon + sog + cog + true_heading + rot + ship_len + ship_wid + idx + num_ships
+                can_message = "cansend " + can_line + " 060##1" + can_data
+
+                # print(len(can_data) / 2)
+                if (i == 3):
+                    print("sending CAN message with idx = 3: ")
+                    pass
+
+                # Execute the cansend command
+                stdin, stdout, stderr = client.exec_command(can_message)
+                
+                # Check for errors
+                error = stderr.read().decode().strip()
+                output = stdout.read().decode().strip()
+                
+                if error:
+                    print(f"ERROR sending command: {error}")
+                    return False
+                else:
+                    print(f"✓ Sent - CAN message: {can_message}")
+
+                # generate_slope_data()
+                    
+            except Exception as e:
+                print(f"Exception sending AIS command: {e}")
+                return False
+            
+        return True
+
 
 def main():
     print("=" * 60)
-    print("Debug CAN Frame TEST SCRIPT")
+    print("SENSOR TEST SCRIPT")
     print("=" * 60)
     print(f"Target: {hostname}")
     print(f"Username: {username}")
-    print(f"Sends CAN Frame with debug data every {delay} secs")
+    print(f"Sends CAN Frame for pH sensor with random data every {delay} secs")
     print("=" * 60)
     
     # Connect to SSH
@@ -273,8 +418,12 @@ def main():
         while True:
             cycle_count += 1
             print(f"--- CYCLE {cycle_count} ---")
-            
+
             generate_slope_data()
+            pH_data = round(slope_data * 15)
+            temp_sensor_data = round((slope_data * 1100.0) + 273.15, 3)
+            sal_data = round(slope_data * 575000, 3)
+        
 
             current_time = time.time()
             timestamp = datetime.now().strftime('%H:%M:%S')
@@ -282,8 +431,8 @@ def main():
             # Calculate total elapsed time
             total_elapsed = current_time - start_time
             print(f"[{timestamp}] Total elapsed time: {total_elapsed:.1f}s")
-        
-            # success = send_pdb_command(client)
+            
+            success = send_pdb_command(client)
             # time.sleep(delay)
             # success = send_rudder_command(client)
 
@@ -306,13 +455,18 @@ def main():
             if not success:
                 print("Failed to send command, continuing...")
 
-            time.sleep(delay)
-            success = send_data_wind_command(client)
-            # # time.sleep(delay)
+            # time.sleep(delay)
+            print(f"Sending gps command...")
+            success = send_gps_command(client)
             if not success:
                 print("Failed to send command, continuing...")
 
-            
+            print(f"Sending AIS command...")
+            success = send_ais_command(client, 10) # TODO: test with larger numbers of ships - test with more than 127 - note: I did do this, might try again later
+            if not success:
+                print("Failed to send command, continuing...")
+
+
             print(f"[{timestamp}] Waiting {delay} seconds before next cansend...")
             time.sleep(delay)  # Wait 30 seconds before next angle
     
@@ -333,8 +487,11 @@ def main():
         client.close()
         print(f"[{datetime.now().strftime('%H:%M:%S')}] SSH connection closed")
         print("=" * 60)
-        print("PDB DEBUG DATA CANSEND TEST COMPLETED")
+        print("CANSEND TEST COMPLETED")
         print("=" * 60)
 
 if __name__ == "__main__":
     main()
+
+    # for i in range(0, 6):
+    #     send_ais_command(None, 6)
