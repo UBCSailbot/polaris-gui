@@ -810,21 +810,10 @@ class CANWindow(QWidget):
                             try:
                                 raw_data = line.split(']')[-1].strip().split()
                                 parsed = parse_0x060_frame(''.join(raw_data), current_time)
-                                # print("returned from parsed")
-                                # print("sog: ", parsed[AIS_Attributes.SOG])
-                                if parsed[AIS_Attributes.TOTAL] != 0: # if there are no ships
-                                    # print("clear_data() called")
-                                    # ais_obj.clear_data()
-                                    # TODO: log or clear data if total_ships == 0?                                                                                        
-                                    ais_obj.add_frame(parsed[AIS_Attributes.LONGITUDE], parsed[AIS_Attributes.LATITUDE], parsed[AIS_Attributes.SID], parsed, AIS_Attributes.LONGITUDE) # TODO: This needs to change
-                                    # print("current data: ", ais_obj.data)
-                                    # print("parsed dict: ", parsed)
-                                    # print("index = ", parsed[AIS_Attributes.IDX])
-                                    # If this is the last frame in the batch
+                                if parsed[AIS_Attributes.TOTAL] != 0: # if ship frame is valid
+                                    ais_obj.add_frame(parsed[AIS_Attributes.LONGITUDE], parsed[AIS_Attributes.LATITUDE], parsed[AIS_Attributes.SID], parsed, AIS_Attributes.LONGITUDE)
                                     if parsed[AIS_Attributes.IDX] == (parsed[AIS_Attributes.TOTAL] - 1):
                                         ais_obj.log_data(datetime.now().isoformat(), time.time() - self.time_start)
-                                        # print("total ships: ", len(ais_obj.data))
-                                    #     print("total ships (dataset len): ", len(ais_obj.dataset))
 
                             except Exception as e:
                                 self.output_display.append(f"[PARSE ERROR 0x060] {str(e)}")
