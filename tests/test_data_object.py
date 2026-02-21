@@ -1,6 +1,7 @@
 import pytest
 from PyQt5.QtWidgets import QLabel
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QColor
 
 from tests.helpers import Outcome
 import project.config as cg
@@ -45,8 +46,8 @@ def test_create_label(arguments, expected_result, qtbot):
 # TODO: test GraphObject class - test all functions
 
 graph_object_params = [
-    ({"x_name": "X data", "y_name": "Y data", "x_units": "sec", "y_units": "cm", "minn": 0, "maxn": 100, "dropdown_label": None}),
-    ({"x_name": "bob", "y_name": "jim", "x_units": "m", "y_units": "bacteria", "minn": 30, "maxn": 80, "dropdown_label": "special_label"}),
+    ({"x_name": "X data", "y_name": "Y data", "x_units": "sec", "y_units": None, "minn": 0, "maxn": 100, "dropdown_label": None}),
+    ({"x_name": "bob", "y_name": "jim", "x_units": None, "y_units": "bacteria", "minn": 30, "maxn": 80, "dropdown_label": "special_label"}),
     ({"x_name": "test test", "y_name": "234093rew98", "x_units": "hours", "y_units": "mg/cm^3", "minn": -50, "maxn": -10, "dropdown_label": None}),
 ]
 
@@ -116,13 +117,63 @@ class Test_GraphObject:
         assert obj.graph.isVisible() == True
         
 
+# TODO: add more testing parameters/tweaks to get boundary cases
+# - add simple example parsing functions (lambda?)
 
 data_object_params = [
-    ({"name": "Object 1", "dp": 2, "units": "cm", "parsing_fn": None, "line_dashed": False, "line_colour": "r", "symbol_brush": None, "hasLabel": True, "graph": None})
-
+    ({"name": "Object 1", "dp": 2, "units": "cm", "parsing_fn": None, "line_dashed": False, "line_colour": "r", "symbol_brush": None, "has_label": True, 
+      "graph": None}),
+    ({"name": "Object 2", "dp": 1, "units": None, "parsing_fn": None, "line_dashed": False, "line_colour": "g", "symbol_brush": 'x', "has_label": True, 
+      "graph": GraphObject("Y data", "X data", None, "secs", 0, 100)}),
+    ({"name": "Object 2", "dp": 1, "units": None, "parsing_fn": None, "line_dashed": True, "line_colour": "y", "symbol_brush": 'o', "has_label": False, 
+      "graph": GraphObject("Y data", "X data", None, "secs", 0, 100)})
 ]
 
+@pytest.fixture()
+def init_data_object(params, qtbot):
+    d_obj = DataObject(params["name"], params["dp"], params["units"], params["parsing_fn"], params["line_dashed"], params["line_colour"], params["symbol_brush"], params["has_label"], params["graph"])
+    d_obj.initialize()
+    if (d_obj.has_label):
+        qtbot.addWidget(d_obj.label)
+    if (d_obj.graph_obj is not None):
+        qtbot.addWidget(d_obj.graph_obj.graph)
+    return d_obj
+
+@pytest.mark.parametrize("params", data_object_params, scope="class")
 class Test_DataObject:
-    def test_constructor():
+    def test_constructor(self, init_data_object, params):
         # TODO: complete implementation
-        pass
+        obj = init_data_object
+        assert obj.name == params["name"]
+        assert obj.dp == params["dp"]
+        if params["units"]:
+            assert obj.units == params["units"]
+        else: assert obj.units == ""
+        assert obj.parsing_fn == params["parsing_fn"]
+        assert obj.line_dashed == params["line_dashed"]
+        assert obj.line_colour == params["line_colour"]
+        assert obj.graph_obj == params["graph"]
+        assert not obj.data # dataset is empty
+        assert obj.current == None
+        assert obj.has_label == params["has_label"]
+        assert obj.symbol_brush == params["symbol_brush"]
+        if params["has_label"]:
+            assert obj.label is not None
+            assert obj.label.text() == params["name"] + ": ---- "
+        else:
+            assert obj.label is None
+        
+        if params["graph"] is not None:
+            assert obj.line is not None
+            # data, colour, dashed, symbol, name?
+            assert not obj.line.xData and not obj.line.yData
+            if params["symbol_brush"] is not None:
+                symbol = obj.line.opts["symbol"]
+                assert symbol == params["symbol_brush"]
+                pen = obj.line.opts["pen"]
+                # TODO: figure out how to check pen colour- right now, I think it's just comparing that they are two different objects
+                # assert pen.color() == QColor(params["line_colour"])
+                if params["line_dashed"]:
+                    assert pen.style() == Qt.DashLine
+                else: assert pen.style() == Qt.SolidLine
+
