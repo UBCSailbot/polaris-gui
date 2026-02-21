@@ -272,10 +272,10 @@ class CANWindow(QWidget):
         commands = [
             ("SSH Connect", "ssh sailbot@192.168.0.10"),
             ("CAN0 Down", "sudo ip link set can0 down"),
-            ("CAN0 Up", "sudo ip link set can0 up type can bitrate 500000 dbitrate 1000000 fd on"),
-            ("Check CAN Status", "ip link show can0"),
-            ("View System Logs", "dmesg | tail"),
-            ("System Info", "uname -a")
+            ("CAN0 Up", "sudo ip link set can0 up type can bitrate 500000 dbitrate 1000000 fd on")
+           # ("Check CAN Status", "ip link show can0"),
+           # ("View System Logs", "dmesg | tail"),
+           # ("System Info", "uname -a")
         ]
         
         # Create buttons for each command
@@ -362,6 +362,7 @@ class CANWindow(QWidget):
         left_layout.addSpacing(5)  # Small spacing before command buttons
         left_layout.addLayout(self.commands_grid)
 
+        # === Right Panel
         right_layout = QVBoxLayout()
 
         # right_labels_layout = QVBoxLayout()
