@@ -623,6 +623,8 @@ class CANWindow(QWidget):
         if key == Qt.Key_A:
             self.rudder_angle = max(self.rudder_angle - 3, -45)
             self.send_rudder(from_keyboard=True)
+            # self.send_rudder(set_angle = max(self.rudder_angle - 3, -45))
+            # NOTE: now that send_rudder() takes a set_angle, can probably use that instead of setting self.rudder_angle and from_keyboard=True
         elif key == Qt.Key_D:
             self.rudder_angle = min(self.rudder_angle + 3, 45)
             self.send_rudder(from_keyboard=True)
@@ -684,6 +686,8 @@ class CANWindow(QWidget):
     def send_rudder(self, from_keyboard=False, set_angle: float = None):
         '''set_angle is a given angle'''
         try:
+            # print("from_keyboard = ", from_keyboard)
+            # print("self.rudder_angle = ", self.rudder_angle)
             if from_keyboard:
                 # print(f"self.rudder_angle = {self.rudder_angle}")
                 angle = self.rudder_angle
@@ -694,10 +698,12 @@ class CANWindow(QWidget):
                 # print(f"in else")
                 angle = int(self.rudder_input.text())
             # angle = self.rudder_angle if from_keyboard else int(self.rudder_input.text())
+            
             if not from_keyboard:
                 self.rudder_angle = angle # TODO: Why is this here? Keep self.rudder_angle up-to-date?
 
             # print(f"from_keyboard = {from_keyboard}")
+            # print("now self.rudder_angle = ", self.rudder_angle)
             # print(f"angle = {angle}")
 
             if (angle < -90):
@@ -710,8 +716,8 @@ class CANWindow(QWidget):
             # step1 = convert_to_hex(step0, 4)
             # print("line 701")
 
-            data = convert_to_little_endian(convert_to_hex(round(angle)+90 * 1000, 4))
-            
+            data = convert_to_little_endian(convert_to_hex((round(angle)+90) * 1000, 4))
+            # print("data = ", data)
             # print("line 703")
 
             status_byte = "80" # a = 1, b = 0, c = 0
@@ -722,6 +728,7 @@ class CANWindow(QWidget):
 
             set_rudder_obj.add_datapoint(time.time() - self.time_start, angle)
             set_rudder_obj.update_label()
+            print("Set rudder current = ", set_rudder_obj.get_current()[1])
             # print(f"at the end w/o error")
 
         except ValueError:
@@ -801,6 +808,7 @@ class CANWindow(QWidget):
                                 self.output_display.append(f"[PARSE ERROR 0x041] {str(e)}")
                         case "060": # AIS frame
                             try:
+                                print("AIS Data received!")
                                 raw_data = line.split(']')[-1].strip().split()
                                 parsed = parse_0x060_frame(''.join(raw_data))
                                 # print("returned from parsed")
@@ -1022,6 +1030,8 @@ if __name__ == "__main__":
     except Exception as e:
         js = None
         print(f"Joystick Connection Error: {e}")
+
+    print("js = ", js)
 
     app = QApplication(sys.argv)
     for obj in all_objs:
