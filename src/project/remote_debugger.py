@@ -810,7 +810,7 @@ class CANWindow(QWidget):
                             try:
                                 print("AIS Data received!")
                                 raw_data = line.split(']')[-1].strip().split()
-                                parsed = parse_0x060_frame(''.join(raw_data))
+                                parsed = parse_0x060_frame(''.join(raw_data), current_time)
                                 # print("returned from parsed")
                                 # print("sog: ", parsed[AIS_Attributes.SOG])
                                 if parsed[AIS_Attributes.TOTAL] != 0: # if there are no ships
@@ -895,8 +895,10 @@ class CANWindow(QWidget):
                     self._log_values()
 
         # trim values no longer being graphed
-        for obj in data_objs:
+        for obj in all_objs:
             obj.update_data(current_time, scroll_window)
+
+        # ais_obj.update_dataset()
                         
         # Always update plots every timer cycle (independent of CAN messages) # TODO: Modify this - batch plot updates?
         if len(self.time_history) > 0:
