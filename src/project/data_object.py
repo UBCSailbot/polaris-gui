@@ -277,7 +277,7 @@ class AISObject(DataObject): # NOTE: does this class need to take all arguments 
                 for frame in self.dataset.values(): # for each frame in the dataset
                     # print("frame = ", frame)
                     values = [timestamp, elapsed_time]
-                    for key in frame.keys(): # get the keys in data
+                    for key in ais_attributes: # get the keys in data
                         if frame[key] is None:
                             values.append("None")
                         else: values.append(frame[key])
@@ -294,8 +294,8 @@ class AISObject(DataObject): # NOTE: does this class need to take all arguments 
             return # if either is None, can't graph position - just return
         if self.graph_obj.isVisible():
             self.polaris_line.setData([lon], [lat])
-        print("polaris_pos updated!")
-        print("self.polaris_line = (", self.polaris_line.xData, ", ", self.polaris_line.yData, ")")
+        # print("polaris_pos updated!")
+        # print("self.polaris_line = (", self.polaris_line.xData, ", ", self.polaris_line.yData, ")")
         
 
     
