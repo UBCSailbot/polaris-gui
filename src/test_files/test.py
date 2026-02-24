@@ -1,89 +1,165 @@
 # ===== Example AIS Graph (Basic) ===== 
-# ===== Testing ScatterPlot =====
-from random import randint, uniform
+# from random import randint, uniform
 
-import pyqtgraph as pg
-from PyQt5 import QtCore, QtWidgets, QtGui
+# import pyqtgraph as pg
+from PyQt5 import QtWidgets
+from PyQt5.QtWidgets import (
+    QVBoxLayout, QLabel, QWidget, QPushButton
+)
+
+from PyQt5.QtCore import QTimer
+
+
+from project.config import (
+    heartbeat_label_style, heartbeat_status_good_style,
+    heartbeat_status_bad_style
+)
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.time = list(range(10)) # create a list of times from 1-10 for time
-        x_data = [uniform(-180, 180) for i in range(10)] 
-        y_data = [uniform(-90, 90) for j in range(10)] # randint(1, 9) for i in range(0, 10)]
-        print("longitude: ", x_data)
-        print("latitude: ", y_data)
+        # Create Heartbeat widget
+        central_widget = QWidget()
+        central_layout = QVBoxLayout()
+        # heartbeat_label = QLabel()
+        # heartbeat_label.setStyleSheet(heartbeat_label_style)
+        # heartbeat_label.setText(
+        #     f"""PDB Status: <font style=\"{heartbeat_status_bad_style}\">NOT RESPONDING</font>
+        #         <br>SAIL Status: <font style=\"{heartbeat_status_good_style}\">ALIVE<\font>"""
+        # )
 
-        polaris_pen = pg.mkPen(color='r', width=5) # set point border color (red)
-        polaris_brush = pg.mkBrush(color='r')
-        other_pen = pg.mkPen(color='b', width=1)
-        other_brush = pg.mkBrush(color='b')
+        pdb_timeout = 0
 
-        '''
-        Optional list of dicts. Each dict specifies parameters for a single spot: {‘pos’: (x,y), ‘size’, ‘pen’, ‘brush’, ‘symbol’}. 
-        This is just an alternate method of passing in data for the corresponding arguments.
-        '''
-        spots = []
-        for pt in self.time:
-            if (pt == 5):
-                spots.append({'pos': (x_data[pt - 1], y_data[pt - 1]), 'size':10, 'pen': polaris_pen, 'brush': polaris_brush, 'symbol': 'x'}) # Each point can have its own brush, pen, symbol
-            else:
-                spots.append({'pos': (x_data[pt - 1], y_data[pt - 1]), 'size':10, 'pen': other_pen, 'brush': other_brush, 'symbol': 'o'})
+        pdb_title_text = "PDB Status: "
+        sail_title_text = "SAIL Status: "
 
-        # Graph using PlotWidget
-        self.plot_widget = pg.PlotWidget()
+        pdb_hb_label = QLabel()
+        pdb_hb_label.setStyleSheet(heartbeat_label_style)
+        pdb_hb_label.setText(f"{pdb_title_text} <font style=\"{heartbeat_status_bad_style}\">NOT RESPONDING</font>")
 
-        # setup - all from create_graph function
-        self.plot_widget.setBackground("w")
-        self.plot_widget.getPlotItem().getViewBox().setMouseEnabled(False, False)
-        self.plot_widget.setTitle("Ship Positions", color='black')
-        self.plot_widget.setLabel("left", "Latitude")
-        self.plot_widget.setLabel("bottom", "Longitude")
-        self.plot_widget.addLegend()
-        self.plot_widget.showGrid(x=True, y=True)
-
-        # create line objects for polaris & for other ships; add data
-        # TODO: copy necessary bits from create_line here
-        other_line = self.plot_widget.plot(
-            x_data, 
-            y_data,
-            name="other ships",
-            pen=None,
-            symbolBrush=other_brush,
-            symbol = "o"
-        )
-
-        polaris_line = self.plot_widget.plot(
-            name="Polaris",
-            pen=None,
-            symbolBrush=polaris_brush,
-            symbol="x"
-        )
-
-        polaris_line.setData([0], [0])
-
+        pdb_button = QPushButton("pdb heartbeat")
+        pdb_button.clicked.connect(lambda: self.on_clicked(pdb_hb_label, pdb_title_text))
         
-        # Graph using ScatterPLotItem
-        # self.plot_widget = pg.PlotWidget()
-        # self.plot_widget.getPlotItem().getViewBox().setMouseEnabled(False, False) # disable graph interaction
-        # self.plot_widget.setBackground("w") # set background color to white
-        # self.plot_widget.setTitle("Longitude vs. Latitude", color="b", size="20pt") # set title of graph
-        # styles = {"color": "red", "font-size": "18px"} # create a style sheet
-        # self.plot_widget.setLabel("left", "Latitude (DD)", **styles) # create y-axis label, set its style
-        # self.plot_widget.setLabel("bottom", "Longitude (DD)", **styles) # create x-axis label, set its style
-        # self.plot_widget.addLegend() # must be called before calling plot to add legend to graph
-        # self.plot_widget.showGrid(x=True, y=True) # set grid on graph
+        sail_hb_label = QLabel()
+        sail_hb_label.setStyleSheet(heartbeat_label_style)
+        sail_hb_label.setText(f"{sail_title_text} <font style=\"{heartbeat_status_bad_style}\">NOT RESPONDING</font>")
 
-        # self.plot_graph = pg.ScatterPlotItem(spots) # create ScatterPlot object
-        # self.plot_widget.addItem(self.plot_graph)
+        sail_button = QPushButton("sail heartbeat")
+        sail_button.clicked.connect(lambda: self.on_clicked(sail_hb_label, sail_title_text))
         
-        self.setCentralWidget(self.plot_widget) 
+        central_layout.addWidget(pdb_hb_label)
+        central_layout.addWidget(sail_hb_label)
+        central_layout.addSpacing(15)
+        central_layout.addWidget(pdb_button)
+        central_layout.addWidget(sail_button)
+
+        central_widget.setLayout(central_layout)
+        self.setCentralWidget(central_widget) 
+
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update)
+        self.timer.start(300)
+
+    def on_clicked(self, label, title_text):
+        label.setText(title_text + f"<font style=\"{heartbeat_status_good_style}\">ALIVE</font>")
+        pass
+
+    def update(self):
+        # TODO: if more than 10 secs have passed, switch to disconnected
+        
+        pass
 
 app = QtWidgets.QApplication([])
 main = MainWindow()
 main.show()
 app.exec()
+
+# # ===== Example AIS Graph (Basic) ===== 
+# from random import randint, uniform
+
+# import pyqtgraph as pg
+# from PyQt5 import QtCore, QtWidgets, QtGui
+
+# class MainWindow(QtWidgets.QMainWindow):
+#     def __init__(self):
+#         super().__init__()
+
+#         self.time = list(range(10)) # create a list of times from 1-10 for time
+#         x_data = [uniform(-180, 180) for i in range(10)] 
+#         y_data = [uniform(-90, 90) for j in range(10)] # randint(1, 9) for i in range(0, 10)]
+#         print("longitude: ", x_data)
+#         print("latitude: ", y_data)
+
+#         polaris_pen = pg.mkPen(color='r', width=5) # set point border color (red)
+#         polaris_brush = pg.mkBrush(color='r')
+#         other_pen = pg.mkPen(color='b', width=1)
+#         other_brush = pg.mkBrush(color='b')
+
+#         '''
+#         Optional list of dicts. Each dict specifies parameters for a single spot: {‘pos’: (x,y), ‘size’, ‘pen’, ‘brush’, ‘symbol’}. 
+#         This is just an alternate method of passing in data for the corresponding arguments.
+#         '''
+#         spots = []
+#         for pt in self.time:
+#             if (pt == 5):
+#                 spots.append({'pos': (x_data[pt - 1], y_data[pt - 1]), 'size':10, 'pen': polaris_pen, 'brush': polaris_brush, 'symbol': 'x'}) # Each point can have its own brush, pen, symbol
+#             else:
+#                 spots.append({'pos': (x_data[pt - 1], y_data[pt - 1]), 'size':10, 'pen': other_pen, 'brush': other_brush, 'symbol': 'o'})
+
+#         # Graph using PlotWidget
+#         self.plot_widget = pg.PlotWidget()
+
+#         # setup - all from create_graph function
+#         self.plot_widget.setBackground("w")
+#         self.plot_widget.getPlotItem().getViewBox().setMouseEnabled(False, False)
+#         self.plot_widget.setTitle("Ship Positions", color='black')
+#         self.plot_widget.setLabel("left", "Latitude")
+#         self.plot_widget.setLabel("bottom", "Longitude")
+#         self.plot_widget.addLegend()
+#         self.plot_widget.showGrid(x=True, y=True)
+
+#         # create line objects for polaris & for other ships; add data
+#         # TODO: copy necessary bits from create_line here
+#         other_line = self.plot_widget.plot(
+#             x_data, 
+#             y_data,
+#             name="other ships",
+#             pen=None,
+#             symbolBrush=other_brush,
+#             symbol = "o"
+#         )
+
+#         polaris_line = self.plot_widget.plot(
+#             name="Polaris",
+#             pen=None,
+#             symbolBrush=polaris_brush,
+#             symbol="x"
+#         )
+
+#         polaris_line.setData([0], [0])
+
+        
+#         # Graph using ScatterPLotItem
+#         # self.plot_widget = pg.PlotWidget()
+#         # self.plot_widget.getPlotItem().getViewBox().setMouseEnabled(False, False) # disable graph interaction
+#         # self.plot_widget.setBackground("w") # set background color to white
+#         # self.plot_widget.setTitle("Longitude vs. Latitude", color="b", size="20pt") # set title of graph
+#         # styles = {"color": "red", "font-size": "18px"} # create a style sheet
+#         # self.plot_widget.setLabel("left", "Latitude (DD)", **styles) # create y-axis label, set its style
+#         # self.plot_widget.setLabel("bottom", "Longitude (DD)", **styles) # create x-axis label, set its style
+#         # self.plot_widget.addLegend() # must be called before calling plot to add legend to graph
+#         # self.plot_widget.showGrid(x=True, y=True) # set grid on graph
+
+#         # self.plot_graph = pg.ScatterPlotItem(spots) # create ScatterPlot object
+#         # self.plot_widget.addItem(self.plot_graph)
+        
+#         self.setCentralWidget(self.plot_widget) 
+
+# app = QtWidgets.QApplication([])
+# main = MainWindow()
+# main.show()
+# app.exec()
 
 # # ===== Testing ScatterPlot =====
 # from random import randint
