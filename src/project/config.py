@@ -44,8 +44,23 @@ value_warning = """
 
 input_label_style = "font-weight: bold;"
 
+# ==== Heartbeat UI Style ====
+heartbeat_timeout = 10 # Timeout for CAN frame (in secs)
+heartbeat_status_good_text = "ALIVE"
+heartbeat_status_bad_text = "NOT RESPONDING"
+
+heartbeat_label_style = """
+            color: black;
+            font-size: 16px;
+            padding: 2px;
+            margin: 2px;
+        """
+
+heartbeat_status_good_style = "color: green;"
+heartbeat_status_bad_style = "color: red;"
+
 # ==== Dropdown font ====
-d_font_type = "Comic Sans"
+d_font_type = "Comic Sans" # hahaha
 d_font_size = 14
 
 # ==== Graph config ====
