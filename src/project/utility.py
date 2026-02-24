@@ -1,4 +1,5 @@
 from project.data_object import *
+from project.pyqt_widgets.heartbeat_module import HeartbeatModule
 from project.config import *
 
 # SSH Credentials
@@ -311,6 +312,17 @@ def make_pretty(cmd: str):
         print(f"ERROR - Command not logged: {str(e)}")
     
     return msg
+
+### ---------- Heartbeat Modules ---------- ###
+
+pdb_title_text = "PDB Status: "
+sail_title_text = "SAIL Status: "
+
+pdb_hb_module = HeartbeatModule(pdb_title_text)
+
+heartbeat_modules = [pdb_hb_module]
+
+# TODO: Add the rest of the modules, one at a time - once done testing all function w/ pdb module
 
 ### ---------- Data Objects ---------- ###
 

@@ -21,6 +21,7 @@ from project.can_processes import (
     candump_process, cansend_worker, temperature_reader, can_logging_process
 )
 
+import project.pyqt_widgets
 from project.data_object import *
 from project.utility import *
 
@@ -250,7 +251,7 @@ class CANWindow(QWidget):
             "1. Open separate terminal/PowerShell\n"
             "2. ssh sailbot@192.168.0.10\n"
             "3. Password: sailbot\n"
-            "\nUse buttons below to copy commands:"
+            "Use buttons below to copy commands:"
         )
         self.ssh_instructions_label.setStyleSheet("""
             QLabel {
@@ -330,6 +331,9 @@ class CANWindow(QWidget):
         self.power_off_btn.setStyleSheet(red_button_style)
         self.restart_btn.setStyleSheet(red_button_style)
 
+
+        # TODO: add heartbeat widgets to left_layout (below)
+
         left_layout = QVBoxLayout()
         left_layout.addLayout(top_bar_layout)
         left_layout.addLayout(checkbox_layout)
@@ -353,6 +357,11 @@ class CANWindow(QWidget):
         left_layout.addSpacing(5)  # Add small spacing
         left_layout.addWidget(QLabel("Candump Output:"))
         left_layout.addWidget(self.output_display)
+        left_layout.addSpacing(5)  # Add small spacing
+        # TODO: heartbeat displays go here
+        for mod in heartbeat_modules:
+            mod.init_label()
+            left_layout.addWidget(mod.label)
         left_layout.addSpacing(5)  # Add small spacing
         left_layout.addWidget(self.emergency_checkbox)
         left_layout.addSpacing(5)  # Add spacing before emergency buttons
