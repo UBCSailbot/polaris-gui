@@ -25,7 +25,7 @@ from project.remote_debugger import (
 can_line = "can0"
 
 # Time between sent frames (in secs)
-delay = 0.5
+delay = 1.05
 
 # CAN Frame IDs
 temp_sensor_id = "100" 
@@ -254,10 +254,12 @@ def simple_consumer(queue: multiprocessing.Queue, delay):
         except Exception as e:
             print(f"ERROR - simple_consumer() threw exception {e}")
 
-def start_remote_debugger(timestamp: str, queue, parent_conn, cmd_queue, response_queue, can_log_queue, joystick = None):
+def start_remote_debugger(current_time: float, timestamp: str, queue, parent_conn, cmd_queue, response_queue, can_log_queue, joystick = None):
     app = QApplication(sys.argv)
     for obj in util.all_objs:
         obj.initialize(timestamp) # create QWidgets
+    for mod in util.heartbeat_modules:
+        mod.init_time(current_time)
     window = CANWindow(queue, parent_conn, cmd_queue, response_queue, can_log_queue, timestamp, joystick = joystick)
     window.show()
 
@@ -288,12 +290,13 @@ def run_local_test(msg_queue: multiprocessing.Queue, delay, data = None):
     
     while True:
         try:
-            print(f"--- CYCLE {cycle} ---")
             cycle += 1
+            print(f"--- CYCLE {cycle} ---")
 
-            pdb_hb_msg = make_pretty(generate_hb_msg("130"))
-            msg_queue.put(pdb_hb_msg)
-            print(f"Message: {pdb_hb_msg}")
+            if ((cycle % 10) == 0): 
+                pdb_hb_msg = make_pretty(generate_hb_msg("130"))
+                msg_queue.put(pdb_hb_msg)
+                print(f"Message: {pdb_hb_msg}")
 
             ais_msg = make_pretty(generate_ais_msgs(1))
             msg_queue.put(ais_msg)
@@ -324,7 +327,9 @@ def main():
     empty_queue = multiprocessing.Queue() # here is an empty queue for functions that take input from a queue
     parent_conn, child_conn = multiprocessing.Pipe() # TODO: do I need a simple_pipe_consumer() ? Will there be a problem if I don't connect the child end?
 
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    current_time = datetime.now()
+    timestamp = current_time.strftime('%Y%m%d_%H%M%S')
+    current_time = current_time.timestamp() # convert to seconds since epoch
 
     # NOTE: For now, I'll ignore pretty much all 'extra' processes: 
     # - temp_reader (just show disconnected)
@@ -352,7 +357,7 @@ def main():
     print("Local test script - Sets up and passes sample data into an instance of a CANWindow application")
     print("=" * 60)
 
-    start_remote_debugger(timestamp, msg_queue, parent_conn, dump_queue, empty_queue, dump_queue)
+    start_remote_debugger(current_time, timestamp, msg_queue, parent_conn, dump_queue, empty_queue, dump_queue)
 
     # TODO: clean up all processes etc. here
     print("Cleaning up...")
