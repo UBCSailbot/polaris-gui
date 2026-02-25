@@ -729,9 +729,12 @@ class CANWindow(QWidget):
                             except Exception as e:
                                 self.output_display.append(f"[PARSE ERROR 0x120] {str(e)}") 
 
-                        case "130":
+                        case "130": # PDB Heartbeat frame
                             pdb_hb_module.set_alive(current_time)
-                            pass
+                        case "131":
+                            pass # TODO: RUDR heartbeat
+                        case "132": # SAIL Heartbeat frame
+                            sail_hb_module.set_alive(current_time)
 
                         case "204": # Handle 0x204 frame (actual rudder angle)
 
