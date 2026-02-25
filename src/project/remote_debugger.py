@@ -729,6 +729,10 @@ class CANWindow(QWidget):
                             except Exception as e:
                                 self.output_display.append(f"[PARSE ERROR 0x120] {str(e)}") 
 
+                        case "130":
+                            pdb_hb_module.set_alive(current_time)
+                            pass
+
                         case "204": # Handle 0x204 frame (actual rudder angle)
 
                             try:
@@ -762,7 +766,9 @@ class CANWindow(QWidget):
         for obj in all_objs:
             obj.update_data(current_time, scroll_window)
 
-        # ais_obj.update_dataset()
+        # Update heartbeat displays
+        for mod in heartbeat_modules:
+            mod.update_status(current_time)
                         
         # Always update plots every timer cycle (independent of CAN messages) # TODO: Modify this - batch plot updates?
         if len(self.time_history) > 0:
@@ -867,7 +873,9 @@ if __name__ == "__main__":
     cmd_queue = multiprocessing.Queue()
     response_queue = multiprocessing.Queue()
     can_log_queue = multiprocessing.Queue()
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    current_time = datetime.now()
+    timestamp = current_time.strftime('%Y%m%d_%H%M%S')
+    current_time = current_time.timestamp() # convert to seconds since epoch
 
     candump_proc = multiprocessing.Process(target=candump_process, args=(queue, False)) # Testing mode set to false when run from main
     temp_proc = multiprocessing.Process(target=temperature_reader, args=(child_conn,))
@@ -901,6 +909,8 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     for obj in all_objs:
         obj.initialize(timestamp) # create QWidgets
+    for mod in heartbeat_modules:
+        mod.init_time(current_time)
     window = CANWindow(queue, parent_conn, cmd_queue, response_queue, can_log_queue, timestamp, joystick = js)
     window.show()
 
