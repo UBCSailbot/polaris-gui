@@ -319,8 +319,9 @@ pdb_title_text = "PDB Status: "
 sail_title_text = "SAIL Status: "
 
 pdb_hb_module = HeartbeatModule(pdb_title_text)
+sail_hb_module = HeartbeatModule(sail_title_text)
 
-heartbeat_modules = [pdb_hb_module]
+heartbeat_modules = [pdb_hb_module, sail_hb_module]
 
 # TODO: Add the rest of the modules, one at a time - once done testing all function w/ pdb module
 
