@@ -80,6 +80,12 @@ def make_pretty(cmd: str):
     
     return msg
 
+def create_can_msg(data, frame) -> str:
+    return "cansend " + can_line + " " + frame + "##1" + data
+
+def generate_hb_msg(frame):
+    return create_can_msg("", frame)
+
 def generate_gps_msg():
     '''
     [31:0] uint32_t latitude
@@ -285,15 +291,18 @@ def run_local_test(msg_queue: multiprocessing.Queue, delay, data = None):
             print(f"--- CYCLE {cycle} ---")
             cycle += 1
 
+            pdb_hb_msg = make_pretty(generate_hb_msg("130"))
+            msg_queue.put(pdb_hb_msg)
+            print(f"Message: {pdb_hb_msg}")
+
             ais_msg = make_pretty(generate_ais_msgs(1))
             msg_queue.put(ais_msg)
             print(f"Message: {ais_msg}")
 
-            if (cycle % 4 == 0):
-                gps_data = generate_gps_msg()
-                msg = make_pretty(gps_data)
-                msg_queue.put(msg)  # NOTE: do I need to make this non-blocking or smth?
-                print(f"Message: {msg}")
+            gps_data = generate_gps_msg()
+            msg = make_pretty(gps_data)
+            msg_queue.put(msg)  # NOTE: do I need to make this non-blocking or smth?
+            print(f"Message: {msg}")
 
             generate_slope_data()
             sleep(delay)
