@@ -316,12 +316,16 @@ def make_pretty(cmd: str):
 ### ---------- Heartbeat Modules ---------- ###
 
 pdb_title_text = "PDB Status: "
+rudr_title_text = "RUDR Status: "
 sail_title_text = "SAIL Status: "
+sense_title_text = "SENSE Status: "
 
 pdb_hb_module = HeartbeatModule(pdb_title_text)
+rudr_hb_module = HeartbeatModule(rudr_title_text)
 sail_hb_module = HeartbeatModule(sail_title_text)
+sense_hb_module = HeartbeatModule(sense_title_text)
 
-heartbeat_modules = [pdb_hb_module, sail_hb_module]
+heartbeat_modules = [pdb_hb_module, sail_hb_module, rudr_hb_module, sense_hb_module]
 
 # TODO: Add the rest of the modules, one at a time - once done testing all function w/ pdb module
 
