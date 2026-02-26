@@ -32,14 +32,16 @@ class HeartbeatModule():
 
     def update_status(self, current_time): 
         '''Note: only checks for disconnection'''
-        if (not self.is_alive(current_time) and self.alive_status is True):
+        if (not self.is_alive(current_time)):
             self.set_not_responding()
 
     def set_not_responding(self):
-        self.label.setText(self.title_text + f"<font style=\"{cg.heartbeat_status_bad_style}\">{cg.heartbeat_status_bad_text}</font>")
-        self.alive_status = False
+        if (self.alive_status is True): # only update display when necessary
+            self.label.setText(self.title_text + f"<font style=\"{cg.heartbeat_status_bad_style}\">{cg.heartbeat_status_bad_text}</font>")
+            self.alive_status = False
 
     def set_alive(self, time):
-        self.label.setText(self.title_text + f"<font style=\"{cg.heartbeat_status_good_style}\">{cg.heartbeat_status_good_text}</font>")
-        self.alive_status = True
-        self.time_of_last = time
+        if (self.alive_status is False): # only update display when necessary
+            self.label.setText(self.title_text + f"<font style=\"{cg.heartbeat_status_good_style}\">{cg.heartbeat_status_good_text}</font>")
+            self.alive_status = True
+        self.time_of_last = time # always updated when set_alive is called
