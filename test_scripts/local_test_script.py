@@ -297,10 +297,19 @@ def run_local_test(msg_queue: multiprocessing.Queue, delay, data = None):
                 pdb_hb_msg = make_pretty(generate_hb_msg("130"))
                 msg_queue.put(pdb_hb_msg)
                 print(f"Message: {pdb_hb_msg}")
+            if ((cycle % 10) == 3): 
+                rudr_hb_msg = make_pretty(generate_hb_msg("131"))
+                msg_queue.put(rudr_hb_msg)
+                print(f"Message: {rudr_hb_msg}")
             if ((cycle % 10) == 5): 
                 sail_hb_msg = make_pretty(generate_hb_msg("132"))
                 msg_queue.put(sail_hb_msg)
                 print(f"Message: {sail_hb_msg}")
+            if ((cycle % 10) == 7): 
+                sense_hb_msg = make_pretty(generate_hb_msg("133"))
+                msg_queue.put(sense_hb_msg)
+                print(f"Message: {sense_hb_msg}")
+            
 
             ais_msg = make_pretty(generate_ais_msgs(1))
             msg_queue.put(ais_msg)
