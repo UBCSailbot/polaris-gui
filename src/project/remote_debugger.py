@@ -732,9 +732,11 @@ class CANWindow(QWidget):
                         case "130": # PDB Heartbeat frame
                             pdb_hb_module.set_alive(current_time)
                         case "131":
-                            pass # TODO: RUDR heartbeat
+                            rudr_hb_module.set_alive(current_time)
                         case "132": # SAIL Heartbeat frame
                             sail_hb_module.set_alive(current_time)
+                        case "133":
+                            sense_hb_module.set_alive(current_time)
 
                         case "204": # Handle 0x204 frame (actual rudder angle)
 
