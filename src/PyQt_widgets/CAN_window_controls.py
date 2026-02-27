@@ -39,7 +39,7 @@ class CANWindowControlsMixin:
             status_byte = "00" # a = 0, b = 0, c = 0
             self.can_send("001", data + status_byte, "HEADING SENT")
             desired_heading_obj.add_datapoint(time.time() - self.time_start, heading)
-            desired_heading_obj.update_label()
+            # desired_heading_obj.update_label()
         except ValueError as e:
             self.show_error(f"Invalid angle input for desired heading: {e}")
         except Exception:
