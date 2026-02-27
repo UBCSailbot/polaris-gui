@@ -552,12 +552,12 @@ class CANWindow(QWidget):
             status_byte = "00" # a = 0, b = 0, c = 0
             self.can_send("001", data + status_byte, "HEADING SENT")
             desired_heading_obj.add_datapoint(time.time() - self.time_start, heading)
-            desired_heading_obj.update_label()
-        except ValueError:
+            # desired_heading_obj.update_label() # No explicit label with the other objects for this item; already have Heading Set Angle
+        except ValueError as e:
             self.show_error(f"Invalid angle input for desired heading: {e}")
-        except Exception:
-            print("Exception thrown from send_desired_heading")
-            self.show_error("Exception thrown from send_desired_heading")
+        except Exception as exp:
+            print(f"Exception thrown from send_desired_heading: {exp}")
+            self.show_error(f"Exception thrown from send_desired_heading: {exp}")
 
     def send_rudder(self, from_keyboard=False, set_angle: float = None):
         '''set_angle is a given angle'''
