@@ -1,5 +1,5 @@
 import csv
-import datetime
+from datetime import datetime
 import os
 import time
 from utility import data_objs
