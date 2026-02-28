@@ -1,9 +1,14 @@
 import multiprocessing
 import paramiko
-from DataObject import *
-from utility import *
+from data_object import *
+from utils import *
 
-def cansend_worker(cmd_queue: multiprocessing.Queue, response_queue: multiprocessing.Queue, can_log_queue: multiprocessing.Queue):
+
+def cansend_worker(
+    cmd_queue: multiprocessing.Queue,
+    response_queue: multiprocessing.Queue,
+    can_log_queue: multiprocessing.Queue,
+):
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     try:
@@ -15,10 +20,10 @@ def cansend_worker(cmd_queue: multiprocessing.Queue, response_queue: multiproces
             try:
                 out = ""
                 err = ""
-                if (cmd[0:4] == "sudo"):
+                if cmd[0:4] == "sudo":
                     stdin, stdout, stderr = client.exec_command(cmd, get_pty=True)
                     buf = ""
-                    while (not buf.endswith("[sudo] password for sailbot: ")):
+                    while not buf.endswith("[sudo] password for sailbot: "):
                         buf += stdout.channel.recv(1024).decode()
                     stdin.write(f"{password}\n")
                     stdin.flush()
@@ -30,7 +35,7 @@ def cansend_worker(cmd_queue: multiprocessing.Queue, response_queue: multiproces
                     err = stderr.read().decode()
 
                 response_queue.put((cmd, out, err))
-                if (not err):
+                if not err:
                     can_log_queue.put_nowait(make_pretty(cmd))
                 else:
                     raise Exception(f"Command not logged: {cmd}")
