@@ -11,7 +11,7 @@ window_height = 450
 window_width = 1350
 
 # update_freq = 100 # frequency at which CAN messages are collected & processed - TODO: implement separation of CAN msg processing and gui updating
-gui_update_freq = 100 # frequency of UI update in millis
+gui_update_freq = 100  # frequency of UI update in millis
 
 # ==== Live Values ====
 value_label_min_width = 300
@@ -52,13 +52,10 @@ d_font_size = 14
 linewidth = 2
 graph_bg = "w"
 graph_title_style = ["black", "10pt"]
-graph_label_style = {
-    "color": "black",
-    "font-size": "15px"
-}
+graph_label_style = {"color": "black", "font-size": "15px"}
 
 graph_y = "Time"
 graph_y_units = "s"
 graph_min_width = 250
 graph_min_height = 300
-scroll_window = 60 # in seconds
+scroll_window = 60  # in seconds

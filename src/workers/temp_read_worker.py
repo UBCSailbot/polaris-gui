@@ -1,7 +1,9 @@
 import time
+
 import paramiko
-from DataObject import *
-from utility import *
+
+from config import hostname, password, username
+
 
 def temperature_reader(pipe):
     client = paramiko.SSHClient()
@@ -10,7 +12,9 @@ def temperature_reader(pipe):
         client.connect(hostname, username=username, password=password)
         while True:
             try:
-                stdin, stdout, stderr = client.exec_command("cat /sys/class/thermal/thermal_zone0/temp")
+                stdin, stdout, stderr = client.exec_command(
+                    "cat /sys/class/thermal/thermal_zone0/temp"
+                )
                 raw = stdout.read().decode().strip()
                 if raw:
                     temp = float(raw) / 1000

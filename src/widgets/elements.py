@@ -1,22 +1,32 @@
-from PyQt5.QtWidgets import (
-    QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout,
-    QHBoxLayout, QCheckBox, QGridLayout, QComboBox
-)
-from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont, QPixmap
+from PyQt5.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
 
-from config import *
+from config import Config as cg
+from config import input_label_style
+from utils import all_objs
+
 from . import styles
-from utility import *
 
 # CONSTANTS
 SMALL_SPACING = 2
 
 # Functions to initialize all the ui elements
 
+
 def init_top_bar(self):
     self.logo_label = QLabel()
-    pixmap = QPixmap("src/logo.png")
+    pixmap = QPixmap("logo.png")
     pixmap = pixmap.scaled(40, 40, Qt.KeepAspectRatio, Qt.SmoothTransformation)
     self.logo_label.setPixmap(pixmap)
 
@@ -33,18 +43,20 @@ def init_top_bar(self):
     top_bar_layout.addStretch()
     return top_bar_layout
 
+
 def init_checkbox(self):
     self.manual_steer_checkbox = QCheckBox("Manual Steering")
     self.manual_steer_checkbox.toggled.connect(self.set_manual_steer)
     self.keyboard_checkbox = QCheckBox("Keyboard Mode")
     self.keyboard_checkbox.toggled.connect(self.toggle_keyboard_mode)
-    
+
     checkbox_layout = QHBoxLayout()
     checkbox_layout.addWidget(self.manual_steer_checkbox)
     checkbox_layout.addWidget(self.keyboard_checkbox)
 
     return checkbox_layout
-    
+
+
 def init_desired_heading_input_group(self):
     self.desired_heading_input_layout = QVBoxLayout()
     self.desired_heading_input = QLineEdit()
@@ -59,8 +71,9 @@ def init_desired_heading_input_group(self):
     self.desired_heading_button.clicked.connect(self.send_desired_heading)
     self.desired_heading_input_group = QWidget()
     self.desired_heading_input_group.setLayout(self.desired_heading_input_layout)
-    
+
     return self.desired_heading_input_group
+
 
 def init_rudder_input_group(self):
     self.rudder_input = QLineEdit()
@@ -80,6 +93,7 @@ def init_rudder_input_group(self):
 
     return self.rudder_input_group
 
+
 def init_trim_input_group(self):
     self.trim_input = QLineEdit()
     self.trim_button = QPushButton("Send Trim Tab")
@@ -94,8 +108,9 @@ def init_trim_input_group(self):
     self.trim_input_layout.addWidget(self.trim_button)
     self.trim_input_group = QWidget()
     self.trim_input_group.setLayout(self.trim_input_layout)
-    
+
     return self.trim_input_group
+
 
 def init_pid_layout(self):
     self.p_input = QLineEdit()
@@ -104,19 +119,20 @@ def init_pid_layout(self):
     self.i_input.setPlaceholderText("I")
     self.d_input = QLineEdit()
     self.d_input.setPlaceholderText("D")
-    
+
     self.pid_input_layout = QHBoxLayout()
     self.pid_input_layout.addWidget(self.p_input)
     self.pid_input_layout.addWidget(self.i_input)
     self.pid_input_layout.addWidget(self.d_input)
     self.pid_input_button = QPushButton("Send PID")
     self.pid_input_button.clicked.connect(self.send_pid)
-    
+
     self.pid_layout = QVBoxLayout()
     self.pid_layout.addLayout(self.pid_input_layout)
     self.pid_layout.addWidget(self.pid_input_button)
-    
+
     return self.pid_layout
+
 
 def init_emergency_controls(self):
     self.emergency_checkbox = QCheckBox("Enable Emergency Controls")
@@ -130,20 +146,21 @@ def init_emergency_controls(self):
     self.restart_btn = QPushButton("Restart Power After 20s")
     self.restart_btn.setEnabled(False)
     self.restart_btn.clicked.connect(self.send_restart_power)
- 
+
     self.power_off_btn.setStyleSheet(styles.red_button)
     self.restart_btn.setStyleSheet(styles.red_button)
 
     emergency_controls_layout = QHBoxLayout()
     emergency_controls_layout.addWidget(self.power_off_btn)
     emergency_controls_layout.addWidget(self.restart_btn)
-    
+
     return emergency_controls_layout
-    
+
+
 def init_commands_grid(self, commands):
     # Create a grid layout for command buttons
     self.commands_grid = QGridLayout()
-    
+
     # Create buttons for each command
     self.command_buttons = []
     for i, (label, command) in enumerate(commands):
@@ -151,13 +168,14 @@ def init_commands_grid(self, commands):
         btn.setStyleSheet(styles.command_button)
         btn.clicked.connect(lambda checked, cmd=command: self.copy_to_clipboard(cmd))
         self.command_buttons.append(btn)
-        
+
         # Add to grid layout (2 columns)
         row = i // 2
         col = i % 2
         self.commands_grid.addWidget(btn, row, col)
-        
+
         return self.commands_grid
+
 
 def init_input_layout(self):
     input_layout = QGridLayout()
@@ -165,10 +183,13 @@ def init_input_layout(self):
     input_layout.addWidget(self.rudder_input_group, 0, 0)
     input_layout.addWidget(self.trim_input_group, 0, 1)
     input_layout.addWidget(self.desired_heading_input_group, 0, 0)
-    
+
     return input_layout
 
-def init_left_layout(self, top_bar_layout, checkbox_layout, input_layout, emergency_controls):    
+
+def init_left_layout(
+    self, top_bar_layout, checkbox_layout, input_layout, emergency_controls
+):
     left_layout = QVBoxLayout()
     left_layout.addLayout(top_bar_layout)
     left_layout.addLayout(checkbox_layout)
@@ -179,10 +200,10 @@ def init_left_layout(self, top_bar_layout, checkbox_layout, input_layout, emerge
     left_layout.addWidget(self.rudder_display)
     left_layout.addWidget(self.trimtab_display)
     left_layout.addSpacing(5)  # Add small spacing
-    
+
     left_layout.addLayout(input_layout)
     left_layout.addLayout(self.pid_layout)
-    
+
     left_layout.addSpacing(5)  # Add small spacing
     left_layout.addWidget(QLabel("Candump Output:"))
     left_layout.addWidget(self.output_display)
@@ -194,19 +215,21 @@ def init_left_layout(self, top_bar_layout, checkbox_layout, input_layout, emerge
     left_layout.addWidget(self.ssh_instructions_label)
     left_layout.addSpacing(5)  # Small spacing before command buttons
     left_layout.addLayout(self.commands_grid)
-    
+
     return left_layout
-    
+
+
 def init_labels_layout():
     labels_layout = QVBoxLayout()
     labels_layout.setSpacing(0)
 
     for graph_obj in all_objs:
-        if (graph_obj.label is not None):
+        if graph_obj.label is not None:
             labels_layout.addWidget(graph_obj.label)
-        
+
     labels_layout.addStretch(1)
     return labels_layout
+
 
 def init_right_layout(self):
     right_layout = QVBoxLayout()
@@ -217,14 +240,18 @@ def init_right_layout(self):
     d_bot = QComboBox()
     dropdowns = [d_top, d_mid, d_bot]
 
-    self.right_graphs_layout = QGridLayout() # create GridLayout for three graphs (0, 0), (1, 0), (2, 0)
+    self.right_graphs_layout = (
+        QGridLayout()
+    )  # create GridLayout for three graphs (0, 0), (1, 0), (2, 0)
     # Note: It is important that each distinct graph canvas is only added as a widget
     #       a single time, or else problems
-    self.visibleGraphObjs = [] # list of GraphObjs with visible graphs, in order of position descending
+    self.visibleGraphObjs = []  # list of GraphObjs with visible graphs, in order of position descending
 
     self.graph_titles = []
     for obj in all_objs:
-        if ((obj.graph_obj is not None) and (obj.graph_obj.dropdown_label not in self.graph_titles)):
+        if (obj.graph_obj is not None) and (
+            obj.graph_obj.dropdown_label not in self.graph_titles
+        ):
             self.graph_titles.append(obj.graph_obj.dropdown_label)
 
     for d in dropdowns:
@@ -233,23 +260,24 @@ def init_right_layout(self):
         d.setVisible(False)
         dropdown_layout.addWidget(d)
 
-    # show a maximum of three graphs initially 
+    # show a maximum of three graphs initially
     for i in range(0, 3):
-        if (i < len(self.graph_titles)):
+        if i < len(self.graph_titles):
             graph_obj = self.getGraphObjFromXName(self.graph_titles[i])
-            if (graph_obj not in self.visibleGraphObjs):
+            if graph_obj not in self.visibleGraphObjs:
                 self.right_graphs_layout.addWidget(graph_obj.graph, i, 0)
                 self.visibleGraphObjs.append(graph_obj)
                 graph_obj.show()
                 dropdowns[i].setCurrentText(self.graph_titles[i])
                 dropdowns[i].setVisible(True)
-        else: break
+        else:
+            break
 
     d_top.currentTextChanged.connect(lambda text: self.setGraph(text, 0, dropdowns))
     d_mid.currentTextChanged.connect(lambda text: self.setGraph(text, 1, dropdowns))
     d_bot.currentTextChanged.connect(lambda text: self.setGraph(text, 2, dropdowns))
-    
+
     right_layout.addLayout(dropdown_layout)
     right_layout.addLayout(self.right_graphs_layout)
-    
+
     return right_layout

@@ -17,8 +17,8 @@ red_button = """
             color: black;
         }
     """
-    
-instructions_lable = """
+
+instructions_label = """
         QLabel {
             color: blue;
             font-size: 11px;

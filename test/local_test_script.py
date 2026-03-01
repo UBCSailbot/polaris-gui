@@ -6,9 +6,6 @@ Outputs support messages through terminal
 Use Ctrl+C or Space to stop sending
 """
 
-import sys
-import multiprocessing
-from src import Remote_Debugger
 
 
 
