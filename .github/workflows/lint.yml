@@ -20,6 +20,6 @@ jobs:
         python-version: '3.x'
 
     - name: Lint step
-      uses: ./.github/actions/
+      uses: ./.github/workflows
       with:
         script: 'ruff check .'
