@@ -1,7 +1,8 @@
 import time
+
 import paramiko
-from data_object import *
-from utils import *
+
+from config import hostname, password, username
 
 
 def temperature_reader(pipe):

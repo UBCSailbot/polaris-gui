@@ -1,6 +1,9 @@
 import time
 
-from utils import *
+from data_objects import desired_heading_obj, set_rudder_obj
+
+from config import can_line
+from utils import convert_to_hex, convert_to_little_endian
 
 
 # CAN send functions
@@ -21,7 +24,7 @@ class CANWindowControlsMixin:
 
     def send_trim_tab(self, from_keyboard=False):
         try:
-            angle = self.trimtab_angle if from_keyboard else int(self.trim_input.text())
+            angle = self.trimtab_angle if from_keyboard else int(self.trim_inptext())
             if not from_keyboard:
                 self.trimtab_angle = angle
             if angle < -90:
@@ -37,7 +40,7 @@ class CANWindowControlsMixin:
 
     def send_desired_heading(self):
         try:
-            heading = float(self.desired_heading_input.text())
+            heading = float(self.desired_heading_inptext())
             data = convert_to_little_endian(convert_to_hex(int(heading * 1000), 4))
             status_byte = "00"  # a = 0, b = 0, c = 0
             self.can_send("001", data + status_byte, "HEADING SENT")
@@ -51,9 +54,7 @@ class CANWindowControlsMixin:
 
     def send_rudder(self, from_keyboard=False):
         try:
-            angle = (
-                self.rudder_angle if from_keyboard else int(self.rudder_input.text())
-            )
+            angle = self.rudder_angle if from_keyboard else int(self.rudder_inptext())
             if not from_keyboard:
                 self.rudder_angle = angle
             if angle < -90:
@@ -85,13 +86,13 @@ class CANWindowControlsMixin:
         # check for valid p, i, d inputs
         try:
             p = convert_to_little_endian(
-                convert_to_hex(int(float(self.p_input.text()) * 1000000), 4)
+                convert_to_hex(int(float(self.p_inptext()) * 1000000), 4)
             )
             i = convert_to_little_endian(
-                convert_to_hex(int(float(self.i_input.text()) * 1000000), 4)
+                convert_to_hex(int(float(self.i_inptext()) * 1000000), 4)
             )
             d = convert_to_little_endian(
-                convert_to_hex(int(float(self.d_input.text()) * 1000000), 4)
+                convert_to_hex(int(float(self.d_inptext()) * 1000000), 4)
             )
             can_data = p + i + d
             self.can_send("200", can_data, "SEND PID")

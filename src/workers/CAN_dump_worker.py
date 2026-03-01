@@ -1,8 +1,9 @@
 import multiprocessing
 import time
+
 import paramiko
-from data_object import *
-from utils import *
+
+from config import can_line, hostname, password, username
 
 
 def candump_process(queue: multiprocessing.Queue, testing):

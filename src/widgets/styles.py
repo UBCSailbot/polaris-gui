@@ -17,7 +17,7 @@ red_button = """
             color: black;
         }
     """
-    
+
 instructions_lable = """
         QLabel {
             color: blue;

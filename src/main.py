@@ -1,26 +1,25 @@
-import sys
-import signal
 import multiprocessing
+import signal
+import sys
 import time
 from datetime import datetime
 
-from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox
-from PyQt5.QtCore import QTimer, Qt
+from objects import all_objs
+from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtWidgets import QApplication, QMessageBox, QWidget
 
-from data_object import *
-from utils import *
-
+from config import gui_update_freq, window_height, window_width
+from widgets import (
+    CANWindowControlsMixin,
+    CANWindowLoggingMixin,
+    CANWindowUIMixin,
+    CANWindowUpdateMixin,
+)
 from workers import (
-    candump_process,
     can_logging_process,
+    candump_process,
     cansend_worker,
     temperature_reader,
-)
-from widgets import (
-    CANWindowLoggingMixin,
-    CANWindowUpdateMixin,
-    CANWindowControlsMixin,
-    CANWindowUIMixin,
 )
 
 
@@ -31,7 +30,6 @@ class CANWindow(
     CANWindowUIMixin,
     QWidget,
 ):
-
     def __init__(
         self, queue, temp_pipe, cmd_queue, response_queue, can_log_queue, timestamp
     ):
@@ -48,7 +46,7 @@ class CANWindow(
         self.last_temp_update = time.time()  # Track last temperature update
 
         self.setWindowTitle("Remote Node GUI - POLARIS")
-        self.setGeometry(50, 30, cg.window_width, cg.window_height)
+        self.setGeometry(50, 30, window_width, window_height)
         self.setFocusPolicy(Qt.StrongFocus)
 
         self.time_start = time.time()

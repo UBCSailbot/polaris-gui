@@ -1,20 +1,22 @@
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont, QPixmap
 from PyQt5.QtWidgets import (
-    QWidget,
+    QCheckBox,
+    QComboBox,
+    QGridLayout,
+    QHBoxLayout,
     QLabel,
     QLineEdit,
     QPushButton,
     QVBoxLayout,
-    QHBoxLayout,
-    QCheckBox,
-    QGridLayout,
-    QComboBox,
+    QWidget,
 )
-from PyQt5.QtGui import QPixmap, QFont
-from PyQt5.QtCore import Qt
 
-from config import *
+from config import Config as cg
+from config import input_label_style
+from utils import all_objs
+
 from . import styles
-from utils import *
 
 # CONSTANTS
 SMALL_SPACING = 2
@@ -243,9 +245,7 @@ def init_right_layout(self):
     )  # create GridLayout for three graphs (0, 0), (1, 0), (2, 0)
     # Note: It is important that each distinct graph canvas is only added as a widget
     #       a single time, or else problems
-    self.visibleGraphObjs = (
-        []
-    )  # list of GraphObjs with visible graphs, in order of position descending
+    self.visibleGraphObjs = []  # list of GraphObjs with visible graphs, in order of position descending
 
     self.graph_titles = []
     for obj in all_objs:

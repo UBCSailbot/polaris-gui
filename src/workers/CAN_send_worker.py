@@ -1,7 +1,9 @@
 import multiprocessing
+
 import paramiko
-from data_object import *
-from utils import *
+
+from config import hostname, password, username
+from utils import make_pretty
 
 
 def cansend_worker(

@@ -1,6 +1,27 @@
 import time
 
-from utils import *
+from data_objects import (
+    ais_obj,
+    data_objs,
+    data_wind_objs,
+    gps_objs,
+    pdb_objs,
+    pH_obj,
+    rudder_objs,
+    sal_obj,
+    temp_sensor_obj,
+)
+
+from config import scroll_window
+from utils import (
+    AIS_Attributes,
+    can_line,
+    parse_0x041_frame,
+    parse_0x060_frame,
+    parse_0x070_frame,
+    parse_0x204_frame,
+    parse_0x206_frame,
+)
 
 
 # Window update functions
@@ -23,7 +44,7 @@ class CANWindowUpdateMixin:
             try:
                 self.can_log_queue.put_nowait(line)
             except:
-                print(f"line was not logged!")
+                print("line was not logged!")
 
             if line.startswith(can_line):
                 new_msg_to_log = True
@@ -32,7 +53,8 @@ class CANWindowUpdateMixin:
                     frame_id = parts[1].lower()
                     self.time_history.append(current_time)
 
-                    # TODO: Use a dictionary with frame id:function - just runs the function associated with frame id?
+                    # TODO: Use a dictionary with frame id:function - just runs the
+                    # function associated with frame id?
                     # There's definitely some abstraction that can be done here
                     match frame_id:
                         case "041":  # Data_Wind frame
@@ -110,7 +132,6 @@ class CANWindowUpdateMixin:
                                 )
 
                         case "204":  # Handle 0x204 frame (actual rudder angle)
-
                             try:
                                 raw_data = line.split("]")[-1].strip().split()
                                 parsed = parse_0x204_frame("".join(raw_data))
@@ -139,20 +160,24 @@ class CANWindowUpdateMixin:
 
                 # Log current values
                 if new_msg_to_log and (len(self.time_history) > 0):
-                    # actual_rudder = self.actual_rudder_history[-1] if self.actual_rudder_history else None
+                    # actual_rudder = self.actual_rudder_history[-1] if
+                    # self.actual_rudder_history else None
                     self._log_values()
 
         # trim values no longer being graphed
         for obj in data_objs:
             obj.update_data(current_time, scroll_window)
 
-        # Always update plots every timer cycle (independent of CAN messages) # TODO: Modify this - batch plot updates?
+        # Always update plots every timer cycle (independent of CAN messages)
+        # # TODO: Modify this - batch plot updates?
         if len(self.time_history) > 0:
             self._update_plot_ranges(current_time)
 
-        # Add new data point to desired_heading graph every 5 secs - since it's not regularly updated with CAN messages
+        # Add new data point to desired_heading graph every 5 secs -
+        # since it's not regularly updated with CAN messages
         # current_dheading = desired_heading_obj.get_current()
-        # if (current_dheading[1] is not None and ((current_time - current_dheading[0]) > 5)): # if not graphed since 5 seconds ago
+        # if (current_dheading[1] is not None and ((current_time -
+        # current_dheading[0]) > 5)): # if not graphed since 5 seconds ago
         #     desired_heading_obj.add_datapoint(current_time, current_dheading[1])
 
         # Handle temperature updates with connection status tracking
@@ -167,7 +192,8 @@ class CANWindowUpdateMixin:
             )
             self.last_temp_update = time.time()
         else:
-            # Check if we haven't received a temperature update in too long (connection lost)
+            # Check if we haven't received a temperature update in too long
+            # (connection lost)
             if time.time() - self.last_temp_update > 5.0:  # 5 second timeout
                 self.temp_label.setText("RPI Temp: --")
                 self.status_label.setText("DISCONNECTED")

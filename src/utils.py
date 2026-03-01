@@ -1,6 +1,9 @@
 from enum import Enum
-from data_object import *
-from config import *
+
+from data_objects import AISObject, DataObject, GraphObject
+from pyqtgraph import mkBrush, mkPen
+
+from config import graph_y, graph_y_units
 
 # SSH Credentials
 hostname = "192.168.0.10"
@@ -52,10 +55,13 @@ def val(raw_bytes, s, e, div):
     return int.from_bytes(raw_bytes[s:e], "little") / div
 
 
-# NOTE: Currently returns True/False, but parsing functions don't do anything with this return value as of yet - it just prints it as a notice
-# NOTE: May add functionality to also log if a given data point is out of range (ie. is sus)
+# NOTE: Currently returns True/False, but parsing functions don't do anything with this
+# return value as of yet - it just prints it as a notice
+# NOTE: May add functionality to also log if a given data point is out of range
+# (ie. is sus)
 def range_check(num, minn=None, maxn=None):
-    """Prints error and returns False if given num is not within [min, max] (inclusive); if None is given for either max or min, that boundary is not checked."""
+    """Prints error and returns False if given num is not within [min, max] (inclusive);
+    if None is given for either max or min, that boundary is not checked."""
     if maxn is not None and num > maxn:
         print(f"ERROR - Value {num} is higher than expected range")
         return False
@@ -378,9 +384,7 @@ def make_pretty(cmd):
 ### ---------- Data Objects ---------- ###
 
 # Battery Temps
-pdb_temp_graph_obj = GraphObject(
-    "Temperature", cg.graph_y, "°C", cg.graph_y_units, 0, 127.0
-)
+pdb_temp_graph_obj = GraphObject("Temperature", graph_y, "°C", graph_y_units, 0, 127.0)
 temp1_obj = DataObject(
     "Temp1", 2, "°C", None, line_colour="r", graph=pdb_temp_graph_obj
 )
@@ -392,9 +396,7 @@ temp3_obj = DataObject(
 )
 
 # Cell voltages
-pdb_volt_graph_obj = GraphObject(
-    "Cell Voltages", cg.graph_y, "V", cg.graph_y_units, 0, 5
-)
+pdb_volt_graph_obj = GraphObject("Cell Voltages", graph_y, "V", graph_y_units, 0, 5)
 volt1_obj = DataObject("Volt1", 2, "V", None, line_colour="b", graph=pdb_volt_graph_obj)
 volt2_obj = DataObject("Volt2", 2, "V", None, line_colour="c", graph=pdb_volt_graph_obj)
 volt3_obj = DataObject("Volt3", 2, "V", None, line_colour="m", graph=pdb_volt_graph_obj)
@@ -403,9 +405,7 @@ volt4_obj = DataObject(
 )
 
 # MPPT currents
-mppt_current_graph_obj = GraphObject(
-    "MPPT Current", cg.graph_y, "A", cg.graph_y_units, 0, 5
-)
+mppt_current_graph_obj = GraphObject("MPPT Current", graph_y, "A", graph_y_units, 0, 5)
 mppt_hp_obj = DataObject(
     "MPPT_curr_hull_port", 2, "A", None, line_colour="c", graph=mppt_current_graph_obj
 )
@@ -425,7 +425,7 @@ mppt_ss_obj = DataObject(
 )
 
 # Rudder angles (set & actual)
-rudder_graph = GraphObject("Rudder Angles", cg.graph_y, "°", cg.graph_y_units, -90, 90)
+rudder_graph = GraphObject("Rudder Angles", graph_y, "°", graph_y_units, -90, 90)
 actual_rudder_obj = DataObject(
     "Actual_rdr_deg", 2, "°", None, line_colour="r", graph=rudder_graph
 )  # NOTE: graph parsing function changed to None here - potential for bug/error
@@ -435,7 +435,7 @@ set_rudder_obj = DataObject(
 
 # Speed over ground (from debug frame 0x204)
 spd_over_gnd_graph_obj = GraphObject(
-    "Speed Over Ground", cg.graph_y, "km/h", cg.graph_y_units, 0, 20
+    "Speed Over Ground", graph_y, "km/h", graph_y_units, 0, 20
 )
 spd_over_gnd_obj = DataObject(
     "Speed_over_gnd", 3, "km/h", None, line_colour="brown", graph=spd_over_gnd_graph_obj
@@ -443,7 +443,7 @@ spd_over_gnd_obj = DataObject(
 
 # Headings (IMU & Desired)
 headings_graph_obj = GraphObject(
-    "IMU & Desired Headings", cg.graph_y, "°", cg.graph_y_units, 0, 360
+    "IMU & Desired Headings", graph_y, "°", graph_y_units, 0, 360
 )
 imu_heading_obj = DataObject(
     "IMU_heading", 3, "°", None, line_colour="r", graph=headings_graph_obj
@@ -460,7 +460,7 @@ desired_heading_obj = DataObject(
 
 # IMU roll & pitch
 imu_roll_pitch_graph_obj = GraphObject(
-    "IMU Roll & Pitch", cg.graph_y, "°", cg.graph_y_units, 0, 360
+    "IMU Roll & Pitch", graph_y, "°", graph_y_units, 0, 360
 )
 imu_roll_obj = DataObject(
     "IMU_roll", 2, "°", None, line_colour="g", graph=imu_roll_pitch_graph_obj
@@ -471,7 +471,7 @@ imu_pitch_obj = DataObject(
 
 # Integral + Derivative
 int_der_graph_obj = GraphObject(
-    "IMU Integral & Derivative", cg.graph_y, None, cg.graph_y_units, 0, 100
+    "IMU Integral & Derivative", graph_y, None, graph_y_units, 0, 100
 )
 integral_obj = DataObject(
     "IMU_integral", 2, None, None, line_colour="m", graph=int_der_graph_obj
@@ -482,7 +482,7 @@ derivative_obj = DataObject(
 
 # Data Wind Sensor
 data_wind_spd_graph_obj = GraphObject(
-    "Data_Wind Speed", cg.graph_y, "knots", cg.graph_y_units, 0, 20
+    "Data_Wind Speed", graph_y, "knots", graph_y_units, 0, 20
 )
 data_wind_spd_obj = DataObject(
     "Data_Wind_spd",
@@ -493,7 +493,7 @@ data_wind_spd_obj = DataObject(
     graph=data_wind_spd_graph_obj,
 )
 data_wind_dir_graph_obj = GraphObject(
-    "Data_Wind Direction", cg.graph_y, "°", cg.graph_y_units, 0, 360
+    "Data_Wind Direction", graph_y, "°", graph_y_units, 0, 360
 )
 data_wind_dir_obj = DataObject(
     "Data_Wind_dir", 0, "°", None, line_colour="orange", graph=data_wind_dir_graph_obj
@@ -506,10 +506,10 @@ gps_lat_obj = DataObject("gps_lat", 4, "DD", None, graph=None)
 gps_lon_obj = DataObject("gps_lon", 4, "DD", None, graph=None)
 
 # AIS
-polaris_pen = pg.mkPen(color="r", width=5)  # set point border color (red)
-polaris_brush = pg.mkBrush(color="r")
-other_pen = pg.mkPen(color="b", width=1)
-other_brush = pg.mkBrush(color="b")
+polaris_pen = mkPen(color="r", width=5)  # set point border color (red)
+polaris_brush = mkBrush(color="r")
+other_pen = mkPen(color="b", width=1)
+other_brush = mkBrush(color="b")
 
 position_graph_obj = GraphObject(
     "Longitude", "Latitude", "DD", "DD", -90, 90, "Ship Positions"
@@ -527,12 +527,10 @@ ais_obj = AISObject(
 )
 
 # General sensors (pH, water temp, salinity)
-pH_graph_obj = GraphObject("pH", cg.graph_y, None, cg.graph_y_units, 0, 14)
+pH_graph_obj = GraphObject("pH", graph_y, None, graph_y_units, 0, 14)
 pH_obj = DataObject("pH", 1, None, pH_parsing_fn, line_colour="r", graph=pH_graph_obj)
 
-temp_sensor_graph_obj = GraphObject(
-    "Water Temp", cg.graph_y, "°C", cg.graph_y_units, 0, 1400
-)
+temp_sensor_graph_obj = GraphObject("Water Temp", graph_y, "°C", graph_y_units, 0, 1400)
 temp_sensor_obj = DataObject(
     "Water_Temp",
     3,
@@ -542,9 +540,7 @@ temp_sensor_obj = DataObject(
     graph=temp_sensor_graph_obj,
 )
 
-sal_graph_obj = GraphObject(
-    "Salinity", cg.graph_y, "µS/cm", cg.graph_y_units, 0, 100000
-)
+sal_graph_obj = GraphObject("Salinity", graph_y, "µS/cm", graph_y_units, 0, 100000)
 sal_obj = DataObject(
     "Salinity", None, "µS/cm", sal_parsing_fn, line_colour="g", graph=sal_graph_obj
 )

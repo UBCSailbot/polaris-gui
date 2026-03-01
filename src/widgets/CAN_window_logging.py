@@ -1,15 +1,15 @@
 import csv
-from datetime import datetime
 import os
 import time
+from datetime import datetime
+
 from utils import data_objs
 
 
-# Logging functions
 class CANWindowLoggingMixin:
     def _init_logging(self):
         """Initialize CSV logging files with timestamped names"""
-        # Create logs directory if it doesn't exist
+
         if not os.path.exists("logs"):
             os.makedirs("logs")
 
@@ -29,7 +29,9 @@ class CANWindowLoggingMixin:
 
         print(f"Values logging initialized: {self.values_log_file}")
 
-    # Makes given history the same length as time_history so it is plottable (note: this function works because lists are mutable and can be referenced through formal param)
+    # Makes given history the same length as time_history so it is plottable
+    # (note: this function works because lists are mutable and can be referenced
+    # through formal param)
     def update_history(self, history: list):
         while len(history) > len(self.time_history):
             history.pop(0)

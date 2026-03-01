@@ -1,27 +1,36 @@
-from .elements import *
-from PyQt5.QtWidgets import QTextEdit, QApplication
+import elements as elemns
+import styles as styles
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QApplication, QHBoxLayout, QLabel, QTextEdit
+
+from utils import all_objs
+
 
 # UI creation functions
 class CANWindowUIMixin:
-    def init_ui(self):   
-          
-        top_bar_layout = init_top_bar(self)
-        checkbox_layout = init_checkbox(self)
+    def init_ui(self):
+
+        top_bar_layout = elemns.init_top_bar(self)
+        checkbox_layout = elemns.init_checkbox(self)
 
         # === Left Panel ===
 
-        self.instructions1_display = QLabel("For Rudder    (+/- 3 degrees): A / S / D  (Left / Center / Right)")
-        self.instructions2_display = QLabel("For Trim Tab (+/- 3 degrees): Q / W / E (Left / Center / Right)")
+        self.instructions1_display = QLabel(
+            "For Rudder    (+/- 3 degrees): A / S / D  (Left / Center / Right)"
+        )
+        self.instructions2_display = QLabel(
+            "For Trim Tab (+/- 3 degrees): Q / W / E (Left / Center / Right)"
+        )
 
         self.rudder_display = QLabel("Current Set Rudder Angle:  0 degrees")
         self.trimtab_display = QLabel("Current Trim Tab Angle:   0 degrees")
 
-        self.desired_heading_input_group = init_desired_heading_input_group(self)
-        self.rudder_input_group = init_rudder_input_group(self)
-        self.trim_input_group = init_trim_input_group(self)
-        
-        self.pid_layout = init_pid_layout(self)
-        emergency_controls_layout = init_emergency_controls(self)
+        self.desired_heading_input_group = elemns.init_desired_heading_input_group(self)
+        self.rudder_input_group = elemns.init_rudder_input_group(self)
+        self.trim_input_group = elemns.init_trim_input_group(self)
+
+        self.pid_layout = elemns.init_pid_layout(self)
+        emergency_controls_layout = elemns.init_emergency_controls(self)
 
         self.output_display = QTextEdit()
         self.output_display.setReadOnly(True)
@@ -45,30 +54,39 @@ class CANWindowUIMixin:
         commands = [
             ("SSH Connect", "ssh sailbot@192.168.0.10"),
             ("CAN0 Down", "sudo ip link set can0 down"),
-            ("CAN0 Up", "sudo ip link set can0 up type can bitrate 500000 dbitrate 1000000 fd on"),
+            (
+                "CAN0 Up",
+                "sudo ip link set can0 up type can bitrate 500000 dbitrate 1000000 fd on",  # noqa: E501
+            ),
             ("Check CAN Status", "ip link show can0"),
             ("View System Logs", "dmesg | tail"),
-            ("System Info", "uname -a")
+            ("System Info", "uname -a"),
         ]
-        
-        # Create a grid layout for command buttons
-        self.commands_grid = init_commands_grid(self, commands)   
-         
-        input_layout = init_input_layout(self)
-        left_layout = init_left_layout(self, top_bar_layout, checkbox_layout, input_layout, emergency_controls_layout)
-        
-        # === Right Panel ===
-        labels_layout = init_labels_layout()
-        right_layout = init_right_layout(self)
 
-        # Combine everything        
+        # Create a grid layout for command buttons
+        self.commands_grid = elemns.init_commands_grid(self, commands)
+
+        input_layout = elemns.init_input_layout(self)
+        left_layout = elemns.init_left_layout(
+            self,
+            top_bar_layout,
+            checkbox_layout,
+            input_layout,
+            emergency_controls_layout,
+        )
+
+        # === Right Panel ===
+        labels_layout = elemns.init_labels_layout()
+        right_layout = elemns.init_right_layout(self)
+
+        # Combine everything
         bottom_layout = QHBoxLayout()
         bottom_layout.addLayout(left_layout)
         bottom_layout.addLayout(labels_layout)
         bottom_layout.addLayout(right_layout, 1)
 
         self.setLayout(bottom_layout)
-        
+
     def set_manual_steer(self, checked):
         self.rudder_input_group.setVisible(checked)
         self.desired_heading_input_group.setVisible(not checked)
@@ -90,31 +108,38 @@ class CANWindowUIMixin:
         clipboard.setText(text)
         # Show a brief confirmation
         self.output_display.append(f"[COPIED] {text}")
-    
+
     def getGraphObjFromXName(self, name):
         for obj in all_objs:
-            if ((obj.graph_obj is not None) and (obj.graph_obj.dropdown_label == name)):
+            if (obj.graph_obj is not None) and (obj.graph_obj.dropdown_label == name):
                 return obj.graph_obj
-            
+
     def setGraph(self, name, spot, dropdowns):
-        '''
+        """
         Shows given graph at spot\n
         name = DataObj.graph_obj.dropdown_label\n
         spot = 0, 1, 2 (top, mid, bot)\n
-        '''
-        newGraphObj = self.getGraphObjFromXName(name) # get graph to put in spot
-        if (newGraphObj.dropdown_label == self.visibleGraphObjs[spot].dropdown_label):
-            return # do nothing
-        if newGraphObj in self.visibleGraphObjs: # if graph to put in spot is already visible
-            # don't allow the switch to happen - set dropdown text back to original and print error message
+        """
+        newGraphObj = self.getGraphObjFromXName(name)  # get graph to put in spot
+        if newGraphObj.dropdown_label == self.visibleGraphObjs[spot].dropdown_label:
+            return  # do nothing
+        if (
+            newGraphObj in self.visibleGraphObjs
+        ):  # if graph to put in spot is already visible
+            # don't allow the switch to happen - set dropdown text back to original and
+            # print error message
             print("[ERR] Graph is already visible")
-            dropdowns[spot].setCurrentText(self.visibleGraphObjs[spot].dropdown_label) # switch text back to original
-        else: 
-            self.right_graphs_layout.removeWidget(self.visibleGraphObjs[spot].graph) # remove graph currently in spot
+            dropdowns[spot].setCurrentText(
+                self.visibleGraphObjs[spot].dropdown_label
+            )  # switch text back to original
+        else:
+            self.right_graphs_layout.removeWidget(
+                self.visibleGraphObjs[spot].graph
+            )  # remove graph currently in spot
             self.visibleGraphObjs[spot].hide()
             self.right_graphs_layout.addWidget(newGraphObj.graph, spot, 0)
             newGraphObj.show()
-            self.visibleGraphObjs[spot] = newGraphObj  
+            self.visibleGraphObjs[spot] = newGraphObj
 
     # def setGraph(self, name, spot, dropdowns):
     #     '''
@@ -125,13 +150,17 @@ class CANWindowUIMixin:
     #     newGraphObj = self.getGraphObjFromXName(name) # get graph to put in spot
     #     if (newGraphObj.x_name == self.visibleGraphObjs[spot].x_name):
     #         return # do nothing
-    #     if newGraphObj in self.visibleGraphObjs: # if graph to put in spot is already visible
-    #         # don't allow the switch to happen - set dropdown text back to original and print error message
+    #     if newGraphObj in self.visibleGraphObjs: # if graph to put in spot is already
+    # visible
+    #         # don't allow the switch to happen - set dropdown text back to original
+    # and print error message
     #         print("[ERR] Graph is already visible")
-    #         dropdowns[spot].setCurrentText(self.visibleGraphObjs[spot].x_name) # switch text back to original
-    #     else: 
-    #         self.right_graphs_layout.removeWidget(self.visibleGraphObjs[spot].graph) # remove graph currently in spot
+    #         dropdowns[spot].setCurrentText(self.visibleGraphObjs[spot].x_name)
+    # # switch text back to original
+    #     else:
+    #         self.right_graphs_layout.removeWidget(self.visibleGraphObjs[spot].graph)
+    # # remove graph currently in spot
     #         self.visibleGraphObjs[spot].hide()
     #         self.right_graphs_layout.addWidget(newGraphObj.graph, spot, 0)
     #         newGraphObj.show()
-    #         self.visibleGraphObjs[spot] = newGraphObj  
+    #         self.visibleGraphObjs[spot] = newGraphObj
