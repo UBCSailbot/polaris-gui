@@ -12,14 +12,18 @@ jobs:
     timeout-minutes: 10
     steps:
     - name: Checkout workspace
-      uses: actions/checkout@v6
+      uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v5
       with:
         python-version: '3.x'
 
-    - name: Lint step
-      uses: ./.github/workflows
-      with:
-        script: 'ruff check .'
+    - name: Install ruff
+      run: pip install ruff
+
+    - name: Lint
+      run: ruff check .
+
+    - name: Format check
+      run: ruff format --check .
