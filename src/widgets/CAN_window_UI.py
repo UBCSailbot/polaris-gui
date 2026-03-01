@@ -48,7 +48,7 @@ class CANWindowUIMixin:
             "3. Password: sailbot\n"
             "\nUse buttons below to copy commands:"
         )
-        self.ssh_instructions_label.setStyleSheet(styles.instructions_lable)
+        self.ssh_instructions_label.setStyleSheet(styles.instructions_label)
 
         # Define commands with labels
         commands = [
