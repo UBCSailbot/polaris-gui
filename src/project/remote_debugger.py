@@ -673,10 +673,19 @@ class CANWindow(QWidget):
                             pass
                         case "002": # Sent frame to trim tab
                             pass
+                        case "040": # Sail_Wind frame
+                            try:
+                                raw_data = line.split(']')[-1].strip().split()
+                                parsed = parse_wind_sensor_frame(''.join(raw_data))
+                                for obj in sail_wind_objs:
+                                    obj.parse_frame(current_time, None, parsed)
+                                    obj.update_label()
+                            except Exception as e:
+                                self.output_display.append(f"[PARSE ERROR 0x040] {str(e)}")
                         case "041": # Data_Wind frame
                             try:
                                 raw_data = line.split(']')[-1].strip().split()
-                                parsed = parse_0x041_frame(''.join(raw_data))
+                                parsed = parse_wind_sensor_frame(''.join(raw_data))
                                 for obj in data_wind_objs:
                                     obj.parse_frame(current_time, None, parsed)
                                     obj.update_label()
@@ -703,7 +712,11 @@ class CANWindow(QWidget):
                                         obj.update_label()
 
                                     if ais_obj.graph_obj.isVisible(): # graph POLARIS's current position if graph is visible
-                                        ais_obj.update_polaris_pos(gps_lon_obj.get_current()[1], gps_lat_obj.get_current()[1])
+                                        lon = gps_lon_obj.get_current()[1]
+                                        lat = gps_lat_obj.get_current()[1]
+                                        ais_obj.update_polaris_pos(lon, lat)
+                                        # ais_obj.update_range(lon - cg.longitude_range, lon + cg.longitude_range, lat - cg.latitude_range, lat + cg.latitude_range)
+                                        
                                 
                                 except Exception as e:
                                     self.output_display.append(f"[PARSE ERROR 0x070] {str(e)}")

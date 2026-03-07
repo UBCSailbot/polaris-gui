@@ -109,7 +109,7 @@ def actual_rudder_parsing_fn(parsed_dict):
 def set_rudder_parsing_fn(parsed_dict):
     return parsed_dict[set_rudder_obj.name]
 
-def parse_0x041_frame(data_hex):
+def parse_wind_sensor_frame(data_hex):
     raw_bytes = bytes.fromhex(data_hex)
     if len(raw_bytes) != 4:
         raise ValueError("Incorrect data length (num bytes): ID 0x041")
@@ -383,6 +383,14 @@ data_wind_dir_obj = DataObject("Data_Wind_dir", 0, "°", None, line_colour="oran
 
 data_wind_objs = [data_wind_spd_obj, data_wind_dir_obj]
 
+# Sail Wind Sensor
+sail_wind_spd_graph_obj = GraphObject("Sail_Wind Speed", cg.graph_y, "knots", cg.graph_y_units, 0, 20)
+sail_wind_spd_obj = DataObject("Sail_Wind_spd", 1, "knots", None, line_colour="blue", graph=sail_wind_spd_graph_obj)
+sail_wind_dir_graph_obj = GraphObject("Sail_Wind Direction", cg.graph_y, "°", cg.graph_y_units, 0, 360)
+sail_wind_dir_obj = DataObject("Sail_Wind_dir", 0, "°", None, line_colour="green", graph=sail_wind_dir_graph_obj)
+
+sail_wind_objs = [sail_wind_spd_obj, sail_wind_dir_obj]
+
 # GPS
 gps_lat_obj = DataObject("gps_lat", 4, "DD", None, graph=None)
 gps_lon_obj = DataObject("gps_lon", 4, "DD", None, graph=None)
@@ -412,7 +420,7 @@ rudder_objs = [actual_rudder_obj, set_rudder_obj, spd_over_gnd_obj, imu_roll_obj
 data_objs = [pH_obj, temp_sensor_obj, sal_obj]
 gps_objs = [gps_lon_obj, gps_lat_obj]
 # Only data_objs are logged together in the values csv file; they are all graphed vs. Time and have their values trimmed accordingly over time
-data_objs = gps_objs + data_objs + data_wind_objs + rudder_objs + pdb_objs 
+data_objs = gps_objs + data_objs + data_wind_objs + sail_wind_objs + rudder_objs + pdb_objs 
 all_objs = data_objs.copy()
 all_objs.append(ais_obj) # ais is logged and updated differently since it is not a vs. Time graph
 
