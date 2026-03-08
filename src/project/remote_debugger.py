@@ -699,7 +699,6 @@ class CANWindow(QWidget):
                                     ais_obj.add_frame(parsed[AIS_Attributes.LONGITUDE], parsed[AIS_Attributes.LATITUDE], parsed[AIS_Attributes.SID], parsed, AIS_Attributes.LONGITUDE)
                                     if parsed[AIS_Attributes.IDX] == (parsed[AIS_Attributes.TOTAL] - 1):
                                         ais_obj.log_data(datetime.now().isoformat(), time.time() - self.time_start)
-
                             except Exception as e:
                                 self.output_display.append(f"[PARSE ERROR 0x060] {str(e)}")
 
@@ -715,7 +714,7 @@ class CANWindow(QWidget):
                                         lon = gps_lon_obj.get_current()[1]
                                         lat = gps_lat_obj.get_current()[1]
                                         ais_obj.update_polaris_pos(lon, lat)
-                                        # ais_obj.update_range(lon - cg.longitude_range, lon + cg.longitude_range, lat - cg.latitude_range, lat + cg.latitude_range)
+                                        ais_obj.update_range(lon - cg.longitude_range, lon + cg.longitude_range, lat - cg.latitude_range, lat + cg.latitude_range)
                                         
                                 
                                 except Exception as e:

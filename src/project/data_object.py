@@ -87,6 +87,9 @@ class GraphObject: # struct which keeps together objects needed for a graph
     def update_xlim(self, begin, end):
         self.graph.setXRange(begin, end)
 
+    def update_ylim(self, begin, end):
+        self.graph.setYRange(begin, end)
+
     def hide(self):
         '''Disallow plotting & line updates'''
         self.visible = False
@@ -233,6 +236,19 @@ class AISObject(DataObject): # NOTE: does this class need to take all arguments 
 
     def clear_data(self):
         self.data.clear()
+
+    def update_range(self, x_min = None, x_max = None, y_min = None, y_max = None):
+        '''
+        Modify the range of the x and y axes of the graph object belonging to this object.
+        \nNote that manually setting the range at any point turns off auto-range.
+        '''
+        if self.graph_obj is None:
+            print("ERROR - This object has no graph object")
+        if (x_min is not None and x_max is not None):
+            self.graph_obj.update_xlim(x_min, x_max)
+        if (y_min is not None and y_max is not None):
+            self.graph_obj.update_ylim(y_min, y_max)
+        
 
     def update_data(self, current_time, scroll_window):
         '''Remove datapoints which have not been updated for a while (cg.data_timeout secs)'''
