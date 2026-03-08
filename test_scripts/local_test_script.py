@@ -86,7 +86,7 @@ def create_can_msg(data, frame) -> str:
 def generate_hb_msg(frame):
     return create_can_msg("", frame)
 
-def generate_gps_msg():
+def generate_gps_msg(lon_val: float = None, lat_val: float = None):
     '''
     [31:0] uint32_t latitude
     Latitude in (Decimal Degrees + 90) * 1,000,000
@@ -113,8 +113,15 @@ def generate_gps_msg():
     try:
         # lat = convert_to_little_endian(convert_to_hex(int((slope_data + 90) * 1000000), 4))
         # lon = convert_to_little_endian(convert_to_hex(int((slope_data + 90) * 1000000), 4))
-        lat = convert_to_little_endian(convert_to_hex(int((49.2621 + 90) * 1000000), 4))
-        lon = convert_to_little_endian(convert_to_hex(int((-33.2482 + 90) * 1000000), 4)) 
+        lat = 0
+        lon = 0
+        if (lat_val is not None and lon_val is not None):
+            lat = convert_to_little_endian(convert_to_hex(int((lat_val + 90) * 1000000), 4))
+            lon = convert_to_little_endian(convert_to_hex(int((lon_val + 180) * 1000000), 4)) 
+        else:
+            lat = convert_to_little_endian(convert_to_hex(int((49.2621 + 90) * 1000000), 4))
+            lon = convert_to_little_endian(convert_to_hex(int((-33.2482 + 180) * 1000000), 4)) 
+
         secs = convert_to_little_endian(convert_to_hex(10, 2))
         mins = convert_to_little_endian(convert_to_hex(20, 2))
         hrs = convert_to_little_endian(convert_to_hex(30, 2))
@@ -126,10 +133,10 @@ def generate_gps_msg():
         return can_message
             
     except Exception as e:
-        print(f"Exception creating rudder command: {e}")
+        print(f"Exception creating gps command: {e}")
         return None
     
-def generate_ais_msgs(num_msgs):
+def generate_ais_msgs(num_msgs, id: int = None, lon: float = None, lat: float = None):
         # TODO: Send num_msgs can messages (multiple commands) to reflect actual AIS behaviour
         # note: should ais_obj be a subclass of dataobject?
 
@@ -139,16 +146,22 @@ def generate_ais_msgs(num_msgs):
         for i in range(num_msgs):
             # x_data = data_points[i % len(data_points)] # prevent errors for too-short array
             # y_data = data_points[len(data_points) - 1 - (i % len(data_points))]
-            x_data = random.random() * 75
-            y_data = random.random() * 150
+            # x_data = random.random() * 75
+            # y_data = random.random() * 150
             try:
 
-                id = convert_to_little_endian(convert_to_hex(i * 10000000, 4))
                 # lat = convert_to_little_endian(convert_to_hex(int((x_data) * 1000000), 4)) # should change by 1
                 # lon = convert_to_little_endian(convert_to_hex(int((y_data) * 1000000), 4))
                 
-                lat_float = (49.2629 + (slope_data * 0.0001) + 90) * 1000000
-                lon_float = (100.4489 + (slope_data * 0.0001) + 180) * 1000000
+                if (id is not None and lon is not None and lat is not None):
+                    id = convert_to_little_endian(convert_to_hex(id, 4))
+                    lat_float = (lat + 90) * 1000000
+                    lon_float = (lon + 180) * 1000000 
+                else:
+                    id = convert_to_little_endian(convert_to_hex(i * 10000000, 4))
+                    lat_float = (49.2629 + (slope_data * 0.0001) + 90) * 1000000
+                    lon_float = (100.4489 + (slope_data * 0.0001) + 180) * 1000000
+                
                 lat_value = int(lat_float)
                 lon_value = int(lon_float)
                 # print("lat_float = ", lat_float)
@@ -279,7 +292,6 @@ def run_local_test(msg_queue: multiprocessing.Queue, delay, data = None):
     delay is the delay between messages\n
     data is not yet defined but I'm thinking it could be smth that's just sent?'''
     # TODO
-    # This should setup and run the Remote debugger
     # take data as an input and feed it into can_dump process with testing = true,
     # this should remove the need to ssh and simplify testing
     # This repeatedly sends messages at regular intervals: has a while loop which is broken out of by 
@@ -292,30 +304,29 @@ def run_local_test(msg_queue: multiprocessing.Queue, delay, data = None):
         try:
             cycle += 1
             print(f"--- CYCLE {cycle} ---")
-
-            if ((cycle % 10) == 0): 
-                pdb_hb_msg = make_pretty(generate_hb_msg("130"))
-                msg_queue.put(pdb_hb_msg)
-                print(f"Message: {pdb_hb_msg}")
-            if ((cycle % 10) == 3): 
-                rudr_hb_msg = make_pretty(generate_hb_msg("131"))
-                msg_queue.put(rudr_hb_msg)
-                print(f"Message: {rudr_hb_msg}")
-            if ((cycle % 10) == 5): 
-                sail_hb_msg = make_pretty(generate_hb_msg("132"))
-                msg_queue.put(sail_hb_msg)
-                print(f"Message: {sail_hb_msg}")
-            if ((cycle % 10) == 7): 
-                sense_hb_msg = make_pretty(generate_hb_msg("133"))
-                msg_queue.put(sense_hb_msg)
-                print(f"Message: {sense_hb_msg}")
             
-
-            ais_msg = make_pretty(generate_ais_msgs(1))
+            ais_msg = make_pretty(generate_ais_msgs(1, 0, 49.9999, 181.35))
             msg_queue.put(ais_msg)
             print(f"Message: {ais_msg}")
 
-            gps_data = generate_gps_msg()
+            ais_msg = make_pretty(generate_ais_msgs(1, 1, 49, 179)) # only visible with range >= 2 DD
+            msg_queue.put(ais_msg)
+            print(f"Message: {ais_msg}")
+
+            ais_msg = make_pretty(generate_ais_msgs(1, 2, 50, 181.5))
+            msg_queue.put(ais_msg)
+            print(f"Message: {ais_msg}")
+
+            ais_msg = make_pretty(generate_ais_msgs(1, 3, 48.444, 178.75))
+            msg_queue.put(ais_msg)
+            print(f"Message: {ais_msg}")
+
+            ais_msg = make_pretty(generate_ais_msgs(1, 4, 50.3061, 181.1691))
+            msg_queue.put(ais_msg)
+            print(f"Message: {ais_msg}")
+
+
+            gps_data = generate_gps_msg(49.3061, 180.1691)
             msg = make_pretty(gps_data)
             msg_queue.put(msg)  # NOTE: do I need to make this non-blocking or smth?
             print(f"Message: {msg}")
