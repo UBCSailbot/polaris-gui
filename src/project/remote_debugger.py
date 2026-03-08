@@ -22,12 +22,13 @@ from project.can_processes import (
 )
 
 import project.pyqt_widgets
+from project.joystick_mixin import JoystickMixin
 from project.data_object import *
 from project.utility import *
 
 ### ----------  PyQt5 GUI ---------- ###
-class CANWindow(QWidget):
-    def __init__(self, queue, temp_pipe, cmd_queue, response_queue, can_log_queue, timestamp, joystick: pygame.joystick.JoystickType = None):
+class CANWindow(QWidget, JoystickMixin):
+    def __init__(self, queue, temp_pipe, cmd_queue, response_queue, can_log_queue, timestamp):
         super().__init__()
         self.queue = queue
         self.temp_pipe = temp_pipe
@@ -45,11 +46,6 @@ class CANWindow(QWidget):
 
         self.time_start = time.time()
         self.time_history = []
-
-        self.js = joystick # joystick
-        self.js_prev_state = None # TODO: Delete this if not in use
-        self.js_prev_pos = 0
-        self.js_enabled = False
 
         # Initialize logging
         self._init_logging(timestamp)
@@ -443,7 +439,7 @@ class CANWindow(QWidget):
         self.rudder_button.setDisabled(checked)
         self.trim_input.setDisabled(checked)
         self.trim_button.setDisabled(checked)
-        if self.js is not None: self.js_enabled = checked
+        self.set_joystick_enabled(checked)
 
     def toggle_emergency_buttons(self, state):
         enabled = state == Qt.Checked
@@ -814,24 +810,17 @@ class CANWindow(QWidget):
             elif out:
                 self.output_display.append(f"[OUT] {out.strip()}")
 
-        # Handle joystick updates    
-        if self.js is not None and self.js_enabled:
-            pygame.event.pump() # Update joystick state
-            pos = round(self.js.get_axis(3), cg.movement_sensitivity)
-            if (pos != round(self.js_prev_pos, cg.movement_sensitivity)):
-                print(f"new angle = {pos * cg.max_angle}")
-                self.send_rudder(set_angle = cg.max_angle * pos)
-                self.js_prev_pos = pos
+        # Handle joystick updates 
+        if (self.get_joystick_enabled()):
+            moved, pos = self.joystick_moved(cg.rudder_axis)
+            if moved: self.send_rudder(set_angle = cg.max_angle * pos)
 
-            # if (pos > 0.9) and self.js_prev_state is not JS_DIRECTIONS.RIGHT:
-            #     self.send_rudder(set_angle = cg.right_angle_change * pos)
-            #     self.js_prev_state = JS_DIRECTIONS.RIGHT
-            # elif(pos < -0.9) and self.js_prev_state is not JS_DIRECTIONS.LEFT:
-            #     self.send_rudder(set_angle = cg.left_angle_change * pos)
-            #     self.js_prev_state = JS_DIRECTIONS.LEFT
-            # elif (pos == 0) and self.js_prev_state is not JS_DIRECTIONS.MIDDLE:
-            #     self.send_rudder(set_angle = cg.center_angle)
-            #     self.js_prev_state = JS_DIRECTIONS.MIDDLE
+        # if self.js is not None and self.js_enabled:
+        #     pygame.event.pump() # Update joystick state
+        #     pos = round(self.js.get_axis(3), cg.movement_sensitivity)
+        #     if (pos != round(self.js_prev_pos, cg.movement_sensitivity)):
+        #         self.send_rudder(set_angle = cg.max_angle * pos)
+        #         self.js_prev_pos = pos
 
     def _update_plot_ranges(self, current_time):
         # === Auto-scale and scroll X axis ===
@@ -907,28 +896,13 @@ if __name__ == "__main__":
     # Cleanup (CTRL + C) initialization
     signal.signal(signal.SIGINT, key_interrupt_cleanup)
 
-    # Joystick initialization
-    pygame.init()
-    pygame.joystick.init()
-
-    if pygame.joystick.get_count() == 0:
-        print("No joystick detected.")
-    try:
-        js = pygame.joystick.Joystick(0)
-        js.init()
-        print(f"Connected to: {js.get_name()}")
-    except Exception as e:
-        js = None
-        print(f"Joystick Connection Error: {e}")
-
-    print("js = ", js)
-
     app = QApplication(sys.argv)
     for obj in all_objs:
         obj.initialize(timestamp) # create QWidgets
     for mod in heartbeat_modules:
         mod.init_time(current_time)
-    window = CANWindow(queue, parent_conn, cmd_queue, response_queue, can_log_queue, timestamp, joystick = js)
+    window = CANWindow(queue, parent_conn, cmd_queue, response_queue, can_log_queue, timestamp)
+    window.initialize_joystick() # Joystick initialization
     window.show()
 
     try:

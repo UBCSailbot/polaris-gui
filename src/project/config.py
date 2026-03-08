@@ -88,3 +88,5 @@ longitude_range = 2 # in decimal degrees
 # ==== Joystick ====
 movement_sensitivity = 1 # number of decimal point precision
 max_angle = 20 # degrees
+
+rudder_axis = 3 # joystick axis used to move rudder
