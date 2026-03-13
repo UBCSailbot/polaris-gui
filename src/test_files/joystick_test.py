@@ -25,7 +25,7 @@ try:
         a = js.get_axis(3) # left joystick left/right  !!! the one I want
 
 
-        print(f"A = {a:.2f}")
+        print(f"A = {a:.2f}, X = {x:.2f}")
         # print(f"X = {x:.2f}, Y = {y:.2f}, Z = {z:.2f}")
 
         time.sleep(0.05)
