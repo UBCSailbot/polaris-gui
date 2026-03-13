@@ -800,9 +800,9 @@ class CANWindow(QWidget, JoystickMixin):
 
         # Handle joystick updates 
         if (self.get_joystick_enabled()):
-            moved, pos = self.joystick_moved(cg.rudder_axis)
+            moved, pos = self.joystick_moved(cg.rudder_axis, cg.rudder_latch)
             if moved: self.send_rudder(set_angle = cg.max_rudder_angle * pos)
-            moved, pos = self.joystick_moved(cg.trimtab_axis)
+            moved, pos = self.joystick_moved(cg.trimtab_axis, cg.trimtab_latch)
             if moved: self.send_trim_tab(set_angle = cg.max_trimtab_angle * pos)
 
     def _update_plot_ranges(self, current_time):
