@@ -87,7 +87,9 @@ longitude_range = 2 # in decimal degrees
 
 # ==== Joystick ====
 movement_sensitivity = 1 # number of decimal point precision
-max_angle = 20 # degrees
+max_rudder_angle = 20 # degrees
+max_trimtab_angle = 20 # degrees
 
 num_axes = 4 # number of possible axes for Radiomaster Boxer joystick
+trimtab_axis = 0 # joystick axis used to move trimtab
 rudder_axis = 3 # joystick axis used to move rudder

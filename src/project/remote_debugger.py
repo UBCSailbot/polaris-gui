@@ -527,14 +527,21 @@ class CANWindow(QWidget, JoystickMixin):
         except Exception as e:
             print(f"ERROR - Command not sent: {str(e)}")
 
-    def send_trim_tab(self, from_keyboard=False):
+    def send_trim_tab(self, from_keyboard: bool = False, set_angle: float = None):
         try:
-            angle = self.trimtab_angle if from_keyboard else int(self.trim_input.text())
-            if not from_keyboard:
+            # angle = self.trimtab_angle if from_keyboard else int(self.trim_input.text())
+            # if not from_keyboard:
+            #     self.trimtab_angle = angle
+
+            if from_keyboard: angle = self.trimtab_angle
+            else:
+                angle = round(set_angle, 3) if set_angle is not None else int(self.trim_input.text())
                 self.trimtab_angle = angle
+
             if (angle < -90):
                 raise ValueError("Invalid angle input for Trim Tab")
-            value = convert_to_hex((angle+90) * 1000, 4)
+            
+            value = convert_to_hex(int((angle+90) * 1000), 4)
             self.can_send("002", convert_to_little_endian(value), "TRIMTAB SENT")
             self.trimtab_display.setText(f"Current Trim Tab Angle: {self.trimtab_angle} degrees")
         except ValueError as e:
@@ -558,39 +565,20 @@ class CANWindow(QWidget, JoystickMixin):
     def send_rudder(self, from_keyboard=False, set_angle: float = None):
         '''set_angle is a given angle'''
         try:
-            # print("from_keyboard = ", from_keyboard)
-            # print("self.rudder_angle = ", self.rudder_angle)
             if from_keyboard:
-                # print(f"self.rudder_angle = {self.rudder_angle}")
                 angle = self.rudder_angle
             elif set_angle is not None: 
-                # print(f"set_angle = {round(set_angle, 3)}")
                 angle = round(set_angle, 3)
             else: 
-                # print(f"in else")
                 angle = int(self.rudder_input.text())
-            # angle = self.rudder_angle if from_keyboard else int(self.rudder_input.text())
             
             if not from_keyboard:
                 self.rudder_angle = angle # TODO: Why is this here? Keep self.rudder_angle up-to-date?
 
-            # print(f"from_keyboard = {from_keyboard}")
-            # print("now self.rudder_angle = ", self.rudder_angle)
-            # print(f"angle = {angle}")
-
             if (angle < -90):
                 raise ValueError("ERR - Rudder Angle input < -90")
             
-            # print("line 700")
-            # step0 = round(angle)+90 * 1000
-            # print("step0 = ", step0)
-            # teststep = 90000
-            # step1 = convert_to_hex(step0, 4)
-            # print("line 701")
-
-            data = convert_to_little_endian(convert_to_hex((round(angle)+90) * 1000, 4))
-            # print("data = ", data)
-            # print("line 703")
+            data = convert_to_little_endian(convert_to_hex(int((angle+90) * 1000), 4))
 
             status_byte = "80" # a = 1, b = 0, c = 0
             self.can_send("001", data + status_byte, "RUDDER SENT")
@@ -813,14 +801,9 @@ class CANWindow(QWidget, JoystickMixin):
         # Handle joystick updates 
         if (self.get_joystick_enabled()):
             moved, pos = self.joystick_moved(cg.rudder_axis)
-            if moved: self.send_rudder(set_angle = cg.max_angle * pos)
-
-        # if self.js is not None and self.js_enabled:
-        #     pygame.event.pump() # Update joystick state
-        #     pos = round(self.js.get_axis(3), cg.movement_sensitivity)
-        #     if (pos != round(self.js_prev_pos, cg.movement_sensitivity)):
-        #         self.send_rudder(set_angle = cg.max_angle * pos)
-        #         self.js_prev_pos = pos
+            if moved: self.send_rudder(set_angle = cg.max_rudder_angle * pos)
+            moved, pos = self.joystick_moved(cg.trimtab_axis)
+            if moved: self.send_trim_tab(set_angle = cg.max_trimtab_angle * pos)
 
     def _update_plot_ranges(self, current_time):
         # === Auto-scale and scroll X axis ===
