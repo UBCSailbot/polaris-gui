@@ -1,6 +1,6 @@
 import pygame
 
-from project.config import movement_sensitivity
+from project.config import movement_sensitivity, num_axes
 
 # Handles joystick interaction & function
 # Note: Currently corresponds to maximum one joystick
@@ -8,7 +8,7 @@ class JoystickMixin():
     def __init__(self) -> None:
         # TODO: add item for latch
         self.joystick = None
-        self.js_prev_pos = 0
+        self.js_prev_pos = [0] * num_axes
         self.js_enabled = False
 
     def initialize_joystick(self):
@@ -31,8 +31,8 @@ class JoystickMixin():
         self.js_prev_pos; returns 0xffffffff if no joystick is connected'''
         if (self.joystick is not None):
             pygame.event.pump()
-            self.js_prev_pos = round(self.joystick.get_axis(axis), movement_sensitivity)
-            return self.js_prev_pos
+            self.js_prev_pos[axis] = round(self.joystick.get_axis(axis), movement_sensitivity)
+            return self.js_prev_pos[axis]
         return 0xffffffff
 
     def joystick_moved(self, axis: int) -> tuple[bool, float]:
@@ -41,11 +41,11 @@ class JoystickMixin():
         if self.joystick is not None:
             pygame.event.pump()
             pos = round(self.joystick.get_axis(axis), movement_sensitivity)
-            if (pos != self.js_prev_pos):
-                self.js_prev_pos = pos
+            if (pos != self.js_prev_pos[axis]):
+                self.js_prev_pos[axis] = pos
                 return [True, pos]
             else:
-                self.js_prev_pos = pos
+                self.js_prev_pos[axis] = pos
         return [False, 0]
 
     def set_joystick_enabled(self, state: bool) -> None:
