@@ -491,6 +491,8 @@ class CANWindow(QWidget):
             self.visibleGraphObjs[spot] = newGraphObj  
             newObj.update_line_data() 
 
+        dropdowns[spot].clearFocus()
+
     def keyPressEvent(self, event):
         if not self.keyboard_checkbox.isChecked():
             return
