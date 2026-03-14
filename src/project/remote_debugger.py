@@ -463,7 +463,7 @@ class CANWindow(QWidget, JoystickMixin):
             if ((obj.graph_obj is not None) and (obj.graph_obj.dropdown_label == dropdown_label)):
                 return obj
             
-    def setGraph(self, name, spot, dropdowns):
+    def setGraph(self, name: str, spot: int, dropdowns: list[QComboBox]) -> None:
         '''
         Shows given graph at spot\n
         name = DataObj.graph_obj.dropdown_label\n
@@ -486,6 +486,8 @@ class CANWindow(QWidget, JoystickMixin):
             newGraphObj.show()
             self.visibleGraphObjs[spot] = newGraphObj  
             newObj.update_line_data() 
+        
+        dropdowns[spot].clearFocus()
 
     def keyPressEvent(self, event):
         if not self.keyboard_checkbox.isChecked():
