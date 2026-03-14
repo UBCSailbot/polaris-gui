@@ -95,5 +95,5 @@ trimtab_axis = 0 # joystick axis used to move trimtab
 trimtab_latch = 6 # latch axis number
 rudder_axis = 3 # joystick axis used to move rudder
 rudder_latch = 4 # latch axis number
-LATCHED = 1 # latched == locked, unlatched == unlocked
-UNLATCHED = -1
+LATCHED = -1 # latched == locked, unlatched == unlocked
+UNLATCHED = 1
