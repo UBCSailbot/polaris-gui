@@ -53,7 +53,7 @@ class JoystickMixin():
     def is_latched(self, axis) -> bool:
         if self.joystick is not None:
             pygame.event.pump() # update position
-            return int(self.joystick.get_axis(axis)) == LATCHED
+            return round(self.joystick.get_axis(axis)) == LATCHED
         else: return True # default state is latched (locked)
 
     def set_joystick_enabled(self, state: bool) -> None:
