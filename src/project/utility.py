@@ -414,6 +414,7 @@ gps_objs = [gps_lon_obj, gps_lat_obj]
 # Only data_objs are logged together in the values csv file; they are all graphed vs. Time and have their values trimmed accordingly over time
 data_objs = gps_objs + data_objs + data_wind_objs + rudder_objs + pdb_objs 
 all_objs = data_objs.copy()
+all_objs.append(desired_heading_obj)
 all_objs.append(ais_obj) # ais is logged and updated differently since it is not a vs. Time graph
 
 # Testing val

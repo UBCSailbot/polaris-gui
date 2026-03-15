@@ -8,6 +8,10 @@ import os
 import pygame
 from datetime import datetime
 
+from project.qt_runtime import configure_bundled_qt_runtime
+
+configure_bundled_qt_runtime()
+
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout,
     QMessageBox, QTextEdit, QHBoxLayout, QCheckBox, QGridLayout, QComboBox,
@@ -531,6 +535,21 @@ class CANWindow(QWidget):
         except Exception as e:
             print(f"ERROR - Command not sent: {str(e)}")
 
+    def build_main_heading_payload(self, value_mdeg: int, steering_selection: bool, steering_enable: bool = False):
+        """
+        Build payload for CAN ID 0x001 per spec:
+        bits [31:0]  = uint32 little-endian value
+        bits [39:32] = status byte in format ab000000
+        a = steering selection bit, b = steering enable bit
+        """
+        if value_mdeg < 0:
+            raise ValueError("0x001 payload value must be non-negative")
+
+        value_field = convert_to_little_endian(convert_to_hex(value_mdeg, 4))
+        status = ((1 if steering_selection else 0) << 7) | ((1 if steering_enable else 0) << 6)
+        status_field = f"{status:02X}"
+        return value_field + status_field
+
     def send_trim_tab(self, from_keyboard=False):
         try:
             angle = self.trimtab_angle if from_keyboard else int(self.trim_input.text())
@@ -548,16 +567,22 @@ class CANWindow(QWidget):
     def send_desired_heading(self):
         try:
             heading = float(self.desired_heading_input.text())
-            data = convert_to_little_endian(convert_to_hex(int(heading * 1000), 4))
-            status_byte = "00" # a = 0, b = 0, c = 0
-            self.can_send("001", data + status_byte, "HEADING SENT")
+            if not 0 <= heading < 360:
+                raise ValueError("Desired heading must be in [0, 360) degrees")
+
+            payload = self.build_main_heading_payload(
+                value_mdeg=int(round(heading * 1000)),
+                steering_selection=False,
+                steering_enable=False,
+            )
+            self.can_send("001", payload, "HEADING SENT")
             desired_heading_obj.add_datapoint(time.time() - self.time_start, heading)
             desired_heading_obj.update_label()
-        except ValueError:
-            self.show_error(f"Invalid angle input for desired heading: {e}")
-        except Exception:
-            print("Exception thrown from send_desired_heading")
-            self.show_error("Exception thrown from send_desired_heading")
+        except ValueError as e:
+            self.show_error(f"Invalid desired heading: {e}")
+        except Exception as e:
+            print(f"Exception thrown from send_desired_heading: {e}")
+            self.show_error(f"Exception thrown from send_desired_heading: {e}")
 
     def send_rudder(self, from_keyboard=False, set_angle: float = None):
         '''set_angle is a given angle'''
@@ -582,22 +607,15 @@ class CANWindow(QWidget):
             # print("now self.rudder_angle = ", self.rudder_angle)
             # print(f"angle = {angle}")
 
-            if (angle < -90):
-                raise ValueError("ERR - Rudder Angle input < -90")
-            
-            # print("line 700")
-            # step0 = round(angle)+90 * 1000
-            # print("step0 = ", step0)
-            # teststep = 90000
-            # step1 = convert_to_hex(step0, 4)
-            # print("line 701")
+            if not -90 <= angle <= 90:
+                raise ValueError("Rudder angle must be in [-90, 90] degrees")
 
-            data = convert_to_little_endian(convert_to_hex((round(angle)+90) * 1000, 4))
-            # print("data = ", data)
-            # print("line 703")
-
-            status_byte = "80" # a = 1, b = 0, c = 0
-            self.can_send("001", data + status_byte, "RUDDER SENT")
+            payload = self.build_main_heading_payload(
+                value_mdeg=int(round((angle + 90) * 1000)),
+                steering_selection=True,
+                steering_enable=False,
+            )
+            self.can_send("001", payload, "RUDDER SENT")
             self.rudder_display.setText(f"Current Set Rudder Angle:  {self.rudder_angle} degrees")
             
             # print("line 709")
@@ -607,11 +625,11 @@ class CANWindow(QWidget):
             # print("Set rudder current = ", set_rudder_obj.get_current()[1])
             # print(f"at the end w/o error")
 
-        except ValueError:
-            self.show_error("Invalid angle input for Rudder")
-        except Exception:
-            print("Exception thrown from send_rudder")
-            self.show_error("Exception thrown from send_rudder")
+        except ValueError as e:
+            self.show_error(f"Invalid angle input for Rudder: {e}")
+        except Exception as e:
+            print(f"Exception thrown from send_rudder: {e}")
+            self.show_error(f"Exception thrown from send_rudder: {e}")
 
     def send_power_off_indefinitely(self):
         self.can_send("202", "0A", "POWER OFF")
