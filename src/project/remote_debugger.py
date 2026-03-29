@@ -497,7 +497,6 @@ class CANWindow(QWidget, JoystickMixin):
         if key == Qt.Key_A:
             self.rudder_angle = min(self.rudder_angle + 3, 45)
             self.send_rudder(from_keyboard=True)
-            # self.send_rudder(set_angle = max(self.rudder_angle - 3, -45))
             # NOTE: now that send_rudder() takes a set_angle, can probably use that instead of setting self.rudder_angle and from_keyboard=True
         elif key == Qt.Key_D:
             self.rudder_angle = max(self.rudder_angle - 3, -45)
@@ -537,10 +536,10 @@ class CANWindow(QWidget, JoystickMixin):
 
             if from_keyboard: angle = self.trimtab_angle
             else:
-                angle = round(set_angle, 3) if set_angle is not None else int(self.trim_input.text())
+                angle = round(set_angle, 3) if set_angle is not None else round(float(self.trim_input.text()), 3)
                 self.trimtab_angle = angle
 
-            if (angle < -90):
+            if (angle < -30 or angle > 30):
                 raise ValueError("Invalid angle input for Trim Tab")
             
             value = convert_to_hex(int((angle+90) * 1000), 4)
@@ -553,8 +552,11 @@ class CANWindow(QWidget, JoystickMixin):
     def send_desired_heading(self):
         try:
             heading = float(self.desired_heading_input.text())
+            if ((heading < 0) or (heading > 360)): 
+                raise ValueError
+            # Note: We lose precision of decimal places if too many are entered: only keeps 3 dp
             data = convert_to_little_endian(convert_to_hex(int(heading * 1000), 4))
-            status_byte = "00" # a = 0, b = 0, c = 0
+            status_byte = "00" # a = 0, b = 0 
             self.can_send("001", data + status_byte, "HEADING SENT")
             desired_heading_obj.add_datapoint(time.time() - self.time_start, heading)
             # desired_heading_obj.update_label() # No explicit label with the other objects for this item; already have Heading Set Angle
