@@ -8,6 +8,9 @@ import os
 import pygame
 from datetime import datetime
 
+# Ensure the project package can be imported when running this script directly
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout,
     QMessageBox, QTextEdit, QHBoxLayout, QCheckBox, QGridLayout, QComboBox,
