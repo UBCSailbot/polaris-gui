@@ -269,7 +269,7 @@ class CANWindow(QWidget, JoystickMixin):
         self.commands_grid = QGridLayout()
         
         image_tag = "ghcr.io/ubcsailbot/sailbot_workspace/release:latest"
-        bash_command = "\"ros2 launch src/global_launch/main_launch.py mode:=production\""
+        bash_command = "\"ros2 launch src/global_launch/main_launch.py record:=true mode:=production 2>&1 | tee src/global_launch/voyage_log/combined_log.txt\""
         
         # Define commands with labels
         commands = [
