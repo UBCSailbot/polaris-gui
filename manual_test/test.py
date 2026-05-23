@@ -68,8 +68,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.plot_widget.setLabel(
             "bottom", "Time (min)", **styles
         )  # create x-axis label, set its style
-        self.plot_widget.addLegend()  # must be called before calling plot to add
-        legend to graph
+        self.plot_widget.addLegend()  # must be called before calling plot to add legend to graph
         self.plot_widget.showGrid(x=True, y=True)  # set grid on graph
         self.plot_widget.setYRange(0, 10)  # fix y-range on graph
 
