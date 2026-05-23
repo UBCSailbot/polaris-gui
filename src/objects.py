@@ -3,15 +3,7 @@ from enum import Enum
 from object_classes import AISObject, DataObject, GraphObject
 from pyqtgraph import mkBrush, mkPen
 
-from config import graph_y, graph_y_units
-
-# SSH Credentials
-hostname = "192.168.0.10"
-username = "sailbot"
-password = "sailbot"
-
-can_line = "can0"
-
+from config import graph_y, graph_y_units, can_line
 
 ### ----------  Structs/Enums ---------- ###
 class AIS_Attributes(Enum):
