@@ -1,6 +1,6 @@
 from enum import Enum
 
-from data_objects import AISObject, DataObject, GraphObject
+from object_classes import AISObject, DataObject, GraphObject
 from pyqtgraph import mkBrush, mkPen
 
 from config import graph_y, graph_y_units
