@@ -20,7 +20,11 @@ This repository contains source code for the GUI application designed to interfa
 - temp is assumed to be between -15 and 140 degrees celsius
 - If Raspberry pi is returning the message "device or resource busy" when attempting to put up CAN1 line with loopback on, and you have confirmed no other application/session is using the pi, try "sudo reboot"
 
-## Steps for setting up mainframe/CAN stuff (for testing)
+## Testing Notes
+
+- To run unit tests, run `pytest` from the root folder
+
+### Steps for setting up mainframe/CAN stuff (for testing)
 
 - Need: mainframe, 1 nucleo with CAN hat (use a CAN test board) to transmit CAN messages, bullet wifi modem, special ethernet cable for bullet - mainframe, CAN connector with wires thing (white = 12V power, black = ground, brown = CAN high, blue = CAN low), micro-USB cable, assorted alligator clips
 
