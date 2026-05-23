@@ -267,13 +267,13 @@ def simple_consumer(queue: multiprocessing.Queue, delay):
         except Exception as e:
             print(f"ERROR - simple_consumer() threw exception {e}")
 
-def start_remote_debugger(current_time: float, timestamp: str, queue, parent_conn, cmd_queue, response_queue, can_log_queue, joystick = None):
+def start_remote_debugger(current_time: float, timestamp: str, queue, parent_conn, cmd_queue, response_queue, can_log_queue):
     app = QApplication(sys.argv)
     for obj in util.all_objs:
         obj.initialize(timestamp) # create QWidgets
     for mod in util.heartbeat_modules:
         mod.init_time(current_time)
-    window = CANWindow(queue, parent_conn, cmd_queue, response_queue, can_log_queue, timestamp, joystick = joystick)
+    window = CANWindow(queue, parent_conn, cmd_queue, response_queue, can_log_queue, timestamp)
     window.show()
 
     print("Remote debugger has been setup!")
@@ -374,16 +374,13 @@ def main():
     # Cleanup (CTRL + C) initialization # TODO: implement later? 
     # signal.signal(signal.SIGINT, key_interrupt_cleanup)
 
-    # TODO: Implement later?
-    # init joystick() - ctrl+f to find this commented-out fn
-
     print("=" * 60)
     print("Local test script - Sets up and passes sample data into an instance of a CANWindow application")
     print("=" * 60)
 
     start_remote_debugger(current_time, timestamp, msg_queue, parent_conn, dump_queue, empty_queue, dump_queue)
 
-    # TODO: clean up all processes etc. here
+    # Clean up all processes etc. here
     print("Cleaning up...")
     dump_proc.terminate()
     data_proc.terminate()

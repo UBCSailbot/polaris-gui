@@ -5,7 +5,7 @@ from project.config import (
 )
 
 # Handles joystick interaction & function
-# Note: Currently corresponds to maximum one joystick
+# Note: Currently only handles at most one joystick
 class JoystickMixin():
     def __init__(self) -> None:
         # TODO: add item for latch
