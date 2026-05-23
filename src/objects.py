@@ -1,9 +1,9 @@
 from enum import Enum
 
-from object_classes import AISObject, DataObject, GraphObject
+from src.object_classes import AISObject, DataObject, GraphObject
 from pyqtgraph import mkBrush, mkPen
 
-from config import graph_y, graph_y_units, can_line
+from src.config import graph_y, graph_y_units, can_line
 
 ### ----------  Structs/Enums ---------- ###
 class AIS_Attributes(Enum):
@@ -29,7 +29,18 @@ class AIS_Attributes(Enum):
 ### ----------  Utility Functions ---------- ###
 # Note that these functions are designed to work with positive numbers
 def convert_to_hex(decimal, num_bytes):
-    return format(decimal, "X").zfill(2 * num_bytes)
+    # return format(decimal, "X").zfill(2 * num_bytes)
+    if (decimal < 0 or num_bytes <= 0): 
+        print("ERROR - convert_to_hex received unexpected argument value")
+        raise ValueError
+    ret = format(decimal, "X").zfill(2 * num_bytes)
+    if (len(ret) > (2 * num_bytes)):
+        print("ERROR - convert_to_hex received number too large for given number of bytes")
+        raise ValueError
+    if (len(ret) != (2 * num_bytes)):
+        print("ERROR - convert_to_hex converted to string of unexpected length")
+        raise Exception
+    return ret
 
 
 def convert_to_little_endian(hex_str):

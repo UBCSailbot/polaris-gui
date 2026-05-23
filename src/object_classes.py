@@ -2,7 +2,7 @@ import pyqtgraph as pg
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QLabel
 
-import config as cg
+import src.config as cg
 
 graph_margin = 0.2
 
