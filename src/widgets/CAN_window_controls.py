@@ -1,9 +1,9 @@
 import time
 
-from data_objects import desired_heading_obj, set_rudder_obj
+from objects import desired_heading_obj, set_rudder_obj
 
 from config import can_line
-from utils import convert_to_hex, convert_to_little_endian
+from objects import convert_to_hex, convert_to_little_endian
 
 
 # CAN send functions

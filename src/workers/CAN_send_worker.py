@@ -3,7 +3,7 @@ import multiprocessing
 import paramiko
 
 from config import hostname, password, username
-from utils import make_pretty
+from objects import make_pretty
 
 
 def cansend_worker(

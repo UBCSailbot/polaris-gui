@@ -1,9 +1,9 @@
-import elements as elemns
-import styles as styles
+from . import elements as elemns
+from . import styles as styles
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication, QHBoxLayout, QLabel, QTextEdit
 
-from utils import all_objs
+from objects import all_objs
 
 
 # UI creation functions

@@ -1,6 +1,6 @@
 import time
 
-from data_objects import (
+from objects import (
     ais_obj,
     data_objs,
     data_wind_objs,
@@ -13,7 +13,7 @@ from data_objects import (
 )
 
 from config import scroll_window
-from utils import (
+from objects import (
     AIS_Attributes,
     can_line,
     parse_0x041_frame,

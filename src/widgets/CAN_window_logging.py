@@ -3,7 +3,7 @@ import os
 import time
 from datetime import datetime
 
-from utils import data_objs
+from objects import data_objs
 
 
 class CANWindowLoggingMixin:
