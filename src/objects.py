@@ -31,19 +31,21 @@ class AIS_Attributes(Enum):
 def convert_to_hex(decimal, num_bytes):
     # return format(decimal, "X").zfill(2 * num_bytes)
     if (decimal < 0 or num_bytes <= 0): 
-        print("ERROR - convert_to_hex received unexpected argument value")
-        raise ValueError
+        # print("ERROR - convert_to_hex received unexpected argument value")
+        raise ValueError("ERROR - convert_to_hex received unexpected argument value")
     ret = format(decimal, "X").zfill(2 * num_bytes)
     if (len(ret) > (2 * num_bytes)):
-        print("ERROR - convert_to_hex received number too large for given number of bytes")
-        raise ValueError
+        # print("ERROR - convert_to_hex received number too large for given number of bytes")
+        raise ValueError("ERROR - convert_to_hex received number too large for given number of bytes")
     if (len(ret) != (2 * num_bytes)):
-        print("ERROR - convert_to_hex converted to string of unexpected length")
-        raise Exception
+        # print("ERROR - convert_to_hex converted to string of unexpected length")
+        raise Exception("ERROR - convert_to_hex converted to string of unexpected length")
     return ret
 
 
 def convert_to_little_endian(hex_str):
+    if (len(hex_str) % 2 != 0):
+        raise ValueError("ERROR - convert_to_little_endian received argument with odd number of characters")
     raw = bytes.fromhex(hex_str)
     return raw[::-1].hex()
 
@@ -54,8 +56,13 @@ def convert_from_little_endian_str(hex_str):
     return int(big_endian, 16)
 
 
-def val(raw_bytes, s, e, div):
-    return int.from_bytes(raw_bytes[s:e], "little") / div
+def val(raw_bytes, start, end, div):
+    ''' Converts raw_bytes[start:end] to an integer i, returns i / div
+
+    Args: raw_bytes is an array of bytes (bytes object) in little-endian format
+    '''
+    if (start >= end): raise ValueError("ERROR - start larger than or equal to end in val()")
+    return int.from_bytes(raw_bytes[start:end], "little") / div
 
 
 # NOTE: Currently returns True/False, but parsing functions don't do anything with this
