@@ -84,25 +84,42 @@ def range_check(num, minn=None, maxn=None):
 ### ----------  Parsing Data Frames  ---------- ###
 
 
-def parse_0x206_frame(data_hex):
+def parse_0x206_frame(data_hex: str):
+    '''Returns a dictionary containing the fields specified for the PDB Debug CAN frame
+
+    Args: data_hex is a string containing the data received in the CAN frame'''
     raw_bytes = bytes.fromhex(data_hex)
     if len(raw_bytes) != 24:
         raise ValueError("Incorrect data length (num bytes): ID 0x206")
 
-    val = lambda s, e, div: int.from_bytes(raw_bytes[s:e], "little") / div
+    # val = lambda s, e, div: int.from_bytes(raw_bytes[s:e], "little") / div
     return {
-        volt2_obj.name: val(0, 2, 1000.0),
-        temp1_obj.name: val(2, 4, 100.0),
-        volt3_obj.name: val(4, 6, 1000.0),
-        temp2_obj.name: val(6, 8, 100.0),
-        temp3_obj.name: val(8, 10, 100.0),
-        volt4_obj.name: val(10, 12, 1000.0),
-        volt1_obj.name: val(12, 14, 1000.0),
-        mppt_hp_obj.name: val(14, 16, 1000.0),
-        mppt_hs_obj.name: val(16, 18, 1000.0),
-        mppt_sp_obj.name: val(18, 20, 1000.0),
-        mppt_ss_obj.name: val(20, 22, 1000.0),
+        volt2_obj.name: val(raw_bytes, 0, 2, 10000.0),
+        temp1_obj.name: val(raw_bytes, 2, 4, 100.0),
+        volt3_obj.name: val(raw_bytes, 4, 6, 10000.0),
+        temp2_obj.name: val(raw_bytes, 6, 8, 100.0),
+        temp3_obj.name: val(raw_bytes, 8, 10, 100.0),
+        volt4_obj.name: val(raw_bytes, 10, 12, 10000.0),
+        volt1_obj.name: val(raw_bytes, 12, 14, 10000.0),
+        mppt_hp_obj.name: val(raw_bytes, 14, 16, 1000.0),
+        mppt_hs_obj.name: val(raw_bytes, 16, 18, 1000.0),
+        mppt_sp_obj.name: val(raw_bytes, 18, 20, 1000.0),
+        mppt_ss_obj.name: val(raw_bytes, 20, 22, 1000.0),
     }
+
+    # return {
+    #     volt2_obj.name: val(0, 2, 1000.0),
+    #     temp1_obj.name: val(2, 4, 100.0),
+    #     volt3_obj.name: val(4, 6, 1000.0),
+    #     temp2_obj.name: val(6, 8, 100.0),
+    #     temp3_obj.name: val(8, 10, 100.0),
+    #     volt4_obj.name: val(10, 12, 1000.0),
+    #     volt1_obj.name: val(12, 14, 1000.0),
+    #     mppt_hp_obj.name: val(14, 16, 1000.0),
+    #     mppt_hs_obj.name: val(16, 18, 1000.0),
+    #     mppt_sp_obj.name: val(18, 20, 1000.0),
+    #     mppt_ss_obj.name: val(20, 22, 1000.0),
+    # }
 
 
 def parse_0x204_frame(data_hex):
