@@ -276,7 +276,7 @@ class CANWindow(QWidget, JoystickMixin):
             ("SSH Connect", "ssh sailbot@192.168.0.10"),
             ("CAN0 Down", "sudo ip link set can0 down"),
             ("CAN0 Up", "sudo ip link set can0 up type can bitrate 500000 dbitrate 1000000 fd on"),
-            ("Start Software", "docker run -it --network host --privileged " + image_tag + " bash -ic " + bash_command)
+           # ("Start Software", "docker run -it --network host --privileged " + image_tag + " bash -ic " + bash_command)
            # ("Check CAN Status", "ip link show can0"),
            # ("View System Logs", "dmesg | tail"),
            # ("System Info", "uname -a")
@@ -333,7 +333,27 @@ class CANWindow(QWidget, JoystickMixin):
         
         self.power_off_btn.setStyleSheet(red_button_style)
         self.restart_btn.setStyleSheet(red_button_style)
-
+        
+        # SOFTWARE start/stop controls
+               
+        soft_controls = QVBoxLayout()
+        self.container_text_box = QLineEdit()
+        self.container_text_box.setPlaceholderText('Enter docker container name (e.g. example-name)')
+        
+        soft_controls.addWidget(QLabel("Software Controls:"))
+        soft_controls.addWidget(self.container_text_box)
+        
+        soft_buttons = QHBoxLayout()
+        start_software_btn = QPushButton("Start Software")
+        start_software_btn.clicked.connect(self.start_container)
+        
+        stop_software_btn = QPushButton("Stop Software")
+        stop_software_btn.clicked.connect(self.stop_container)
+        
+        soft_buttons.addWidget(start_software_btn)
+        soft_buttons.addWidget(stop_software_btn)
+        
+        soft_controls.addLayout(soft_buttons)
 
         # TODO: add heartbeat widgets to left_layout (below)
 
@@ -373,6 +393,8 @@ class CANWindow(QWidget, JoystickMixin):
         left_layout.addWidget(self.ssh_instructions_label)
         left_layout.addSpacing(5)  # Small spacing before command buttons
         left_layout.addLayout(self.commands_grid)
+        left_layout.addSpacing(5)  # Add spacing before software controls
+        left_layout.addLayout(soft_controls)
 
         # === Right Panel
         right_layout = QVBoxLayout()
@@ -825,6 +847,59 @@ class CANWindow(QWidget, JoystickMixin):
 
     def show_error(self, msg):
         QMessageBox.critical(self, "Error", msg)
+        
+    def run_docker_command(self, action):
+        container_name = self.container_text_box.text().strip()
+        
+        # 1. Validate inputs
+        if not container_name:
+            self.show_error("Enter a Docker container name.")
+            return
+
+        # 2. Set up the SSH Client
+        ssh = paramiko.SSHClient()
+        # Automatically add the server's SSH key (prevents "unknown host" errors)
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+        try:
+            # Connect to the remote server
+            ssh.connect(hostname, username=username, password=password, timeout=5)
+            
+            # 3. Execute the command over SSH
+            
+            if action == 'start':
+                command_text = f"""&& docker exec -d {container_name} bash -ic "ros2 launch \
+                src/global_launch/main_launch.py record:=true mode:=production \
+                2>&1 | tee src/global_launch/voyage_log/combined_log_$(date +%F_%T).txt" """
+            else: 
+                command_text = ""
+            
+            command = f"docker {action} {container_name} {command_text}"
+            
+            _, stdout, stderr = ssh.exec_command(command)
+            
+            # Wait for the command to finish and get the exit status
+            exit_status = stdout.channel.recv_exit_status()
+            err = stderr.read().decode().strip()
+
+            if exit_status == 0:
+                QMessageBox.information(self, "Success", f"Successfully {action}ed container:\n{container_name}")
+            else:
+                self.show_error(f"Failed to {action} '{container_name}'.\n\nDetails: {err}")
+
+        except paramiko.AuthenticationException:
+            self.show_error("Authentication failed. Please check your username and password.")
+        except Exception as e:
+            self.show_error(f"An error occurred connecting to the server:\n{str(e)}")
+        finally:
+            # Always close the connection when done!
+            ssh.close()
+
+    def start_container(self):
+        self.run_docker_command('start')
+
+    def stop_container(self):
+        self.run_docker_command('stop')
 
 def key_interrupt_cleanup(a, b):
     sys.exit(app.exec_())
