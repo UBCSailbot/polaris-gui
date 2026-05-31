@@ -59,6 +59,7 @@ class GraphObject: # struct which keeps together objects needed for a graph
         Initialization for GraphObject\n
         minn : minimum data value expected over graph lifetime\n
         maxn : maximum data value expected over graph lifetime
+        dropdown_label: alternate (shorter) name for the dropdown list (NOTE: this att must be unique across all GraphObjects)
         '''
         self.x_name = x_name
         self.y_name = y_name
