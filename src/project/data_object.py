@@ -160,6 +160,7 @@ class DataObject:
         return
 
     def parse_frame(self, current_time, data_line, parsed_dict=None):
+        '''NOTE: current_time is just the x_data'''
         # calls the specific parsing_fn that belongs to this object
         # calls add_datapoint to add data
         if (parsed_dict is not None): # for can frames which contain multiple data values
@@ -190,8 +191,21 @@ class DataObject:
             )
         return
 
+class PIDObject(DataObject):
+    def __init__(self, name, dp, units, parsing_fn, line_dashed = False, line_colour = None, symbol_brush = None, has_label = True, graph: GraphObject = None) -> None:
+        super().__init__(name, dp, units, None, has_label = False, line_colour = None, symbol_brush = symbol_brush, graph = graph)
+        
+        # First GPS reading; becomes the (0, 0) reference point for the graph
+        self.ref = None # Use this if one PIDObject each for pid_y and pid_x; if only one PIDObject total, use the below
+        self.lat_ref = None
+        self.lon_ref = None
+
+        # TODO: data_timeout parameter? For specifying when to get rid of data (2 minutes in this case)
+        # TODO: arrows for desired and actual heading
+
+    # TODO: rest of this dataobject
     
-class AISObject(DataObject): # NOTE: does this class need to take all arguments of parent class?
+class AISObject(DataObject): 
     def __init__(self, name, dp, units, parsing_fn, other_brush, log_value_headers: list[str], polaris_brush = None, graph: GraphObject = None):
         super().__init__(name, dp, units, None, has_label = False, line_colour = None, symbol_brush = other_brush, graph = graph)
         # below all done by super
@@ -232,8 +246,9 @@ class AISObject(DataObject): # NOTE: does this class need to take all arguments 
         # TODO: note that self.data is a dict with x: y - to replace pts, remove old pt using key(old longitude), then update longitude and put new point using new longitude
         self.add_datapoint(x, y) # add new (lon, lat) of ship to list of datapoints to graph 
 
-    def add_line(self, name, x_data, y_data, colour, line_width, line_dashed, symbol_brush = None, symbol = None):
-        return create_line(self.graph_obj, name, x_data, y_data, colour, line_width, line_dashed, symbol_brush, symbol)
+    # NOTE: commented out as it is not being used currently
+    # def add_line(self, name, x_data, y_data, colour, line_width, line_dashed, symbol_brush = None, symbol = None):
+    #     return create_line(self.graph_obj, name, x_data, y_data, colour, line_width, line_dashed, symbol_brush, symbol)
 
     def clear_data(self):
         self.data.clear()

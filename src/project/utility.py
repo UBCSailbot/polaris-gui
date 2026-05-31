@@ -1,3 +1,5 @@
+import math
+
 from project.data_object import *
 from project.pyqt_widgets.heartbeat_module import HeartbeatModule
 from project.config import *
@@ -249,13 +251,28 @@ def parse_0x070_frame(data_hex):
         raise ValueError("Incorrect data length (num bytes): ID 0x070")
     
     # temp is in format of temp * 1000
-    val = lambda s, e, div: int.from_bytes(raw_bytes[s:e], 'little') / div
+    # val = lambda s, e, div: int.from_bytes(raw_bytes[s:e], 'little') / div
+    gps_lat_data = val(raw_bytes, 0, 4, 1000000) - 90
+    gps_lon_data = val(raw_bytes, 4, 8, 1000000) - 180
+
+    # Convert Decimal Degrees to offset (or first fix)
+    pid_y_data = 0
+    pid_x_data = 0
+
+    if (pid_y_obj.ref is None) or (pid_x_obj.ref is None): # If first fix: set ref points
+        pid_y_obj.ref = gps_lat_data
+        pid_x_obj.ref = gps_lon_data
+    else:
+        pid_y_data = (gps_lat_data - pid_y_obj.ref) * 110562 # change in lat multiplied by rough arc length (using conversion to km from 68.7 miles)
+        pid_x_data = (gps_lon_data - pid_x_obj.ref) * math.cos(math.radians(pid_x_obj.ref)) * 111320 # constant from google (equatorial distance between longitude lines)
 
     parsed = {
         # actual_rudder_obj.name: val(0, 2, 100.0) - 90,
-        gps_lat_obj.name: val(0, 4, 1000000) - 90,
-        gps_lon_obj.name: val(4, 8, 1000000) - 180,
-        spd_over_gnd_obj.name: val(16, 20, 1000)
+        gps_lat_obj.name: gps_lat_data,
+        gps_lon_obj.name: gps_lon_data,
+        pid_y_obj.name: pid_y_data,
+        pid_x_obj.name: pid_x_data,
+        spd_over_gnd_obj.name: val(raw_bytes, 16, 20, 1000)
     }
 
     range_check(gps_lat_obj.name, parsed[gps_lat_obj.name], -90, 90)
@@ -330,6 +347,8 @@ heartbeat_modules = [pdb_hb_module, sail_hb_module, rudr_hb_module, sense_hb_mod
 # TODO: Add the rest of the modules, one at a time - once done testing all function w/ pdb module
 
 ### ---------- Data Objects ---------- ###
+# NOTE: If multiple data objects take data from the same frame, the parsing function function for all of them is None
+#       The parsing function is for the entire frame
 
 # Battery Temps
 pdb_temp_graph_obj = GraphObject("PDB Temperature", cg.graph_y, "°C", cg.graph_y_units, 0, 127.0)
@@ -395,7 +414,10 @@ sail_wind_objs = [sail_wind_spd_obj, sail_wind_dir_obj]
 gps_lat_obj = DataObject("gps_lat", 6, "DD", None, graph=None)
 gps_lon_obj = DataObject("gps_lon", 6, "DD", None, graph=None)
 
-# pid_graph_obj = GraphObject("y")
+# PID Graph
+pid_graph_obj = GraphObject("North/South Offset", "East/West Offset", "m", "m", -10000, 10000, "PLRS Path + Heading") # maxn, minn set pretty arbitrarily (+-10 km)
+pid_x_obj = PIDObject("EW_offset", 6, "m", None, has_label = False, graph = pid_graph_obj)
+pid_y_obj = PIDObject("NS_offset", 6, "m", None, has_label = False, graph = pid_graph_obj)
 
 # AIS
 # polaris_pen = pg.mkPen(color='r', width=5) # set point border color (red)
@@ -420,17 +442,33 @@ sal_obj = DataObject("Salinity", None, "µS/cm", sal_parsing_fn, line_colour='g'
 pdb_objs = [temp1_obj, temp2_obj , temp3_obj, volt1_obj, volt2_obj, volt3_obj, volt4_obj, mppt_hp_obj, mppt_hs_obj, mppt_sp_obj, mppt_ss_obj]
 rudder_objs = [actual_rudder_obj, set_rudder_obj, spd_over_gnd_obj, imu_roll_obj, imu_pitch_obj, integral_obj, derivative_obj, imu_heading_obj] # all objects with data from 0x204 frame (rudder -> mainframe)
 data_objs = [pH_obj, temp_sensor_obj, sal_obj]
-gps_objs = [gps_lat_obj, gps_lon_obj]
+gps_objs = [gps_lat_obj, gps_lon_obj, pid_y_obj, pid_x_obj]
 
 # Only data_objs are logged together in the values csv file; they are all graphed vs. Time and have their values trimmed accordingly over time
 data_objs = gps_objs + data_objs + data_wind_objs + sail_wind_objs + rudder_objs + pdb_objs 
 
 # all graph objects
-graph_objs = [pdb_temp_graph_obj, pdb_volt_graph_obj, mppt_current_graph_obj, rudder_graph, spd_over_gnd_graph_obj, headings_graph_obj, imu_roll_pitch_graph_obj, int_der_graph_obj, sail_wind_spd_graph_obj, position_graph_obj, pH_graph_obj, temp_sensor_graph_obj, sal_graph_obj]
+graph_objs = [
+    pdb_temp_graph_obj, 
+    pdb_volt_graph_obj, 
+    mppt_current_graph_obj, 
+    rudder_graph, 
+    spd_over_gnd_graph_obj, 
+    headings_graph_obj, 
+    imu_roll_pitch_graph_obj, 
+    int_der_graph_obj, 
+    sail_wind_spd_graph_obj, 
+    position_graph_obj, 
+    pid_graph_obj,
+    pH_graph_obj, 
+    temp_sensor_graph_obj, 
+    sal_graph_obj
+]
 
 all_objs = data_objs.copy()
 all_objs.append(ais_obj) # ais is logged and updated differently since it is not a vs. Time graph
-
+all_objs.append(pid_y_obj)
+all_objs.append(pid_x_obj)
 
 
 # Testing val
