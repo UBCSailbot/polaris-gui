@@ -1,4 +1,261 @@
-# # ===== Example AIS Graph (Basic) ===== 
+# -- Source - https://stackoverflow.com/a/49223444
+# -- Posted by eyllanesc, modified by community. See post 'Timeline' for change history
+# -- Retrieved 2026-05-30, License - CC BY-SA 3.0
+# https://stackoverflow.com/questions/49219278/pyqtgraph-move-origin-of-arrowitem-to-local-center
+
+import numpy as np
+import math
+# from pyqtgraph.Qt import QtGui, QtCore
+import pyqtgraph as pg
+from PyQt5 import QtCore, QtWidgets, QtGui
+
+
+class MyArrowItem(pg.ArrowItem):
+    def paint(self, p, *args):
+        p.translate(-2 * self.boundingRect().center())
+        pg.ArrowItem.paint(self, p, *args)
+
+def create_arrow_item(angle: int, headLen: int, tailLen: int, tailWidth: int, headWidth: int, pen: pg.QtGui.QPen, brush: pg.QtGui.QBrush) -> MyArrowItem:
+    return MyArrowItem(angle=angle, headLen=headLen, tailLen=tailLen, tailWidth=tailWidth, headWidth=headWidth, pen=pen, brush=brush)
+
+# Sample data points
+x = np.array([1, 2, 3, 4, 5, -2, -2, 10, 10])
+y = np.array([2, 4, 5, 5, 3, -1, 8, -1, 8])
+desired_heading = np.array([180, 180, 180, 180, 180])
+actual_heading = np.array([130, 135, 165, 222.5, 205])
+
+app = QtWidgets.QApplication([])
+
+p = pg.PlotWidget()
+p.showGrid(x = True, y = True, alpha = 0.3)
+p.setBackground('w')
+
+line = p.plot(
+    x,
+    y,
+    name="Path",
+    pen=None, # no line colour = no line
+    symbol='o',
+    symbolBrush = 'black'
+)
+
+# b = MyArrowItem(angle=0, headLen=20, tailLen=40, tailWidth=10, headWidth=10, pen={'color': 'w', 'width': 3})
+last_x = None
+last_y = None
+last_pix_x = None
+last_pix_y = None
+last_win_x = None
+last_win_y = None
+last_glo_x = None
+last_glo_y = None
+
+for i in range(0, len(x)):
+    if len(desired_heading) > i:
+        arrow = create_arrow_item(angle=desired_heading[i], headLen=20, tailLen=45, tailWidth=8, headWidth=8, pen={'color': 'w', 'width': 3}, brush='b')
+        actual_arrow = create_arrow_item(angle=actual_heading[i], headLen=20, tailLen=45, tailWidth=8, headWidth=8, pen={'color': 'w', 'width': 3}, brush='r')
+        arrow.setPos(x[i], y[i])
+        actual_arrow.setPos(x[i], y[i])
+        p.addItem(arrow)
+        p.addItem(actual_arrow)
+
+    scene_pixel = p.plotItem.vb.mapViewToScene(pg.Point(x[i], y[i]))
+    window_pixel = p.mapToParent(scene_pixel.toPoint())
+    global_screen_pixel = p.mapToGlobal(scene_pixel.toPoint())
+
+    # print(f"scene_pixel({x[i]},{y[i]}): ", scene_pixel)
+    if (last_x is not None) and (last_y is not None):
+        print(f"distance from ({last_x},{last_y}) to ({x[i]}, {y[i]}) = ", math.sqrt((last_x - x[i]) ** 2 + (last_y - y[i]) ** 2))
+        print(f"screen pixel distance from ({last_x},{last_y}) to ({x[i]}, {y[i]}) = ", math.sqrt((last_pix_x - scene_pixel.x()) ** 2 + (last_pix_y - scene_pixel.y()) ** 2))
+        print(f"window pixel distance from ({last_x},{last_y}) to ({x[i]}, {y[i]}) = ", math.sqrt((last_win_x - window_pixel.x()) ** 2 + (last_win_y - window_pixel.y()) ** 2))
+        print(f"global pixel distance from ({last_x},{last_y}) to ({x[i]}, {y[i]}) = ", math.sqrt((last_glo_x - global_screen_pixel.x()) ** 2 + (last_glo_y - global_screen_pixel.y()) ** 2))
+    
+    last_x = x[i]
+    last_y = y[i]
+    last_pix_x = scene_pixel.x()
+    last_pix_y = scene_pixel.y()
+    last_win_x = window_pixel.x()
+    last_win_y = window_pixel.y()
+    last_glo_x = global_screen_pixel.x()
+    last_glo_y = global_screen_pixel.y()
+
+# vb = p.plotItem.vb
+
+# 1. Map to Scene Pixels (local widget pixel system)
+# scene_pixel = vb.mapViewToScene(pg.Point(x[0], y[0]))
+# print(f"scene_pixel({x[0]},{y[0]}): ", scene_pixel)
+# scene_pixel = vb.mapViewToScene(pg.Point(x[1], y[1]))
+# print(f"scene_pixel({x[1]},{y[1]}): ", scene_pixel)
+# scene_pixel = vb.mapViewToScene(pg.Point(x[2], y[2]))
+# print(f"scene_pixel({x[2]},{y[2]}): ", scene_pixel)
+# scene_pixel = vb.mapViewToScene(pg.Point(x[3], y[3]))
+# print(f"scene_pixel({x[3]},{y[3]}): ", scene_pixel)
+# scene_pixel = vb.mapViewToScene(pg.Point(x[4], y[4]))
+# print(f"scene_pixel({x[4]},{y[4]}): ", scene_pixel)
+
+layout = QtWidgets.QHBoxLayout()
+layout.addWidget(p)
+layout.addWidget(QtWidgets.QLabel("sample label"))
+
+main_widget = QtWidgets.QWidget()
+main_widget.setLayout(layout)
+
+w = QtWidgets.QMainWindow()
+w.show()
+w.resize(640, 480)
+# w.setCentralWidget(p)
+w.setCentralWidget(main_widget)
+w.setWindowTitle('pyqtgraph example: ArrowItem')
+
+# a = MyArrowItem(angle=0, tipAngle=60, headLen=40, tailLen=40, tailWidth=20, pen={'color': 'w', 'width': 3},  brush='r')
+# # b is the chosen arrow (can modify this later if necessary)
+# b = MyArrowItem(angle=-160, headLen=20, tailLen=40, tailWidth=10, headWidth=10, pen={'color': 'w', 'width': 3})
+# c = MyArrowItem(angle=45, tipAngle=30, headLen=20, headWidth=10, tailLen=40, tailWidth=10, pen={'color': 'w', 'width': 3},  brush='g')
+
+# a.setPos(0,0)
+# b.setPos(0,0)
+# c.setPos(0, 0)
+
+# p.addItem(a)
+# p.addItem(b)
+# p.addItem(c)
+
+## Start Qt event loop unless running in interactive mode or using pyside.
+if __name__ == '__main__':
+    app.exec()
+
+
+# # ===== Example PID Graph (Basic) ===== 
+# # NOTE: I might want to use a scatterplot for this
+# import pyqtgraph as pg
+# from pyqtgraph.Qt import QtGui
+# import numpy as np
+
+# # 1. Initialize plot and scatter plot item
+# app = pg.mkQApp("Arrow Scatter Plot")
+# plt = pg.plot()
+# plt.setBackground("w")
+# sp = pg.ScatterPlotItem()
+
+# plt.addItem(sp)
+
+# # 2. Create arrow QPainterPath and rotate it
+# tr = QtGui.QTransform()
+# tr.rotate(45) # Pointing up-right (45 degrees)
+# thick_arrow_path = tr.map(pg.makeArrowPath(headLen = 20, headWidth = 5, tailLen = 20, tailWidth = 5, baseAngle = 0))
+# arrow_path = tr.map(pg.makeArrowPath(headLen = 15, headWidth = 5, tailLen = 15, tailWidth = 3, baseAngle = 0))
+# thin_arrow_path = tr.map(pg.makeArrowPath(headLen = 10, headWidth = 5, tailLen = 30, tailWidth = 3, baseAngle = 0))
+
+# # 3. Define data
+# x = np.array([1, 2, 3, 4, 5])
+# y = np.array([2, 4, 1, 5, 3])
+
+# # 4. Set data with the custom arrow symbol
+# sp.setData(
+#     x=x, 
+#     y=y, 
+#     symbol=[thin_arrow_path, arrow_path, thick_arrow_path, arrow_path, arrow_path], 
+#     # symbol=arrow_path,
+#     size=25, 
+#     symbolBrush='y', 
+#     symbolPen='w'
+# )
+
+# if __name__ == '__main__':
+#     pg.exec()
+
+
+# from random import randint, uniform
+
+# import pyqtgraph as pg
+# from PyQt5 import QtCore, QtWidgets, QtGui
+
+# class MainWindow(QtWidgets.QMainWindow):
+#     def __init__(self):
+#         super().__init__()
+
+#         self.time = list(range(10)) # create a list of times from 1-10 for time
+#         x_data = [uniform(-180, 180) for i in range(10)] 
+#         y_data = [uniform(-90, 90) for j in range(10)] # randint(1, 9) for i in range(0, 10)]
+#         print("longitude: ", x_data)
+#         print("latitude: ", y_data)
+
+#         polaris_pen = pg.mkPen(color='r', width=5) # set point border color (red)
+#         polaris_brush = pg.mkBrush(color='r')
+#         other_pen = pg.mkPen(color='b', width=1)
+#         other_brush = pg.mkBrush(color='b')
+
+#         '''
+#         Optional list of dicts. Each dict specifies parameters for a single spot: {‘pos’: (x,y), ‘size’, ‘pen’, ‘brush’, ‘symbol’}. 
+#         This is just an alternate method of passing in data for the corresponding arguments.
+#         '''
+#         # spots = []
+#         # for pt in self.time:
+#         #     if (pt == 5):
+#         #         spots.append({'pos': (x_data[pt - 1], y_data[pt - 1]), 'size':10, 'pen': polaris_pen, 'brush': polaris_brush, 'symbol': 'x'}) # Each point can have its own brush, pen, symbol
+#         #     else:
+#         #         spots.append({'pos': (x_data[pt - 1], y_data[pt - 1]), 'size':10, 'pen': other_pen, 'brush': other_brush, 'symbol': 'o'})
+
+#         # Graph using PlotWidget
+#         self.plot_widget = pg.PlotWidget()
+
+#         # setup - all from create_graph function
+#         self.plot_widget.setBackground("w")
+#         self.plot_widget.getPlotItem().getViewBox().setMouseEnabled(False, False)
+#         self.plot_widget.setTitle("Ship Positions", color='black')
+#         self.plot_widget.setLabel("left", "Latitude")
+#         self.plot_widget.setLabel("bottom", "Longitude")
+#         self.plot_widget.addLegend()
+#         self.plot_widget.showGrid(x=True, y=True)
+
+#         # create line objects for polaris & for other ships; add data
+#         # TODO: copy necessary bits from create_line here
+#         other_line = self.plot_widget.plot(
+#             x_data, 
+#             y_data,
+#             name="other ships",
+#             pen=None,
+#             symbolBrush=other_brush,
+#             symbol = "o"
+#             # symbolSize=40
+#         )
+
+#         polaris_line = self.plot_widget.plot(
+#             name="Polaris",
+#             pen=None,
+#             symbolBrush=polaris_brush,
+#             symbol = "t"
+#         )
+
+#         arrow = pg.ArrowItem(angle=45, brush='y') # Points down
+#         arrow.setPos(0, 0) # Position in data coordinates   
+#         self.plot_widget.addItem(arrow)
+
+#         polaris_line.setData([0], [0])
+
+        
+#         # Graph using ScatterPLotItem
+#         # self.plot_widget = pg.PlotWidget()
+#         # self.plot_widget.getPlotItem().getViewBox().setMouseEnabled(False, False) # disable graph interaction
+#         # self.plot_widget.setBackground("w") # set background color to white
+#         # self.plot_widget.setTitle("Longitude vs. Latitude", color="b", size="20pt") # set title of graph
+#         # styles = {"color": "red", "font-size": "18px"} # create a style sheet
+#         # self.plot_widget.setLabel("left", "Latitude (DD)", **styles) # create y-axis label, set its style
+#         # self.plot_widget.setLabel("bottom", "Longitude (DD)", **styles) # create x-axis label, set its style
+#         # self.plot_widget.addLegend() # must be called before calling plot to add legend to graph
+#         # self.plot_widget.showGrid(x=True, y=True) # set grid on graph
+
+#         # self.plot_graph = pg.ScatterPlotItem(spots) # create ScatterPlot object
+#         # self.plot_widget.addItem(self.plot_graph)
+        
+#         self.setCentralWidget(self.plot_widget) 
+
+# app = QtWidgets.QApplication([])
+# main = MainWindow()
+# main.show()
+# app.exec()
+
+
+# # ===== Example Heartbeat ===== 
 # # from random import randint, uniform
 
 # # import pyqtgraph as pg
@@ -76,95 +333,95 @@
 # app.exec()
 
 # ===== Example AIS Graph (Basic) ===== 
-from random import randint, uniform
+# from random import randint, uniform
 
-import pyqtgraph as pg
-from PyQt5 import QtCore, QtWidgets, QtGui
+# import pyqtgraph as pg
+# from PyQt5 import QtCore, QtWidgets, QtGui
 
-class MainWindow(QtWidgets.QMainWindow):
-    def __init__(self):
-        super().__init__()
+# class MainWindow(QtWidgets.QMainWindow):
+#     def __init__(self):
+#         super().__init__()
 
-        self.time = list(range(10)) # create a list of times from 1-10 for time
-        x_data = [uniform(-180, 180) for i in range(10)] 
-        y_data = [uniform(-90, 90) for j in range(10)] # randint(1, 9) for i in range(0, 10)]
-        print("longitude: ", x_data)
-        print("latitude: ", y_data)
+#         self.time = list(range(10)) # create a list of times from 1-10 for time
+#         x_data = [uniform(-180, 180) for i in range(10)] 
+#         y_data = [uniform(-90, 90) for j in range(10)] # randint(1, 9) for i in range(0, 10)]
+#         print("longitude: ", x_data)
+#         print("latitude: ", y_data)
 
-        polaris_pen = pg.mkPen(color='r', width=5) # set point border color (red)
-        polaris_brush = pg.mkBrush(color='r')
-        other_pen = pg.mkPen(color='b', width=1)
-        other_brush = pg.mkBrush(color='b')
+#         polaris_pen = pg.mkPen(color='r', width=5) # set point border color (red)
+#         polaris_brush = pg.mkBrush(color='r')
+#         other_pen = pg.mkPen(color='b', width=1)
+#         other_brush = pg.mkBrush(color='b')
 
-        '''
-        Optional list of dicts. Each dict specifies parameters for a single spot: {‘pos’: (x,y), ‘size’, ‘pen’, ‘brush’, ‘symbol’}. 
-        This is just an alternate method of passing in data for the corresponding arguments.
-        '''
-        # spots = []
-        # for pt in self.time:
-        #     if (pt == 5):
-        #         spots.append({'pos': (x_data[pt - 1], y_data[pt - 1]), 'size':10, 'pen': polaris_pen, 'brush': polaris_brush, 'symbol': 'x'}) # Each point can have its own brush, pen, symbol
-        #     else:
-        #         spots.append({'pos': (x_data[pt - 1], y_data[pt - 1]), 'size':10, 'pen': other_pen, 'brush': other_brush, 'symbol': 'o'})
+#         '''
+#         Optional list of dicts. Each dict specifies parameters for a single spot: {‘pos’: (x,y), ‘size’, ‘pen’, ‘brush’, ‘symbol’}. 
+#         This is just an alternate method of passing in data for the corresponding arguments.
+#         '''
+#         # spots = []
+#         # for pt in self.time:
+#         #     if (pt == 5):
+#         #         spots.append({'pos': (x_data[pt - 1], y_data[pt - 1]), 'size':10, 'pen': polaris_pen, 'brush': polaris_brush, 'symbol': 'x'}) # Each point can have its own brush, pen, symbol
+#         #     else:
+#         #         spots.append({'pos': (x_data[pt - 1], y_data[pt - 1]), 'size':10, 'pen': other_pen, 'brush': other_brush, 'symbol': 'o'})
 
-        # Graph using PlotWidget
-        self.plot_widget = pg.PlotWidget()
+#         # Graph using PlotWidget
+#         self.plot_widget = pg.PlotWidget()
 
-        # setup - all from create_graph function
-        self.plot_widget.setBackground("w")
-        self.plot_widget.getPlotItem().getViewBox().setMouseEnabled(False, False)
-        self.plot_widget.setTitle("Ship Positions", color='black')
-        self.plot_widget.setLabel("left", "Latitude")
-        self.plot_widget.setLabel("bottom", "Longitude")
-        self.plot_widget.addLegend()
-        self.plot_widget.showGrid(x=True, y=True)
+#         # setup - all from create_graph function
+#         self.plot_widget.setBackground("w")
+#         self.plot_widget.getPlotItem().getViewBox().setMouseEnabled(False, False)
+#         self.plot_widget.setTitle("Ship Positions", color='black')
+#         self.plot_widget.setLabel("left", "Latitude")
+#         self.plot_widget.setLabel("bottom", "Longitude")
+#         self.plot_widget.addLegend()
+#         self.plot_widget.showGrid(x=True, y=True)
 
-        # create line objects for polaris & for other ships; add data
-        # TODO: copy necessary bits from create_line here
-        other_line = self.plot_widget.plot(
-            x_data, 
-            y_data,
-            name="other ships",
-            pen=None,
-            symbolBrush=other_brush,
-            symbol = "o"
-            # symbolSize=40
-        )
+#         # create line objects for polaris & for other ships; add data
+#         # TODO: copy necessary bits from create_line here
+#         other_line = self.plot_widget.plot(
+#             x_data, 
+#             y_data,
+#             name="other ships",
+#             pen=None,
+#             symbolBrush=other_brush,
+#             symbol = "o"
+#             # symbolSize=40
+#         )
 
-        polaris_line = self.plot_widget.plot(
-            name="Polaris",
-            pen=None,
-            symbolBrush=polaris_brush,
-            symbol = "t"
-        )
+#         polaris_line = self.plot_widget.plot(
+#             name="Polaris",
+#             pen=None,
+#             symbolBrush=polaris_brush,
+#             symbol = "t"
+#         )
 
-        arrow = pg.ArrowItem(angle=45, brush='y') # Points down
-        arrow.setPos(0, 0) # Position in data coordinates   
-        self.plot_widget.addItem(arrow)
+#         arrow = pg.ArrowItem(angle=45, brush='y') # Points down
+#         arrow.setPos(0, 0) # Position in data coordinates   
+#         self.plot_widget.addItem(arrow)
 
-        polaris_line.setData([0], [0])
+#         polaris_line.setData([0], [0])
 
         
-        # Graph using ScatterPLotItem
-        # self.plot_widget = pg.PlotWidget()
-        # self.plot_widget.getPlotItem().getViewBox().setMouseEnabled(False, False) # disable graph interaction
-        # self.plot_widget.setBackground("w") # set background color to white
-        # self.plot_widget.setTitle("Longitude vs. Latitude", color="b", size="20pt") # set title of graph
-        # styles = {"color": "red", "font-size": "18px"} # create a style sheet
-        # self.plot_widget.setLabel("left", "Latitude (DD)", **styles) # create y-axis label, set its style
-        # self.plot_widget.setLabel("bottom", "Longitude (DD)", **styles) # create x-axis label, set its style
-        # self.plot_widget.addLegend() # must be called before calling plot to add legend to graph
-        # self.plot_widget.showGrid(x=True, y=True) # set grid on graph
+#         # Graph using ScatterPLotItem
+#         # self.plot_widget = pg.PlotWidget()
+#         # self.plot_widget.getPlotItem().getViewBox().setMouseEnabled(False, False) # disable graph interaction
+#         # self.plot_widget.setBackground("w") # set background color to white
+#         # self.plot_widget.setTitle("Longitude vs. Latitude", color="b", size="20pt") # set title of graph
+#         # styles = {"color": "red", "font-size": "18px"} # create a style sheet
+#         # self.plot_widget.setLabel("left", "Latitude (DD)", **styles) # create y-axis label, set its style
+#         # self.plot_widget.setLabel("bottom", "Longitude (DD)", **styles) # create x-axis label, set its style
+#         # self.plot_widget.addLegend() # must be called before calling plot to add legend to graph
+#         # self.plot_widget.showGrid(x=True, y=True) # set grid on graph
 
-        # self.plot_graph = pg.ScatterPlotItem(spots) # create ScatterPlot object
-        # self.plot_widget.addItem(self.plot_graph)
+#         # self.plot_graph = pg.ScatterPlotItem(spots) # create ScatterPlot object
+#         # self.plot_widget.addItem(self.plot_graph)
         
-        self.setCentralWidget(self.plot_widget) 
+#         self.setCentralWidget(self.plot_widget) 
 
-app = QtWidgets.QApplication([])
-main = MainWindow()
-main.show()
-app.exec()
+# app = QtWidgets.QApplication([])
+# main = MainWindow()
+# main.show()
+# app.exec()
 
 # # ===== Testing ScatterPlot =====
 # from random import randint

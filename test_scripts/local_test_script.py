@@ -86,7 +86,7 @@ def create_can_msg(data, frame) -> str:
 def generate_hb_msg(frame):
     return create_can_msg("", frame)
 
-def generate_gps_msg(lon_val: float = None, lat_val: float = None):
+def generate_gps_msg(lat_val: float = None, lon_val: float = None):
     '''
     [31:0] uint32_t latitude
     Latitude in (Decimal Degrees + 90) * 1,000,000
@@ -223,6 +223,33 @@ def generate_ais_msgs(num_msgs, id: int = None, lon: float = None, lat: float = 
             except Exception as e:
                 print(f"ERROR - send_ais_command threw error {e}")
 
+
+def generate_rudder_msg(actual_angle, imu_roll, imu_pitch, imu_heading, set_angle, integral, derivative, spd_over_gnd):
+    """Send rudder CAN message via SSH"""
+    try:
+        # print(f"actual_angle = {convert_to_hex(int((slope_data) * 90.0 * 100), 2)}")
+        actual_angle = convert_to_little_endian(convert_to_hex(int((actual_angle + 90) * 100), 2))
+        # print(f"imu_roll = {convert_to_hex(int((slope_data + 0.1) * 180 * 100), 2)}")
+        imu_roll = convert_to_little_endian(convert_to_hex(int((imu_roll + 180) * 100), 2))
+        # print(f"imu_pitch = {convert_to_hex(int((slope_data + - 0.05) * 180 * 100), 2)}")
+        imu_pitch = convert_to_little_endian(convert_to_hex(int((imu_pitch + 180) * 100), 2))
+        # print(f"imu_heading = {convert_to_hex(int((slope_data) * 360 * 100), 2)}")
+        imu_heading = convert_to_little_endian(convert_to_hex(int(imu_heading * 100), 2))
+        set_angle = convert_to_little_endian(convert_to_hex(int((set_angle + 90) * 100), 2))
+        integral = convert_to_little_endian(convert_to_hex(int(integral), 2))
+        derivative = convert_to_little_endian(convert_to_hex(int(derivative), 2))
+        spd_over_gnd = convert_to_little_endian(convert_to_hex(int(spd_over_gnd * 1000), 2))
+        # print(f"derivative: {int(derivative[2:] + derivative[0:2], 16)}")
+        # print(f"spd_over_gnd {int(spd_over_gnd, 16)}")
+        can_data = actual_angle + imu_roll + imu_pitch + imu_heading + set_angle + integral + derivative + spd_over_gnd
+        can_message = "cansend " + can_line + " 204##1" + can_data
+
+        return can_message
+
+    except Exception as e:
+        print(f"Exception creating gps command: {e}")
+        return None
+    
 def send_message(client, can_message):
     try:
         # Execute the cansend command
@@ -240,6 +267,7 @@ def send_message(client, can_message):
             return True
     except Exception as e:
         print(f"ERROR - send_message threw error {e}")
+
 
 # def init_joystick():
 #     # Joystick initialization
@@ -298,40 +326,61 @@ def run_local_test(msg_queue: multiprocessing.Queue, delay, data = None):
     # What I want to figure out is a good way to send different types of data, different commands etc.
         # enable some, disable other messages easily
     
-    cycle = 0
+    # cycle = 0
+    cycle = -5
+
+    # Jericho Beach coords (Decimal degrees): 49.2722° N, -123.1985° W
+    # I expect the data points will be in a straight line path (upwards to the right)
+    # I expect the boat to move about a meter per point
+    # Single desired heading value pointing upwards to the right (deg)
+    # Actual heading fluctuates between directly upwards (North), and directly right (East)
+    # NOTE: Degrees for heading values are defined as 0° for North and increasing clockwise
+        # NOTE: BE CAREFUL!! Using standard libraries, will likely need to do conversion
+    # NOTE: these values will be put into the local_test_script, and visually checked manually
+    lat_test_straight_line = [49.2722, 49.272201, 49.272202, 49.272203, 49.272204, 49.272205, 49.272206, 49.272207, 49.272208, 49.272209]
+    lon_test_straight_line = [-123.1985, -123.198501, -123.198502, -123.198503, -123.198504, -123.198505, -123.198506, -123.198507, -123.198508, -123.198509]
+    d_heading_straight_line = [45] * len(lat_test_straight_line) 
+    a_heading_straight_line = [0, 90] * (len(lat_test_straight_line) // 2 + 1)
     
     while True:
         try:
             cycle += 1
             print(f"--- CYCLE {cycle} ---")
             
-            ais_msg = make_pretty(generate_ais_msgs(1, 0, 49.9999, 181.35))
-            msg_queue.put(ais_msg)
-            print(f"Message: {ais_msg}")
+            # ais_msg = make_pretty(generate_ais_msgs(1, 0, 49.9999, 181.35))
+            # msg_queue.put(ais_msg)
+            # print(f"Message: {ais_msg}")
 
-            ais_msg = make_pretty(generate_ais_msgs(1, 1, 49, 179)) # only visible with range >= 2 DD
-            msg_queue.put(ais_msg)
-            print(f"Message: {ais_msg}")
+            # ais_msg = make_pretty(generate_ais_msgs(1, 1, 49, 179)) # only visible with range >= 2 DD
+            # msg_queue.put(ais_msg)
+            # print(f"Message: {ais_msg}")
 
-            ais_msg = make_pretty(generate_ais_msgs(1, 2, 50, 181.5))
-            msg_queue.put(ais_msg)
-            print(f"Message: {ais_msg}")
+            # ais_msg = make_pretty(generate_ais_msgs(1, 2, 50, 181.5))
+            # msg_queue.put(ais_msg)
+            # print(f"Message: {ais_msg}")
 
-            ais_msg = make_pretty(generate_ais_msgs(1, 3, 48.444, 178.75))
-            msg_queue.put(ais_msg)
-            print(f"Message: {ais_msg}")
+            # ais_msg = make_pretty(generate_ais_msgs(1, 3, 48.444, 178.75))
+            # msg_queue.put(ais_msg)
+            # print(f"Message: {ais_msg}")
 
-            ais_msg = make_pretty(generate_ais_msgs(1, 4, 50.3061, 181.1691))
-            msg_queue.put(ais_msg)
-            print(f"Message: {ais_msg}")
+            # ais_msg = make_pretty(generate_ais_msgs(1, 4, 50.3061, 181.1691))
+            # msg_queue.put(ais_msg)
+            # print(f"Message: {ais_msg}")
 
+            if (cycle > 0):
+                if (len(lat_test_straight_line) > (cycle - 1)):
+                    # rudder_data is pretty random except for the actual heading
+                    rudder_data = generate_rudder_msg(50, 1.1, 1.2, a_heading_straight_line[cycle - 1], 45, 10, 11, 1.5) # TODO: fill in args - most can be just static values
+                    msg = make_pretty(rudder_data)
+                    msg_queue.put(msg)
+                    print(f"Message: {msg}")
+                    gps_data = generate_gps_msg(lat_test_straight_line[cycle - 1], lon_test_straight_line[cycle - 1])
+                    msg = make_pretty(gps_data)
+                    msg_queue.put(msg)  # NOTE: do I need to make this non-blocking or smth?
+                    print(f"Message: {msg}")
 
-            gps_data = generate_gps_msg(49.3061, 180.1691)
-            msg = make_pretty(gps_data)
-            msg_queue.put(msg)  # NOTE: do I need to make this non-blocking or smth?
-            print(f"Message: {msg}")
+                generate_slope_data()
 
-            generate_slope_data()
             sleep(delay)
         except KeyboardInterrupt:
             print("Test stopped by user")
