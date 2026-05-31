@@ -392,27 +392,22 @@ class CANWindow(QWidget, JoystickMixin):
         #       a single time, or else problems
         self.visibleGraphObjs = [] # list of GraphObjs with visible graphs, in order of position descending
 
-        self.graph_titles = []
-        for obj in all_objs:
-            if ((obj.graph_obj is not None) and (obj.graph_obj.dropdown_label not in self.graph_titles)):
-                self.graph_titles.append(obj.graph_obj.dropdown_label)
-
         for d in dropdowns:
             d.setFont(QFont(cg.d_font_type, cg.d_font_size))
-            d.addItems(self.graph_titles)
+            # d.addItems(self.graph_titles)
+            # NOTE: This replaces the above line to get titles
+            d.addItems([graph_obj.dropdown_label for graph_obj in graph_objs])
             d.setVisible(False)
             dropdown_layout.addWidget(d)
 
         # show a maximum of three graphs initially 
         for i in range(0, 3):
-            if (i < len(self.graph_titles)):
-                graph_obj = self.getGraphObjFromXName(self.graph_titles[i])
-                if (graph_obj not in self.visibleGraphObjs):
-                    self.right_graphs_layout.addWidget(graph_obj.graph, i, 0)
-                    self.visibleGraphObjs.append(graph_obj)
-                    graph_obj.show()
-                    dropdowns[i].setCurrentText(self.graph_titles[i])
-                    dropdowns[i].setVisible(True)
+            if (i < len(graph_objs)):
+                self.right_graphs_layout.addWidget(graph_objs[i].graph, i, 0)
+                self.visibleGraphObjs.append(graph_objs[i])
+                graph_objs[i].show()
+                dropdowns[i].setCurrentText(graph_objs[i].dropdown_label)
+                dropdowns[i].setVisible(True)
             else: break
 
         d_top.currentTextChanged.connect(lambda text: self.setGraph(text, 0, dropdowns))
@@ -453,23 +448,24 @@ class CANWindow(QWidget, JoystickMixin):
         # Show a brief confirmation
         self.output_display.append(f"[COPIED] {text}")
             
-    def getGraphObjFromXName(self, name):
-        for obj in all_objs:
-            if ((obj.graph_obj is not None) and (obj.graph_obj.dropdown_label == name)):
-                return obj.graph_obj
+    # NOTE: Commented out this function as I don't need it
+    # def getGraphObjFromXName(self, name):
+    #     for obj in all_objs:
+    #         if ((obj.graph_obj is not None) and (obj.graph_obj.dropdown_label == name)):
+    #             return obj.graph_obj
             
-    def getObjFromLabel(self, dropdown_label):
+    def getObjFromLabel(self, dropdown_label) -> DataObject:
         for obj in all_objs:
             if ((obj.graph_obj is not None) and (obj.graph_obj.dropdown_label == dropdown_label)):
                 return obj
-            
+        
     def setGraph(self, name: str, spot: int, dropdowns: list[QComboBox]) -> None:
         '''
         Shows given graph at spot\n
         name = DataObj.graph_obj.dropdown_label\n
         spot = 0, 1, 2 (top, mid, bot)\n
         '''
-        newObj = self.getObjFromLabel(name)
+        newObj = self.getObjFromLabel(name) 
         # newGraphObj = self.getGraphObjFromXName(name) # get graph to put in spot
         newGraphObj = newObj.graph_obj
 

@@ -68,19 +68,19 @@ def parse_0x206_frame(data_hex):
     if len(raw_bytes) != 24:
         raise ValueError("Incorrect data length (num bytes): ID 0x206")
 
-    val = lambda s, e, div: int.from_bytes(raw_bytes[s:e], 'little') / div
+    # val = lambda s, e, div: int.from_bytes(raw_bytes[s:e], 'little') / div
     return {
-        volt2_obj.name: val(0, 2, 1000.0),
-        temp1_obj.name: val(2, 4, 100.0),
-        volt3_obj.name: val(4, 6, 1000.0),
-        temp2_obj.name: val(6, 8, 100.0),
-        temp3_obj.name: val(8, 10, 100.0),
-        volt4_obj.name: val(10, 12, 1000.0),
-        volt1_obj.name: val(12, 14, 1000.0),
-        mppt_hp_obj.name: val(14, 16, 1000.0),
-        mppt_hs_obj.name: val(16, 18, 1000.0),
-        mppt_sp_obj.name: val(18, 20, 1000.0),
-        mppt_ss_obj.name: val(20, 22, 1000.0)
+        volt2_obj.name: val(raw_bytes, 0, 2, 1000.0),
+        temp1_obj.name: val(raw_bytes, 2, 4, 100.0),
+        volt3_obj.name: val(raw_bytes, 4, 6, 1000.0),
+        temp2_obj.name: val(raw_bytes, 6, 8, 100.0),
+        temp3_obj.name: val(raw_bytes, 8, 10, 100.0),
+        volt4_obj.name: val(raw_bytes, 10, 12, 1000.0),
+        volt1_obj.name: val(raw_bytes, 12, 14, 1000.0),
+        mppt_hp_obj.name: val(raw_bytes, 14, 16, 1000.0),
+        mppt_hs_obj.name: val(raw_bytes, 16, 18, 1000.0),
+        mppt_sp_obj.name: val(raw_bytes, 18, 20, 1000.0),
+        mppt_ss_obj.name: val(raw_bytes, 20, 22, 1000.0)
     }
 
 def parse_0x204_frame(data_hex):
@@ -97,8 +97,8 @@ def parse_0x204_frame(data_hex):
         imu_pitch_obj.name: val(4, 6, 100.0) - 180,
         imu_heading_obj.name: val(6, 8, 100.0),
         set_rudder_obj.name: val(8, 10, 100.0) - 90,
-        integral_obj.name: val(10, 12, 1.0) - 30000,
-        derivative_obj.name: (val(12, 14, 1.0) - 300) / 100.0,
+        integral_obj.name: val(10, 12, 1.0),
+        derivative_obj.name: val(12, 14, 1.0),
         spd_over_gnd_obj.name: val(14, 16, 1000.0)
     }
     
@@ -332,7 +332,7 @@ heartbeat_modules = [pdb_hb_module, sail_hb_module, rudr_hb_module, sense_hb_mod
 ### ---------- Data Objects ---------- ###
 
 # Battery Temps
-pdb_temp_graph_obj = GraphObject("Temperature", cg.graph_y, "°C", cg.graph_y_units, 0, 127.0)
+pdb_temp_graph_obj = GraphObject("PDB Temperature", cg.graph_y, "°C", cg.graph_y_units, 0, 127.0)
 temp1_obj = DataObject("Temp1", 2, "°C", None, line_colour="r", graph=pdb_temp_graph_obj)
 temp2_obj = DataObject("Temp2", 2, "°C", None, line_colour="g", graph=pdb_temp_graph_obj)
 temp3_obj = DataObject("Temp3", 2, "°C", None, line_colour="y", graph=pdb_temp_graph_obj)
@@ -392,8 +392,10 @@ sail_wind_dir_obj = DataObject("Sail_Wind_dir", 0, "°", None, line_colour="gree
 sail_wind_objs = [sail_wind_spd_obj, sail_wind_dir_obj]
 
 # GPS
-gps_lat_obj = DataObject("gps_lat", 4, "DD", None, graph=None)
-gps_lon_obj = DataObject("gps_lon", 4, "DD", None, graph=None)
+gps_lat_obj = DataObject("gps_lat", 6, "DD", None, graph=None)
+gps_lon_obj = DataObject("gps_lon", 6, "DD", None, graph=None)
+
+# pid_graph_obj = GraphObject("y")
 
 # AIS
 # polaris_pen = pg.mkPen(color='r', width=5) # set point border color (red)
@@ -414,15 +416,22 @@ temp_sensor_obj = DataObject("Water_Temp", 3, "°C", temp_sensor_parsing_fn, lin
 sal_graph_obj = GraphObject("Salinity", cg.graph_y, "µS/cm", cg.graph_y_units, 0, 100000)
 sal_obj = DataObject("Salinity", None, "µS/cm", sal_parsing_fn, line_colour='g', graph=sal_graph_obj)
 
-# Lists (typically organized by frame)
+# Lists (roughly organized by frame)
 pdb_objs = [temp1_obj, temp2_obj , temp3_obj, volt1_obj, volt2_obj, volt3_obj, volt4_obj, mppt_hp_obj, mppt_hs_obj, mppt_sp_obj, mppt_ss_obj]
 rudder_objs = [actual_rudder_obj, set_rudder_obj, spd_over_gnd_obj, imu_roll_obj, imu_pitch_obj, integral_obj, derivative_obj, imu_heading_obj] # all objects with data from 0x204 frame (rudder -> mainframe)
 data_objs = [pH_obj, temp_sensor_obj, sal_obj]
-gps_objs = [gps_lon_obj, gps_lat_obj]
+gps_objs = [gps_lat_obj, gps_lon_obj]
+
 # Only data_objs are logged together in the values csv file; they are all graphed vs. Time and have their values trimmed accordingly over time
 data_objs = gps_objs + data_objs + data_wind_objs + sail_wind_objs + rudder_objs + pdb_objs 
+
+# all graph objects
+graph_objs = [pdb_temp_graph_obj, pdb_volt_graph_obj, mppt_current_graph_obj, rudder_graph, spd_over_gnd_graph_obj, headings_graph_obj, imu_roll_pitch_graph_obj, int_der_graph_obj, sail_wind_spd_graph_obj, position_graph_obj, pH_graph_obj, temp_sensor_graph_obj, sal_graph_obj]
+
 all_objs = data_objs.copy()
 all_objs.append(ais_obj) # ais is logged and updated differently since it is not a vs. Time graph
+
+
 
 # Testing val
 # if __name__ == "__main__":
