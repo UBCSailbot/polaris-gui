@@ -49,7 +49,7 @@ def convert_to_little_endian(hex_str):
 def convert_from_little_endian_str(hex_str):
     raw = bytes.fromhex(hex_str)
     big_endian = raw[::-1].hex()
-    return int(big_endian, 16)
+    return round(big_endian, 16)
 
 def generate_slope_data():
     global slope
@@ -59,14 +59,14 @@ def generate_slope_data():
 
     slope_data += slope
 
-def make_pretty(cmd: str):
+def format_as_candump(cmd: str):
     '''
     Helper function for putting cansend commands into the same format as candump received messages\n
     '''
     try:
         frame_id = cmd[13:16]  # TODO: changed from 12 to 13, see if this is a problem
         data = cmd[19:]     # TODO: changed from 18 to 19, see if this is a problem
-        data_length = int(len(data) / 2)
+        data_length = round(len(data) / 2)
         padding = "0" if (data_length < 10) else ""
         data_nice = ""
         for i in range(len(data)):
@@ -111,22 +111,25 @@ def generate_gps_msg(lat_val: float = None, lon_val: float = None):
     '''
 
     try:
-        # lat = convert_to_little_endian(convert_to_hex(int((slope_data + 90) * 1000000), 4))
-        # lon = convert_to_little_endian(convert_to_hex(int((slope_data + 90) * 1000000), 4))
+        # lat = convert_to_little_endian(convert_to_hex(round((slope_data + 90) * 1000000), 4))
+        # lon = convert_to_little_endian(convert_to_hex(round((slope_data + 90) * 1000000), 4))
         lat = 0
         lon = 0
         if (lat_val is not None and lon_val is not None):
-            lat = convert_to_little_endian(convert_to_hex(int((lat_val + 90) * 1000000), 4))
-            lon = convert_to_little_endian(convert_to_hex(int((lon_val + 180) * 1000000), 4)) 
+            print(f"lat_val (float) = {lat_val}")
+            print(f"lat (float) = {(lat_val + 90) * 1000000}")
+            print(f"lat (int) = {int((lat_val + 90) * 1000000)}")
+            lat = convert_to_little_endian(convert_to_hex(round((lat_val + 90) * 1000000), 4))
+            lon = convert_to_little_endian(convert_to_hex(round((lon_val + 180) * 1000000), 4)) 
         else:
-            lat = convert_to_little_endian(convert_to_hex(int((49.2621 + 90) * 1000000), 4))
-            lon = convert_to_little_endian(convert_to_hex(int((-33.2482 + 180) * 1000000), 4)) 
+            lat = convert_to_little_endian(convert_to_hex(round((49.2621 + 90) * 1000000), 4))
+            lon = convert_to_little_endian(convert_to_hex(round((-33.2482 + 180) * 1000000), 4)) 
 
         secs = convert_to_little_endian(convert_to_hex(10, 2))
         mins = convert_to_little_endian(convert_to_hex(20, 2))
         hrs = convert_to_little_endian(convert_to_hex(30, 2))
         unused = convert_to_little_endian(convert_to_hex(0, 2))
-        sog = convert_to_little_endian(convert_to_hex(int(slope_data) * 1000, 4))
+        sog = convert_to_little_endian(convert_to_hex(round(slope_data) * 1000, 4))
 
         can_data = lat + lon + secs + mins + hrs + unused + sog
         can_message = "cansend " + can_line + " 070##1" + can_data
@@ -150,8 +153,8 @@ def generate_ais_msgs(num_msgs, id: int = None, lon: float = None, lat: float = 
             # y_data = random.random() * 150
             try:
 
-                # lat = convert_to_little_endian(convert_to_hex(int((x_data) * 1000000), 4)) # should change by 1
-                # lon = convert_to_little_endian(convert_to_hex(int((y_data) * 1000000), 4))
+                # lat = convert_to_little_endian(convert_to_hex(round((x_data) * 1000000), 4)) # should change by 1
+                # lon = convert_to_little_endian(convert_to_hex(round((y_data) * 1000000), 4))
                 
                 if (id is not None and lon is not None and lat is not None):
                     id = convert_to_little_endian(convert_to_hex(id, 4))
@@ -162,8 +165,8 @@ def generate_ais_msgs(num_msgs, id: int = None, lon: float = None, lat: float = 
                     lat_float = (49.2629 + (slope_data * 0.0001) + 90) * 1000000
                     lon_float = (100.4489 + (slope_data * 0.0001) + 180) * 1000000
                 
-                lat_value = int(lat_float)
-                lon_value = int(lon_float)
+                lat_value = round(lat_float)
+                lon_value = round(lon_float)
                 # print("lat_float = ", lat_float)
                 # print("lon_float = ", lon_float)
                 # print("lat = ", lat_value)
@@ -227,18 +230,18 @@ def generate_ais_msgs(num_msgs, id: int = None, lon: float = None, lat: float = 
 def generate_rudder_msg(actual_angle, imu_roll, imu_pitch, imu_heading, set_angle, integral, derivative, spd_over_gnd):
     """Send rudder CAN message via SSH"""
     try:
-        # print(f"actual_angle = {convert_to_hex(int((slope_data) * 90.0 * 100), 2)}")
-        actual_angle = convert_to_little_endian(convert_to_hex(int((actual_angle + 90) * 100), 2))
-        # print(f"imu_roll = {convert_to_hex(int((slope_data + 0.1) * 180 * 100), 2)}")
-        imu_roll = convert_to_little_endian(convert_to_hex(int((imu_roll + 180) * 100), 2))
-        # print(f"imu_pitch = {convert_to_hex(int((slope_data + - 0.05) * 180 * 100), 2)}")
-        imu_pitch = convert_to_little_endian(convert_to_hex(int((imu_pitch + 180) * 100), 2))
-        # print(f"imu_heading = {convert_to_hex(int((slope_data) * 360 * 100), 2)}")
-        imu_heading = convert_to_little_endian(convert_to_hex(int(imu_heading * 100), 2))
-        set_angle = convert_to_little_endian(convert_to_hex(int((set_angle + 90) * 100), 2))
-        integral = convert_to_little_endian(convert_to_hex(int(integral), 2))
-        derivative = convert_to_little_endian(convert_to_hex(int(derivative), 2))
-        spd_over_gnd = convert_to_little_endian(convert_to_hex(int(spd_over_gnd * 1000), 2))
+        # print(f"actual_angle = {convert_to_hex(round((slope_data) * 90.0 * 100), 2)}")
+        actual_angle = convert_to_little_endian(convert_to_hex(round((actual_angle + 90) * 100), 2))
+        # print(f"imu_roll = {convert_to_hex(round((slope_data + 0.1) * 180 * 100), 2)}")
+        imu_roll = convert_to_little_endian(convert_to_hex(round((imu_roll + 180) * 100), 2))
+        # print(f"imu_pitch = {convert_to_hex(round((slope_data + - 0.05) * 180 * 100), 2)}")
+        imu_pitch = convert_to_little_endian(convert_to_hex(round((imu_pitch + 180) * 100), 2))
+        # print(f"imu_heading = {convert_to_hex(round((slope_data) * 360 * 100), 2)}")
+        imu_heading = convert_to_little_endian(convert_to_hex(round(imu_heading * 100), 2))
+        set_angle = convert_to_little_endian(convert_to_hex(round((set_angle + 90) * 100), 2))
+        integral = convert_to_little_endian(convert_to_hex(round(integral), 2))
+        derivative = convert_to_little_endian(convert_to_hex(round(derivative), 2))
+        spd_over_gnd = convert_to_little_endian(convert_to_hex(round(spd_over_gnd * 1000), 2))
         # print(f"derivative: {int(derivative[2:] + derivative[0:2], 16)}")
         # print(f"spd_over_gnd {int(spd_over_gnd, 16)}")
         can_data = actual_angle + imu_roll + imu_pitch + imu_heading + set_angle + integral + derivative + spd_over_gnd
@@ -337,8 +340,10 @@ def run_local_test(msg_queue: multiprocessing.Queue, delay, data = None):
     # NOTE: Degrees for heading values are defined as 0° for North and increasing clockwise
         # NOTE: BE CAREFUL!! Using standard libraries, will likely need to do conversion
     # NOTE: these values will be put into the local_test_script, and visually checked manually
-    lat_test_straight_line = [49.2722, 49.272201, 49.272202, 49.272203, 49.272204, 49.272205, 49.272206, 49.272207, 49.272208, 49.272209]
-    lon_test_straight_line = [-123.1985, -123.198501, -123.198502, -123.198503, -123.198504, -123.198505, -123.198506, -123.198507, -123.198508, -123.198509]
+    # lat_test_straight_line = [49.2722, 49.272201, 49.272202, 49.272203, 49.272204, 49.272205, 49.272206, 49.272207, 49.272208, 49.272209]
+    lat_test_straight_line = [49.2722 + (i * 0.000001) for i in range(0, 10)]
+    # lon_test_straight_line = [-123.1985, -123.198499, -123.198498, -123.198497, -123.198496, -123.198495, -123.198494, -123.198493, -123.198492, -123.198491]
+    lon_test_straight_line = [-123.1985 + (i * 0.000001) for i in range(0, 10)]
     d_heading_straight_line = [45] * len(lat_test_straight_line) 
     a_heading_straight_line = [0, 90] * (len(lat_test_straight_line) // 2 + 1)
     
@@ -371,12 +376,13 @@ def run_local_test(msg_queue: multiprocessing.Queue, delay, data = None):
                 if (len(lat_test_straight_line) > (cycle - 1)):
                     # rudder_data is pretty random except for the actual heading
                     rudder_data = generate_rudder_msg(50, 1.1, 1.2, a_heading_straight_line[cycle - 1], 45, 10, 11, 1.5) # TODO: fill in args - most can be just static values
-                    msg = make_pretty(rudder_data)
+                    msg = format_as_candump(rudder_data)
                     msg_queue.put(msg)
                     print(f"Message: {msg}")
                     gps_data = generate_gps_msg(lat_test_straight_line[cycle - 1], lon_test_straight_line[cycle - 1])
-                    msg = make_pretty(gps_data)
+                    msg = format_as_candump(gps_data)
                     msg_queue.put(msg)  # NOTE: do I need to make this non-blocking or smth?
+                    print(f"Unformatted: {gps_data}")
                     print(f"Message: {msg}")
 
                 generate_slope_data()
