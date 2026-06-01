@@ -95,6 +95,10 @@ h_arrow_pen = {'color': 'black', 'width': 2}
 h_arrow_desired_brush = 'blue'
 h_arrow_actual_brush = 'red'
 
+# Heading names for reference
+desired_heading_arrow_name = "desired_heading_arrow"
+actual_heading_arrow_name = "actual_heading_arrow"
+
 # ==== Joystick ====
 movement_sensitivity = 1 # number of decimal point precision
 max_rudder_angle = 20 # degrees
