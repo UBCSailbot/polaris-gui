@@ -116,9 +116,9 @@ def generate_gps_msg(lat_val: float = None, lon_val: float = None):
         lat = 0
         lon = 0
         if (lat_val is not None and lon_val is not None):
-            print(f"lat_val (float) = {lat_val}")
-            print(f"lat (float) = {(lat_val + 90) * 1000000}")
-            print(f"lat (int) = {int((lat_val + 90) * 1000000)}")
+            # print(f"lat_val (float) = {lat_val}")
+            # print(f"lat (float) = {(lat_val + 90) * 1000000}")
+            # print(f"lat (int) = {int((lat_val + 90) * 1000000)}")
             lat = convert_to_little_endian(convert_to_hex(round((lat_val + 90) * 1000000), 4))
             lon = convert_to_little_endian(convert_to_hex(round((lon_val + 180) * 1000000), 4)) 
         else:
@@ -382,7 +382,7 @@ def run_local_test(msg_queue: multiprocessing.Queue, delay, data = None):
                     gps_data = generate_gps_msg(lat_test_straight_line[cycle - 1], lon_test_straight_line[cycle - 1])
                     msg = format_as_candump(gps_data)
                     msg_queue.put(msg)  # NOTE: do I need to make this non-blocking or smth?
-                    print(f"Unformatted: {gps_data}")
+                    # print(f"Unformatted: {gps_data}")
                     print(f"Message: {msg}")
 
                 generate_slope_data()
