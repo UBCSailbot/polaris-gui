@@ -86,6 +86,15 @@ plrs_path_data_timeout = 30 # 2 * 60 # amt of time (in seconds) before POLARIS p
 latitude_range = 2 # in decimal degrees
 longitude_range = 2 # in decimal degrees
 
+# ==== Heading Arrow Styles ====
+h_arrow_headLen = 20
+h_arrow_tailLen = 40
+h_arrow_tailWidth = 7
+h_arrow_headWidth = 7
+h_arrow_pen = {'color': 'black', 'width': 2}
+h_arrow_desired_brush = 'blue'
+h_arrow_actual_brush = 'red'
+
 # ==== Joystick ====
 movement_sensitivity = 1 # number of decimal point precision
 max_rudder_angle = 20 # degrees
