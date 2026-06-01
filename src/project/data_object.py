@@ -242,8 +242,15 @@ class PIDObject(DataObject):
     def update_data(self, current_time, scroll_window):
         '''Update stored data points: remove any received before data_timeout'''
         # TODO: complete function; data_timeout should be set in config, and should be a parameter of PIDObject
-        # NOTE: This shouldn't do anything... but I'll try to see if mistake in my understanding
-        # self.update_line_data()
+        # TODO: I wonder if there's a faster way of doing this? Ordered list?
+        points_to_delete = []
+        for time_logged in self.data.keys():
+            if ((current_time - time_logged) > self.timeout_duration): # if data has not been updated for long enough: remove dp
+                points_to_delete.append(time_logged)
+        for key in points_to_delete:
+            self.remove_datapoint(key)
+        if (self.graph_obj and self.graph_obj.graph.isVisible()):
+            self.update_line_data()
         return
 
 
