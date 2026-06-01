@@ -196,7 +196,10 @@ class DataObject:
         return
 
 class PIDObject(DataObject):
-    def __init__(self, name, x_name, y_name, dp, units, parsing_fn, line_dashed = False, line_colour = None, symbol_brush = None, has_label = True, graph: GraphObject = None) -> None:
+    def __init__(self, name, x_name, y_name, dp, units, parsing_fn, timeout_duration: int, line_dashed = False, line_colour = None, symbol_brush = None, has_label = True, graph: GraphObject = None) -> None:
+        '''
+        Args: timeout_duration: amount of time (secs) until new datapoint is deleted'''
+
         super().__init__(name, dp, units, None, has_label = False, line_colour = None, symbol_brush = symbol_brush, graph = graph)
 
         # Name for x data and y_data (for getting it out of the dict)
@@ -207,6 +210,8 @@ class PIDObject(DataObject):
         self.ref = None # Use this if one PIDObject each for pid_y and pid_x; if only one PIDObject total, use the below
         self.lat_ref = None
         self.lon_ref = None
+
+        self.timeout_duration = timeout_duration 
 
         # TODO: data_timeout parameter? For specifying when to get rid of data (2 minutes in this case)
         # TODO: arrows for desired and actual heading

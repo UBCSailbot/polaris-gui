@@ -423,7 +423,7 @@ gps_lon_obj = DataObject("gps_lon", 6, "DD", None, graph=None)
 
 # PID Graph
 pid_graph_obj = GraphObject("North/South Offset", "East/West Offset", "m", "m", -10000, 10000, "PLRS Path + Heading") # maxn, minn set pretty arbitrarily (+-10 km)
-pid_obj = PIDObject("PLRS_path", "EW_offset", "NS_offset", 6, "m", None, 120, symbol_brush = 'blue', has_label = False, graph = pid_graph_obj)
+pid_obj = PIDObject("PLRS_path", "EW_offset", "NS_offset", 6, "m", None, cg.plrs_path_data_timeout, symbol_brush = 'blue', has_label = False, graph = pid_graph_obj)
 # pid_x_obj = PIDObject("EW_offset", 6, "m", None, has_label = False, graph = pid_graph_obj)
 # pid_y_obj = PIDObject("NS_offset", 6, "m", None, has_label = False, graph = pid_graph_obj)
 
