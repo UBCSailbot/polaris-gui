@@ -160,7 +160,7 @@ class DataObject:
         return
 
     def parse_frame(self, current_time, data_line, parsed_dict=None):
-        '''NOTE: current_time is just the x_data'''
+        '''NOTE: current_time becomes the key of the data dict (and x_data on the graph)'''
         # calls the specific parsing_fn that belongs to this object
         # calls add_datapoint to add data
         if (parsed_dict is not None): # for can frames which contain multiple data values
@@ -175,8 +175,12 @@ class DataObject:
         return
 
     # if there is a graph associated with this object and there are some data points outside of the graph window,
-    # remove those points - make sure to log those points before calling update_data
+    # remove those points 
     def update_data(self, current_time, scroll_window):
+        '''
+        if there is a graph associated with this object and there are some data points outside of the graph window,
+        remove those points 
+        '''
         keys = list(self.data.keys())
         for key in keys:
             if (key < (current_time - scroll_window - 5)): # if value is outside graph plus some margin of time
@@ -192,8 +196,12 @@ class DataObject:
         return
 
 class PIDObject(DataObject):
-    def __init__(self, name, dp, units, parsing_fn, line_dashed = False, line_colour = None, symbol_brush = None, has_label = True, graph: GraphObject = None) -> None:
+    def __init__(self, name, x_name, y_name, dp, units, parsing_fn, line_dashed = False, line_colour = None, symbol_brush = None, has_label = True, graph: GraphObject = None) -> None:
         super().__init__(name, dp, units, None, has_label = False, line_colour = None, symbol_brush = symbol_brush, graph = graph)
+
+        # Name for x data and y_data (for getting it out of the dict)
+        self.x_name = x_name
+        self.y_name = y_name
         
         # First GPS reading; becomes the (0, 0) reference point for the graph
         self.ref = None # Use this if one PIDObject each for pid_y and pid_x; if only one PIDObject total, use the below
@@ -202,6 +210,38 @@ class PIDObject(DataObject):
 
         # TODO: data_timeout parameter? For specifying when to get rid of data (2 minutes in this case)
         # TODO: arrows for desired and actual heading
+
+        return
+    
+    def parse_frame(self, current_time, data_line, parsed_dict=None):
+        # NOTE: There definitely should be a parsed_dict when this function is called, error otherwise
+        if (parsed_dict is None): raise ValueError("ERROR: No parsed_dict passed to PIDObject.parse_frame()")
+        else:
+            x = round(parsed_dict[self.x_name], self.dp)
+            y = round(parsed_dict[self.y_name], self.dp)
+            self.add_datapoint(current_time, (x, y)) # key is current time, value is a tuple with x, y values
+            # print("self.data = ", self.data)
+        return
+
+    def update_line_data(self):
+        '''NOTE: This function operates on the assumption that self.dict is of the format current_time: (x, y)'''
+        if (self.line is None): raise Exception("ERROR - PIDObject has no line")
+        else:
+            x = [coords[0] for coords in self.data.values()]
+            y = [coords[1] for coords in self.data.values()]
+            # print("x = ", x)
+            # print("y == ", y)
+            self.line.setData(x, y)
+        return
+
+    def update_data(self, current_time, scroll_window):
+        '''Update stored data points: remove any received before data_timeout'''
+        # TODO: complete function; data_timeout should be set in config, and should be a parameter of PIDObject
+        # NOTE: This shouldn't do anything... but I'll try to see if mistake in my understanding
+        # self.update_line_data()
+        return
+
+
 
     # TODO: rest of this dataobject
     

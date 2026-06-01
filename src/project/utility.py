@@ -259,19 +259,26 @@ def parse_0x070_frame(data_hex):
     pid_y_data = 0
     pid_x_data = 0
 
-    if (pid_y_obj.ref is None) or (pid_x_obj.ref is None): # If first fix: set ref points
-        pid_y_obj.ref = gps_lat_data
-        pid_x_obj.ref = gps_lon_data
+    if (pid_obj.lat_ref is None) or (pid_obj.lon_ref is None): # If first fix: set ref points
+        pid_obj.lat_ref  = gps_lat_data
+        pid_obj.lon_ref  = gps_lon_data
     else:
-        pid_y_data = (gps_lat_data - pid_y_obj.ref) * 110562 # change in lat multiplied by rough arc length (using conversion to km from 68.7 miles)
-        pid_x_data = (gps_lon_data - pid_x_obj.ref) * math.cos(math.radians(pid_x_obj.ref)) * 111320 # constant from google (equatorial distance between longitude lines)
+        pid_y_data = (gps_lat_data - pid_obj.lat_ref)  * 110562 # change in lat multiplied by rough arc length (using conversion to km from 68.7 miles)
+        pid_x_data = (gps_lon_data - pid_obj.lon_ref) * math.cos(math.radians(pid_obj.lat_ref)) * 111320 # constant from google (equatorial distance between longitude lines)
+
+    # if (pid_y_obj.ref is None) or (pid_x_obj.ref is None): # If first fix: set ref points
+    #     pid_y_obj.ref = gps_lat_data
+    #     pid_x_obj.ref = gps_lon_data
+    # else:
+    #     pid_y_data = (gps_lat_data - pid_y_obj.ref) * 110562 # change in lat multiplied by rough arc length (using conversion to km from 68.7 miles)
+    #     pid_x_data = (gps_lon_data - pid_x_obj.ref) * math.cos(math.radians(pid_x_obj.ref)) * 111320 # constant from google (equatorial distance between longitude lines)
 
     parsed = {
         # actual_rudder_obj.name: val(0, 2, 100.0) - 90,
         gps_lat_obj.name: gps_lat_data,
         gps_lon_obj.name: gps_lon_data,
-        pid_y_obj.name: pid_y_data,
-        pid_x_obj.name: pid_x_data,
+        pid_obj.y_name: pid_y_data,
+        pid_obj.x_name: pid_x_data,
         spd_over_gnd_obj.name: val(raw_bytes, 16, 20, 1000)
     }
 
@@ -416,8 +423,9 @@ gps_lon_obj = DataObject("gps_lon", 6, "DD", None, graph=None)
 
 # PID Graph
 pid_graph_obj = GraphObject("North/South Offset", "East/West Offset", "m", "m", -10000, 10000, "PLRS Path + Heading") # maxn, minn set pretty arbitrarily (+-10 km)
-pid_x_obj = PIDObject("EW_offset", 6, "m", None, has_label = False, graph = pid_graph_obj)
-pid_y_obj = PIDObject("NS_offset", 6, "m", None, has_label = False, graph = pid_graph_obj)
+pid_obj = PIDObject("PLRS_path", "EW_offset", "NS_offset", 6, "m", None, 120, symbol_brush = 'blue', has_label = False, graph = pid_graph_obj)
+# pid_x_obj = PIDObject("EW_offset", 6, "m", None, has_label = False, graph = pid_graph_obj)
+# pid_y_obj = PIDObject("NS_offset", 6, "m", None, has_label = False, graph = pid_graph_obj)
 
 # AIS
 # polaris_pen = pg.mkPen(color='r', width=5) # set point border color (red)
@@ -439,13 +447,23 @@ sal_graph_obj = GraphObject("Salinity", cg.graph_y, "µS/cm", cg.graph_y_units, 
 sal_obj = DataObject("Salinity", None, "µS/cm", sal_parsing_fn, line_colour='g', graph=sal_graph_obj)
 
 # Lists (roughly organized by frame)
-pdb_objs = [temp1_obj, temp2_obj , temp3_obj, volt1_obj, volt2_obj, volt3_obj, volt4_obj, mppt_hp_obj, mppt_hs_obj, mppt_sp_obj, mppt_ss_obj]
-rudder_objs = [actual_rudder_obj, set_rudder_obj, spd_over_gnd_obj, imu_roll_obj, imu_pitch_obj, integral_obj, derivative_obj, imu_heading_obj] # all objects with data from 0x204 frame (rudder -> mainframe)
+pdb_objs = [
+    temp1_obj, temp2_obj , temp3_obj, 
+    volt1_obj, volt2_obj, volt3_obj, volt4_obj, 
+    mppt_hp_obj, mppt_hs_obj, mppt_sp_obj, mppt_ss_obj
+]
+
+rudder_objs = [ # all objects with data from 0x204 frame (rudder -> mainframe)
+    actual_rudder_obj, set_rudder_obj, 
+    spd_over_gnd_obj, 
+    imu_roll_obj, imu_pitch_obj, imu_heading_obj,
+    integral_obj, derivative_obj
+]
 data_objs = [pH_obj, temp_sensor_obj, sal_obj]
-gps_objs = [gps_lat_obj, gps_lon_obj, pid_y_obj, pid_x_obj]
+gps_objs = [gps_lat_obj, gps_lon_obj, pid_obj] # pid_y_obj, pid_x_obj]
 
 # Only data_objs are logged together in the values csv file; they are all graphed vs. Time and have their values trimmed accordingly over time
-data_objs = gps_objs + data_objs + data_wind_objs + sail_wind_objs + rudder_objs + pdb_objs 
+data_objs = [gps_lat_obj, gps_lon_obj] + data_objs + data_wind_objs + sail_wind_objs + rudder_objs + pdb_objs 
 
 # all graph objects
 graph_objs = [
@@ -467,8 +485,9 @@ graph_objs = [
 
 all_objs = data_objs.copy()
 all_objs.append(ais_obj) # ais is logged and updated differently since it is not a vs. Time graph
-all_objs.append(pid_y_obj)
-all_objs.append(pid_x_obj)
+all_objs.append(pid_obj)
+# all_objs.append(pid_y_obj)
+# all_objs.append(pid_x_obj)
 
 
 # Testing val
