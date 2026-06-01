@@ -43,7 +43,7 @@ def convert_from_little_endian_str(hex_str):
     big_endian = raw[::-1].hex()
     return int(big_endian, 16)
 
-def val(raw_bytes, s, e, div):
+def val(raw_bytes, s, e, div) -> float:
     return int.from_bytes(raw_bytes[s:e], 'little') / div
 
 
