@@ -279,6 +279,8 @@ def parse_0x070_frame(data_hex):
         gps_lon_obj.name: gps_lon_data,
         pid_obj.y_name: pid_y_data,
         pid_obj.x_name: pid_x_data,
+        cg.desired_heading_arrow_name: desired_heading_obj.get_current()[1], # The angles of the headings are put into here for pid_obj to access
+        cg.actual_heading_arrow_name: imu_heading_obj.get_current()[1],
         spd_over_gnd_obj.name: val(raw_bytes, 16, 20, 1000)
     }
 
