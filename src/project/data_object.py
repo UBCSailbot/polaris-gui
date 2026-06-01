@@ -52,6 +52,12 @@ def create_graph(title, x_label, y_label, title_style = cg.graph_title_style, la
     graph.showGrid(x=True, y=True)
     return graph
 
+# A custom arrow based on the pyqtgraph ArrowItem class, used for visualising boat heading
+class HeadingArrow(pg.ArrowItem):
+    def paint(self, p, *args):
+        p.translate(-2 * self.boundingRect().center())
+        pg.ArrowItem.paint(self, p, *args)
+
 # data is a dictionary with values = data logged, keys = time logged
 class GraphObject: # struct which keeps together objects needed for a graph
     def __init__(self, y_name, x_name, y_units, x_units, minn, maxn, dropdown_label = None): # data = history?
@@ -205,6 +211,8 @@ class PIDObject(DataObject):
         # Name for x data and y_data (for getting it out of the dict)
         self.x_name = x_name
         self.y_name = y_name
+        self.desired_heading_arrow_name = "desired_heading_arrow"
+        self.actual_heading_arrow_name = "actual_heading_arrow"
         
         # First GPS reading; becomes the (0, 0) reference point for the graph
         self.ref = None # Use this if one PIDObject each for pid_y and pid_x; if only one PIDObject total, use the below
@@ -213,7 +221,6 @@ class PIDObject(DataObject):
 
         self.timeout_duration = timeout_duration 
 
-        # TODO: data_timeout parameter? For specifying when to get rid of data (2 minutes in this case)
         # TODO: arrows for desired and actual heading
 
         return
@@ -224,7 +231,10 @@ class PIDObject(DataObject):
         else:
             x = round(parsed_dict[self.x_name], self.dp)
             y = round(parsed_dict[self.y_name], self.dp)
-            self.add_datapoint(current_time, (x, y)) # key is current time, value is a tuple with x, y values
+            # self.add_datapoint(current_time, (x, y)) # key is current time, value is a tuple with x, y values
+            # NOTE: this replaces the above line to add reference to heading arrows
+            # TODO: update with actual heading arrows, change update_line_data to also add the arrowItems, change update_data to also remove the arrowItems
+            self.add_datapoint(current_time, {self.x_name: x, self.y_name: y, self.desired_heading_arrow_name: None, self.actual_heading_arrow_name: None}) # key is current time, value is a tuple with x, y values
             # print("self.data = ", self.data)
         return
 
@@ -232,8 +242,8 @@ class PIDObject(DataObject):
         '''NOTE: This function operates on the assumption that self.dict is of the format current_time: (x, y)'''
         if (self.line is None): raise Exception("ERROR - PIDObject has no line")
         else:
-            x = [coords[0] for coords in self.data.values()]
-            y = [coords[1] for coords in self.data.values()]
+            x = [value[self.x_name] for value in self.data.values()]
+            y = [value[self.y_name]  for value in self.data.values()]
             # print("x = ", x)
             # print("y == ", y)
             self.line.setData(x, y)
