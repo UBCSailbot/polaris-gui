@@ -25,7 +25,7 @@ from project.remote_debugger import (
 can_line = "can0"
 
 # Time between sent frames (in secs)
-delay = 1.25
+delay = 0.5
 
 # CAN Frame IDs
 temp_sensor_id = "100" 
@@ -341,9 +341,10 @@ def run_local_test(msg_queue: multiprocessing.Queue, delay, data = None):
         # NOTE: BE CAREFUL!! Using standard libraries, will likely need to do conversion
     # NOTE: these values will be put into the local_test_script, and visually checked manually
     # lat_test_straight_line = [49.2722, 49.272201, 49.272202, 49.272203, 49.272204, 49.272205, 49.272206, 49.272207, 49.272208, 49.272209]
-    lat_test_straight_line = [49.2722 + (i * 0.000001) for i in range(0, 10)]
+    num_dp = 50
+    lat_test_straight_line = [49.2722 + (i * 0.000001) for i in range(0, num_dp)]
     # lon_test_straight_line = [-123.1985, -123.198499, -123.198498, -123.198497, -123.198496, -123.198495, -123.198494, -123.198493, -123.198492, -123.198491]
-    lon_test_straight_line = [-123.1985 + (i * 0.000001) for i in range(0, 10)]
+    lon_test_straight_line = [-123.1985 + (i * 0.000001) for i in range(0, num_dp)]
     d_heading_straight_line = [45] * len(lat_test_straight_line) 
     a_heading_straight_line = [0, 90] * (len(lat_test_straight_line) // 2 + 1)
     
