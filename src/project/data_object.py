@@ -58,6 +58,11 @@ class HeadingArrow(pg.ArrowItem):
         p.translate(-2 * self.boundingRect().center())
         pg.ArrowItem.paint(self, p, *args)
 
+def create_heading_arrow(angle, brush) -> HeadingArrow:
+    # NOTE: Degrees for heading values in the 0x204 rudder debug CAN frame are defined as 0° for North and increasing clockwise
+    # so conversion is necessary (standard function interprets angle # as 0 from W increasing clockwise)
+    return HeadingArrow(angle=(angle + 90) % 360, headLen=cg.h_arrow_headLen, tailLen=cg.h_arrow_tailLen, headWidth=cg.h_arrow_headWidth, tailWidth=cg.h_arrow_tailWidth, pen=cg.h_arrow_pen, brush=brush)
+
 # data is a dictionary with values = data logged, keys = time logged
 class GraphObject: # struct which keeps together objects needed for a graph
     def __init__(self, y_name, x_name, y_units, x_units, minn, maxn, dropdown_label = None): # data = history?
@@ -211,8 +216,6 @@ class PIDObject(DataObject):
         # Name for x data and y_data (for getting it out of the dict)
         self.x_name = x_name
         self.y_name = y_name
-        self.desired_heading_arrow_name = "desired_heading_arrow"
-        self.actual_heading_arrow_name = "actual_heading_arrow"
         
         # First GPS reading; becomes the (0, 0) reference point for the graph
         self.ref = None # Use this if one PIDObject each for pid_y and pid_x; if only one PIDObject total, use the below
@@ -234,10 +237,41 @@ class PIDObject(DataObject):
             # self.add_datapoint(current_time, (x, y)) # key is current time, value is a tuple with x, y values
             # NOTE: this replaces the above line to add reference to heading arrows
             # TODO: update with actual heading arrows, change update_line_data to also add the arrowItems, change update_data to also remove the arrowItems
-            self.add_datapoint(current_time, {self.x_name: x, self.y_name: y, self.desired_heading_arrow_name: None, self.actual_heading_arrow_name: None}) # key is current time, value is a tuple with x, y values
-            # print("self.data = ", self.data)
+            self.add_datapoint(current_time, 
+                {self.x_name: x, self.y_name: y, 
+                cg.desired_heading_arrow_name: create_heading_arrow(parsed_dict[cg.desired_heading_arrow_name], cg.h_arrow_desired_brush) if parsed_dict[cg.desired_heading_arrow_name] is not None else None, 
+                cg.actual_heading_arrow_name: create_heading_arrow(parsed_dict[cg.actual_heading_arrow_name], cg.h_arrow_actual_brush) if parsed_dict[cg.actual_heading_arrow_name] is not None else None }) # key is current time, value is a dict containing x,y coords as well as the desired and actual heading arrows
         return
 
+    def add_datapoint(self, x, y):
+        # TODO: ArrowItems should be added to the graph only if the graph is visible - do this in update_line_data?
+            # Actually, I don't think I want to keep updating; I'll set once here
+        # y = {self.x_name: x_coord, self.y_name: y_coord, cg.desired...: desiredHeadingArrow, cg.actual...: actualHeadingArrow}
+
+        print("add_datapoint called")
+        print(y)
+
+        desiredHeadingArrow = y[cg.desired_heading_arrow_name]
+        actualHeadingArrow = y[cg.actual_heading_arrow_name]
+
+        if desiredHeadingArrow is not None:
+            desiredHeadingArrow.setPos(y[self.x_name], y[self.y_name])
+            self.graph_obj.graph.addItem(desiredHeadingArrow)
+
+        # NOTE: so far actualHeading cannot be None, but this may change in the future
+        if actualHeadingArrow is not None:
+            actualHeadingArrow.setPos(y[self.x_name], y[self.y_name])
+            self.graph_obj.graph.addItem(actualHeadingArrow)
+            print("actualHeadingArrow added to graph")
+
+        super().add_datapoint(x, y)
+        # NOTE: below is stuff done in super().add_datapoint(x, y)
+        # self.data[x] = y
+        # self.current = x
+        # if (self.graph_obj and self.graph_obj.graph.isVisible()):
+        #     self.update_line_data()
+        return
+    
     def update_line_data(self):
         '''NOTE: This function operates on the assumption that self.dict is of the format current_time: (x, y)'''
         if (self.line is None): raise Exception("ERROR - PIDObject has no line")
@@ -263,9 +297,17 @@ class PIDObject(DataObject):
             self.update_line_data()
         return
 
+    def remove_datapoint(self, x):
+        try:
+            if self.data[x][cg.desired_heading_arrow_name] is not None:
+                self.graph_obj.graph.removeItem(self.data[x][cg.desired_heading_arrow_name])
+            if self.data[x][cg.actual_heading_arrow_name] is not None:
+                self.graph_obj.graph.removeItem(self.data[x][cg.actual_heading_arrow_name])
 
+            del self.data[x]
+        except KeyError:
+            print(f"ERR - trying to apply remove_datapoint() on a point which does not exist")
 
-    # TODO: rest of this dataobject
     
 class AISObject(DataObject): 
     def __init__(self, name, dp, units, parsing_fn, other_brush, log_value_headers: list[str], polaris_brush = None, graph: GraphObject = None):
