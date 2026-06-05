@@ -86,7 +86,12 @@ plrs_path_data_timeout = 30 # 2 * 60 # amt of time (in seconds) before POLARIS p
 latitude_range = 2 # in decimal degrees
 longitude_range = 2 # in decimal degrees
 
-# ==== Heading Arrow Styles ====
+# ==== Heading ====
+min_dist_between_arrows = 0.1 # heading arrows only appear on points at least min_dist_between_arrows metres away from the last recorded point
+# NOTE: below is NOT implemented in PIDObject.should_create_arrow
+# max_time_between_arrows = 0.1 # if time since last arrow placed is more than this time, put an arrow no matter the distance
+
+# Arrow Styles 
 h_arrow_headLen = 20
 h_arrow_tailLen = 40
 h_arrow_tailWidth = 7
