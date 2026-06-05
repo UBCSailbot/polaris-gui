@@ -5,6 +5,7 @@ import pyqtgraph as pg
 import os
 import csv
 import project.config as cg
+from math import sqrt
 
 graph_margin = 0.2
 
@@ -40,11 +41,11 @@ def create_line(graph_obj, name, x_data, y_data, colour, line_width, line_dashed
     except Exception as e:
         raise ValueError(f"Error creating line: {e}")
     
-def create_graph(title, x_label, y_label, title_style = cg.graph_title_style, label_style = cg.graph_label_style):
+def create_graph(title, x_label, y_label, interactable: bool, title_style = cg.graph_title_style, label_style = cg.graph_label_style):
     graph = pg.PlotWidget()
     graph.setBackground(cg.graph_bg)
     graph.setMinimumSize(cg.graph_min_width, cg.graph_min_height)
-    graph.getPlotItem().getViewBox().setMouseEnabled(False, False)
+    graph.getPlotItem().getViewBox().setMouseEnabled(interactable, interactable)
     graph.setTitle(title, color=title_style[0], size=title_style[1])
     graph.setLabel("left", y_label, **label_style)
     graph.setLabel("bottom", x_label, **label_style)
@@ -65,7 +66,7 @@ def create_heading_arrow(angle, brush) -> HeadingArrow:
 
 # data is a dictionary with values = data logged, keys = time logged
 class GraphObject: # struct which keeps together objects needed for a graph
-    def __init__(self, y_name, x_name, y_units, x_units, minn, maxn, dropdown_label = None): # data = history?
+    def __init__(self, y_name, x_name, y_units, x_units, minn, maxn, dropdown_label = None, interactable: bool = False): # data = history?
         '''
         Initialization for GraphObject\n
         minn : minimum data value expected over graph lifetime\n
@@ -76,6 +77,7 @@ class GraphObject: # struct which keeps together objects needed for a graph
         self.y_name = y_name
         self.x_units = x_units
         self.y_units = y_units
+        self.interactable = interactable
 
         # NOTE: minn and maxn are not used currently - limit y-range using these?
         # Currently I'm not setting y-range with these values because that turns the autorange off
@@ -92,7 +94,7 @@ class GraphObject: # struct which keeps together objects needed for a graph
     
     def initialize(self):
         self.graph = create_graph(self.dropdown_label if self.dropdown_label != self.x_name else f"{self.x_name} vs. {self.y_name}", f"{self.x_name} ({self.x_units})" if self.x_units else f"{self.x_name}", 
-                                  f"{self.y_name} ({self.y_units})" if self.y_units else f"{self.y_name}")
+                                  f"{self.y_name} ({self.y_units})" if self.y_units else f"{self.y_name}", self.interactable)
         self.graph.hide()
         self.initialized = True 
 
@@ -141,15 +143,19 @@ class DataObject:
             self.label = create_label(self.name + ": ---- ") # should automatically create label
         else: self.label = None
         
-    # Return a tuple with the time:value of the most current data point collected
     def get_current(self):
+        '''
+        Return a tuple with the time:value of the most current data point collected
+        '''
         val = None
         if self.current and self.data.get(self.current) is not None:
             val = round(self.data.get(self.current), self.dp)
         return self.current, val # returns the time, value of most recently logged datapoint
     
-    # add a datapoint to self.data
     def add_datapoint(self, x, y):
+        '''
+    # add a datapoint to self.data
+        '''
         self.data[x] = y
         self.current = x
         if (self.graph_obj and self.graph_obj.graph.isVisible()):
@@ -222,9 +228,11 @@ class PIDObject(DataObject):
         self.lat_ref = None
         self.lon_ref = None
 
-        self.timeout_duration = timeout_duration 
+        # Time of last placed datapoint with heading arrows
+        self.last_arrow_time = None
 
-        # TODO: arrows for desired and actual heading
+        # Amount of time before datapoints are removed from memory
+        self.timeout_duration = timeout_duration 
 
         return
     
@@ -237,19 +245,51 @@ class PIDObject(DataObject):
             # self.add_datapoint(current_time, (x, y)) # key is current time, value is a tuple with x, y values
             # NOTE: this replaces the above line to add reference to heading arrows
             # TODO: update with actual heading arrows, change update_line_data to also add the arrowItems, change update_data to also remove the arrowItems
+            desired_arrow = None
+            actual_arrow = None
+            should_create_arrow = self.should_create_arrow(current_time, parsed_dict[self.x_name], parsed_dict[self.y_name])
+            # print("after should_create_arrow()")
+            if parsed_dict[cg.desired_heading_arrow_name] is not None and should_create_arrow:
+                desired_arrow = create_heading_arrow(parsed_dict[cg.desired_heading_arrow_name], cg.h_arrow_desired_brush)
+            if parsed_dict[cg.actual_heading_arrow_name] is not None and should_create_arrow:
+                actual_arrow = create_heading_arrow(parsed_dict[cg.actual_heading_arrow_name], cg.h_arrow_actual_brush)
+
             self.add_datapoint(current_time, 
                 {self.x_name: x, self.y_name: y, 
-                cg.desired_heading_arrow_name: create_heading_arrow(parsed_dict[cg.desired_heading_arrow_name], cg.h_arrow_desired_brush) if parsed_dict[cg.desired_heading_arrow_name] is not None else None, 
-                cg.actual_heading_arrow_name: create_heading_arrow(parsed_dict[cg.actual_heading_arrow_name], cg.h_arrow_actual_brush) if parsed_dict[cg.actual_heading_arrow_name] is not None else None }) # key is current time, value is a dict containing x,y coords as well as the desired and actual heading arrows
+                cg.desired_heading_arrow_name: desired_arrow,
+                cg.actual_heading_arrow_name: actual_arrow})
+
         return
+
+    def should_create_arrow(self, current_time: int, x: float, y: float) -> bool:
+        '''Calculates the distance between this point and the last recorded point in metres; 
+        returns true if distance is greater than or equal to config.dist_between_arrows'''
+        if (self.last_arrow_time is None):
+            self.last_arrow_time = current_time
+            return True # NOTE: assuming that if [0] is not None, [1] will also not be None
+        # print("inside should_create_arrow")
+        # print(self.get_current())
+        last_x = self.data[self.last_arrow_time][self.x_name]
+        # print("line 262")
+        last_y = self.data[self.last_arrow_time][self.y_name]
+        # print("after getting current")
+        dist_between_pts = sqrt(((x - last_x) ** 2) + ((y - last_y) ** 2))
+        print("dist = ", dist_between_pts)
+
+        if dist_between_pts >= cg.min_dist_between_arrows:
+            self.last_arrow_time = current_time
+            return True 
+        else:
+            return False
+
 
     def add_datapoint(self, x, y):
         # TODO: ArrowItems should be added to the graph only if the graph is visible - do this in update_line_data?
             # Actually, I don't think I want to keep updating; I'll set once here
         # y = {self.x_name: x_coord, self.y_name: y_coord, cg.desired...: desiredHeadingArrow, cg.actual...: actualHeadingArrow}
 
-        print("add_datapoint called")
-        print(y)
+        # print("add_datapoint called")
+        # print(y)
 
         desiredHeadingArrow = y[cg.desired_heading_arrow_name]
         actualHeadingArrow = y[cg.actual_heading_arrow_name]
@@ -262,7 +302,7 @@ class PIDObject(DataObject):
         if actualHeadingArrow is not None:
             actualHeadingArrow.setPos(y[self.x_name], y[self.y_name])
             self.graph_obj.graph.addItem(actualHeadingArrow)
-            print("actualHeadingArrow added to graph")
+            # print("actualHeadingArrow added to graph")
 
         super().add_datapoint(x, y)
         # NOTE: below is stuff done in super().add_datapoint(x, y)
@@ -283,6 +323,15 @@ class PIDObject(DataObject):
             self.line.setData(x, y)
         return
 
+    def get_current(self):
+        '''
+        Return a tuple with the time:value of the most current data point collected
+        '''
+        val = None
+        if self.current and self.data.get(self.current) is not None:
+            val = self.data.get(self.current)
+        return self.current, val # returns the time, value (full dict) of most recently logged datapoint
+ 
     def update_data(self, current_time, scroll_window):
         '''Update stored data points: remove any received before data_timeout'''
         # TODO: complete function; data_timeout should be set in config, and should be a parameter of PIDObject
