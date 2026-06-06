@@ -87,7 +87,7 @@ latitude_range = 2 # in decimal degrees
 longitude_range = 2 # in decimal degrees
 
 # ==== Heading ====
-ARROW_TIME_SCALING_ENABLED = 1 # If 1, how often heading arrows appear is time-based; if 0, it is distance-based 
+ARROW_TIME_SCALING_ENABLED = True # If True, how often heading arrows appear is time-based; if False, it is distance-based 
 min_time_between_arrows = 1 # Minimum time between heading arrows appearance (in seconds)
 min_dist_between_arrows = 15.0 # heading arrows only appear on points at least min_dist_between_arrows metres away from the last recorded point
 # NOTE: below is NOT implemented in PIDObject.should_create_arrow

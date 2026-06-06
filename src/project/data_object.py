@@ -283,6 +283,7 @@ class PIDObject(DataObject):
             if (current_time - cg.min_time_between_arrows) >= self.last_arrow_time:
                 self.last_arrow_time = current_time
                 return True 
+            else: return False
         else: # Distance-based scaling
             last_x = self.data[self.last_arrow_time][self.x_name]
             last_y = self.data[self.last_arrow_time][self.y_name]
