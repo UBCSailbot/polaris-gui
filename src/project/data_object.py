@@ -238,8 +238,8 @@ class PIDObject(DataObject):
         return
     
     def set_refs(self, lat, lon):
-        self.lat_ref  = lat, self.dp
-        self.lon_ref  = lon, self.dp
+        self.lat_ref = lat
+        self.lon_ref = lon
 
     
     def parse_frame(self, current_time, data_line, parsed_dict=None):
@@ -368,6 +368,18 @@ class PIDObject(DataObject):
             del self.data[x]
         except KeyError:
             print(f"ERR - trying to apply remove_datapoint() on a point which does not exist")
+
+    def clear(self):
+        '''
+        Removes all datapoints from memory, clears initial gps "fix", clears the graph
+        '''
+        # Removes all datapoints from self.data, sets all initial "fixes" back to None (gps_fix, self.last_time, self.lat/lon_ref), clears the graph
+        self.graph_obj.graph.clear()
+        self.data = {} # clear all datapoints from memory
+        self.last_arrow_time = None # Last arrow placed is gone, so set this to none
+        self.lat_ref = None # reset first gps fix
+        self.lon_ref = None 
+
 
     
 class AISObject(DataObject): 
