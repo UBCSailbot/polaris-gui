@@ -626,6 +626,7 @@ class CANWindow(QWidget, JoystickMixin):
     def update_status(self):
         # Update time independently of CAN messages
         current_time = time.time() - self.time_start
+        # print(f"current position data = {pid_obj.data}")
         
         # Process any new CAN messages
         while not self.queue.empty():

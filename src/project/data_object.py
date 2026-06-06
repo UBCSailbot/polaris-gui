@@ -5,7 +5,7 @@ import pyqtgraph as pg
 import os
 import csv
 import project.config as cg
-from math import sqrt
+import math
 
 graph_margin = 0.2
 
@@ -240,6 +240,7 @@ class PIDObject(DataObject):
         # NOTE: There definitely should be a parsed_dict when this function is called, error otherwise
         if (parsed_dict is None): raise ValueError("ERROR: No parsed_dict passed to PIDObject.parse_frame()")
         else:
+            print("parsed_dict = ", parsed_dict)
             x = round(parsed_dict[self.x_name], self.dp)
             y = round(parsed_dict[self.y_name], self.dp)
             # self.add_datapoint(current_time, (x, y)) # key is current time, value is a tuple with x, y values
@@ -252,6 +253,7 @@ class PIDObject(DataObject):
             if parsed_dict[cg.desired_heading_arrow_name] is not None and should_create_arrow:
                 desired_arrow = create_heading_arrow(parsed_dict[cg.desired_heading_arrow_name], cg.h_arrow_desired_brush)
             if parsed_dict[cg.actual_heading_arrow_name] is not None and should_create_arrow:
+                print("actual_heading_arrow being created!")
                 actual_arrow = create_heading_arrow(parsed_dict[cg.actual_heading_arrow_name], cg.h_arrow_actual_brush)
 
             self.add_datapoint(current_time, 
@@ -267,14 +269,13 @@ class PIDObject(DataObject):
         if (self.last_arrow_time is None):
             self.last_arrow_time = current_time
             return True # NOTE: assuming that if [0] is not None, [1] will also not be None
-        # print("inside should_create_arrow")
-        # print(self.get_current())
         last_x = self.data[self.last_arrow_time][self.x_name]
-        # print("line 262")
         last_y = self.data[self.last_arrow_time][self.y_name]
-        # print("after getting current")
-        dist_between_pts = sqrt(((x - last_x) ** 2) + ((y - last_y) ** 2))
-        print("dist = ", dist_between_pts)
+        dist_between_pts = math.sqrt(((x - last_x) ** 2) + ((y - last_y) ** 2))
+        # print("self.last_arrow_time = ", self.last_arrow_time)
+        # print("last_x = ", last_x, "; last_y = ", last_y)
+        # print("     x = ", x, "     y = ", y)
+        # print("dist = ", dist_between_pts)
 
         if dist_between_pts >= cg.min_dist_between_arrows:
             self.last_arrow_time = current_time
