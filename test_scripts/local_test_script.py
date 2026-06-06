@@ -25,8 +25,11 @@ import math
 
 can_line = "can0"
 
+# Time before starting tests to allow remote debugger to initialize (in secs)
+start_delay = 5
+
 # Time between sent frames (in secs)
-delay = 0.5
+delay = 0.20
 
 # CAN Frame IDs
 temp_sensor_id = "100" 
@@ -330,8 +333,8 @@ def run_local_test(msg_queue: multiprocessing.Queue, delay, data = None):
     # What I want to figure out is a good way to send different types of data, different commands etc.
         # enable some, disable other messages easily
     
-    # cycle = 0
-    cycle = -5
+    cycle = 0
+    sleep(start_delay)
 
     # Jericho Beach coords (Decimal degrees): 49.2722° N, -123.1985° W
     # I expect the data points will be in a straight line path (upwards to the right)
