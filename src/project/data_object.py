@@ -327,18 +327,7 @@ class PIDObject(DataObject):
         # if (self.graph_obj and self.graph_obj.graph.isVisible()):
         #     self.update_line_data()
         return
-    
-    def update_line_data(self):
-        '''NOTE: This function operates on the assumption that self.dict is of the format current_time: (x, y)'''
-        if (self.line is None): raise Exception("ERROR - PIDObject has no line")
-        else:
-            x = [value[self.x_name] for value in self.data.values()]
-            y = [value[self.y_name]  for value in self.data.values()]
-            # print("x = ", x)
-            # print("y == ", y)
-            self.line.setData(x, y)
-        return
-
+   
     def get_current(self):
         '''
         Return a tuple with the time:value of the most current data point collected
@@ -361,6 +350,18 @@ class PIDObject(DataObject):
         if (self.graph_obj and self.graph_obj.graph.isVisible()):
             self.update_line_data()
         return
+ 
+    def update_line_data(self):
+        '''NOTE: This function operates on the assumption that self.dict is of the format current_time: (x, y)'''
+        if (self.line is None): raise Exception("ERROR - PIDObject has no line")
+        else:
+            x = [value[self.x_name] for value in self.data.values()]
+            y = [value[self.y_name]  for value in self.data.values()]
+            # print("x = ", x)
+            # print("y == ", y)
+            self.line.setData(x, y)
+        return
+
 
     def remove_datapoint(self, x):
         try:
