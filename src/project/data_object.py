@@ -224,7 +224,7 @@ class PIDObject(DataObject):
         self.y_name = y_name
         
         # First GPS reading; becomes the (0, 0) reference point for the graph
-        self.ref = None # Use this if one PIDObject each for pid_y and pid_x; if only one PIDObject total, use the below
+        # self.ref = None # Use this if one PIDObject each for pid_y and pid_x; if only one PIDObject total, use the below
         self.lat_ref = None
         self.lon_ref = None
 
@@ -235,6 +235,11 @@ class PIDObject(DataObject):
         self.timeout_duration = timeout_duration 
 
         return
+    
+    def set_refs(self, lat, lon):
+        self.lat_ref  = round(lat, self.dp)
+        self.lon_ref  = round(lon, self.dp)
+
     
     def parse_frame(self, current_time, data_line, parsed_dict=None):
         # NOTE: There definitely should be a parsed_dict when this function is called, error otherwise
@@ -269,19 +274,24 @@ class PIDObject(DataObject):
         if (self.last_arrow_time is None):
             self.last_arrow_time = current_time
             return True # NOTE: assuming that if [0] is not None, [1] will also not be None
-        last_x = self.data[self.last_arrow_time][self.x_name]
-        last_y = self.data[self.last_arrow_time][self.y_name]
-        dist_between_pts = math.sqrt(((x - last_x) ** 2) + ((y - last_y) ** 2))
-        # print("self.last_arrow_time = ", self.last_arrow_time)
-        # print("last_x = ", last_x, "; last_y = ", last_y)
-        # print("     x = ", x, "     y = ", y)
-        # print("dist = ", dist_between_pts)
+        if cg.ARROW_TIME_SCALING_ENABLED:
+            if (current_time - cg.min_time_between_arrows) >= self.last_arrow_time:
+                self.last_arrow_time = current_time
+                return True 
+        else: # Distance-based scaling
+            last_x = self.data[self.last_arrow_time][self.x_name]
+            last_y = self.data[self.last_arrow_time][self.y_name]
+            dist_between_pts = math.sqrt(((x - last_x) ** 2) + ((y - last_y) ** 2))
+            # print("self.last_arrow_time = ", self.last_arrow_time)
+            # print("last_x = ", last_x, "; last_y = ", last_y)
+            # print("     x = ", x, "     y = ", y)
+            # print("dist = ", dist_between_pts)
 
-        if dist_between_pts >= cg.min_dist_between_arrows:
-            self.last_arrow_time = current_time
-            return True 
-        else:
-            return False
+            if dist_between_pts >= cg.min_dist_between_arrows:
+                self.last_arrow_time = current_time
+                return True 
+            else:
+                return False
 
 
     def add_datapoint(self, x, y):
