@@ -122,6 +122,17 @@ def parse_wind_sensor_frame(data_hex):
         data_wind_spd_obj.name: val(2, 4, 10.0)
     }
 
+def parse_sail_wind_sensor_frame(data_hex):
+    raw_bytes = bytes.fromhex(data_hex)
+    if len(raw_bytes) != 4:
+        raise ValueError("Incorrect data length (num bytes): ID 0x040")
+    
+    val = lambda s, e, div: int.from_bytes(raw_bytes[s:e], 'little') / div
+    return {
+        sail_wind_dir_obj.name: val(0, 2, 1.0),
+        sail_wind_spd_obj.name: val(2, 4, 10.0)
+    }
+
 # Salinity data frame
 def parse_0x120_frame(data_hex):
     raw_bytes = bytes.fromhex(data_hex)

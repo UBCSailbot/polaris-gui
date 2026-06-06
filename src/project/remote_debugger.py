@@ -689,7 +689,7 @@ class CANWindow(QWidget, JoystickMixin):
                         case "040": # Sail_Wind frame
                             try:
                                 raw_data = line.split(']')[-1].strip().split()
-                                parsed = parse_wind_sensor_frame(''.join(raw_data))
+                                parsed = parse_sail_wind_sensor_frame(''.join(raw_data))
                                 for obj in sail_wind_objs:
                                     obj.parse_frame(current_time, None, parsed)
                                     obj.update_label()
