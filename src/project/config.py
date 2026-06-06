@@ -83,8 +83,8 @@ data_timeout = 5 * 60 # amt of time (in seconds) before data gets removed
 plrs_path_data_timeout = 30 # 2 * 60 # amt of time (in seconds) before POLARIS path data is deleted (for PID tuning)
 
 # Set range of ships centered around POLARIS +- <lat/lon>_range on AIS graph
-latitude_range = 2 # in decimal degrees
-longitude_range = 2 # in decimal degrees
+latitude_range = 0.1 # in decimal degrees
+longitude_range = 0.1 # in decimal degrees
 
 # ==== Heading ====
 min_dist_between_arrows = 0.1 # heading arrows only appear on points at least min_dist_between_arrows metres away from the last recorded point

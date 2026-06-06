@@ -4,6 +4,13 @@ import paramiko
 from project.data_object import *
 from project.utility import *
 
+def _send_status(pipe, connected, value):
+    try:
+        pipe.send((connected, value))
+        return True
+    except (BrokenPipeError, EOFError, OSError):
+        return False
+
 def temperature_reader(pipe):
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -15,15 +22,21 @@ def temperature_reader(pipe):
                 raw = stdout.read().decode().strip()
                 if raw:
                     temp = float(raw) / 1000
-                    pipe.send((True, f"{temp:.1f}°C"))
+                    if not _send_status(pipe, True, f"{temp:.1f}°C"):
+                        break
                 else:
-                    pipe.send((False, "ERROR"))
+                    if not _send_status(pipe, False, "ERROR"):
+                        break
             except Exception:
-                pipe.send((False, "ERROR"))
+                if not _send_status(pipe, False, "ERROR"):
+                    break
             time.sleep(1)
     except Exception:
-        while True:
-            pipe.send((False, "DISCONNECTED"))
+        while _send_status(pipe, False, "DISCONNECTED"):
             time.sleep(1)
     finally:
+        try:
+            pipe.close()
+        except Exception:
+            pass
         client.close()
