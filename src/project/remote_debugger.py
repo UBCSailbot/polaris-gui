@@ -211,10 +211,13 @@ class CANWindow(QWidget, JoystickMixin):
         self.pid_input_layout.addWidget(self.i_input)
         self.pid_input_layout.addWidget(self.d_input)
         self.pid_input_button = QPushButton("Send PID")
+        self.pid_clear_button = QPushButton("Clear PID Datapoints")
         self.pid_input_button.clicked.connect(self.send_pid)
+        self.pid_clear_button.clicked.connect(pid_obj.clear)
         self.pid_layout = QVBoxLayout()
         self.pid_layout.addLayout(self.pid_input_layout)
         self.pid_layout.addWidget(self.pid_input_button)
+        self.pid_layout.addWidget(self.pid_clear_button)
 
         self.output_display = QTextEdit()
         self.output_display.setReadOnly(True)
