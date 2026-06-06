@@ -260,8 +260,11 @@ def parse_0x070_frame(data_hex):
     pid_x_data = 0
 
     if (pid_obj.lat_ref is None) or (pid_obj.lon_ref is None): # If first fix: set ref points
-        pid_obj.lat_ref  = gps_lat_data
-        pid_obj.lon_ref  = gps_lon_data
+        pid_obj.set_refs(gps_lat_data, gps_lon_data)
+
+    # if (pid_obj.lat_ref is None) or (pid_obj.lon_ref is None): # If first fix: set ref points
+    #     pid_obj.lat_ref  = gps_lat_data
+    #     pid_obj.lon_ref  = gps_lon_data
     else:
         pid_y_data = (gps_lat_data - pid_obj.lat_ref)  * 110562 # change in lat multiplied by rough arc length (using conversion to km from 68.7 miles)
         pid_x_data = (gps_lon_data - pid_obj.lon_ref) * math.cos(math.radians(pid_obj.lat_ref)) * 111320 # constant from google (equatorial distance between longitude lines)

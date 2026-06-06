@@ -224,7 +224,8 @@ class PIDObject(DataObject):
         self.y_name = y_name
         
         # First GPS reading; becomes the (0, 0) reference point for the graph
-        # self.ref = None # Use this if one PIDObject each for pid_y and pid_x; if only one PIDObject total, use the below
+        # Kept as unrounded values for more accurate calculations; 
+        # Create get() function which rounds these values if users want to see them
         self.lat_ref = None
         self.lon_ref = None
 
@@ -237,8 +238,8 @@ class PIDObject(DataObject):
         return
     
     def set_refs(self, lat, lon):
-        self.lat_ref  = round(lat, self.dp)
-        self.lon_ref  = round(lon, self.dp)
+        self.lat_ref  = lat, self.dp
+        self.lon_ref  = lon, self.dp
 
     
     def parse_frame(self, current_time, data_line, parsed_dict=None):
