@@ -107,7 +107,8 @@ actual_heading_arrow_name = "actual_heading_arrow"
 # ==== Joystick ====
 movement_sensitivity = 1 # number of decimal point precision
 max_rudder_angle = 20 # degrees
-max_trimtab_angle = 20 # degrees
+min_trimtab_angle = -12 # degrees
+max_trimtab_angle = 3  # degrees
 
 num_axes = 8 # number of possible switches/joystick axes for Radiomaster Boxer joystick
 trimtab_axis = 0 # joystick axis used to move trimtab

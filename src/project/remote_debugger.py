@@ -530,10 +530,10 @@ class CANWindow(QWidget, JoystickMixin):
             self.rudder_angle = 0
             self.send_rudder(from_keyboard=True)
         elif key == Qt.Key_Q:
-            self.trimtab_angle = max(self.trimtab_angle - 3, -45)
+            self.trimtab_angle = max(self.trimtab_angle - 3, cg.min_trimtab_angle)
             self.send_trim_tab(from_keyboard=True)
         elif key == Qt.Key_E:
-            self.trimtab_angle = min(self.trimtab_angle + 3, 45)
+            self.trimtab_angle = min(self.trimtab_angle + 3, cg.max_trimtab_angle)
             self.send_trim_tab(from_keyboard=True)
         elif key == Qt.Key_W:
             self.trimtab_angle = 0
@@ -564,8 +564,8 @@ class CANWindow(QWidget, JoystickMixin):
                 angle = round(set_angle, 3) if set_angle is not None else round(float(self.trim_input.text()), 3)
                 self.trimtab_angle = angle
 
-            if (angle < -30 or angle > 30):
-                raise ValueError("Invalid angle input for Trim Tab")
+            if angle < cg.min_trimtab_angle or angle > cg.max_trimtab_angle:
+                raise ValueError(f"Invalid angle input for Trim Tab: must be between {cg.min_trimtab_angle} and {cg.max_trimtab_angle} degrees")
             
             value = convert_to_hex(int((angle+90) * 1000), 4)
             self.can_send("002", convert_to_little_endian(value), "TRIMTAB SENT")
@@ -832,7 +832,12 @@ class CANWindow(QWidget, JoystickMixin):
             moved, pos = self.joystick_moved(cg.rudder_axis, cg.rudder_latch)
             if moved: self.send_rudder(set_angle = cg.max_rudder_angle * pos)
             moved, pos = self.joystick_moved(cg.trimtab_axis, cg.trimtab_latch)
-            if moved: self.send_trim_tab(set_angle = cg.max_trimtab_angle * pos)
+            if moved:
+                trimtab_angle = (
+                    cg.max_trimtab_angle * pos if pos >= 0
+                    else abs(cg.min_trimtab_angle) * pos
+                )
+                self.send_trim_tab(set_angle=trimtab_angle)
 
     def _update_plot_ranges(self, current_time):
         # === Auto-scale and scroll X axis ===
