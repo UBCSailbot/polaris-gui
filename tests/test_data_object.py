@@ -7,7 +7,7 @@ from tests.helpers import Outcome
 import project.config as cg
 
 from project.data_object import (
-    create_label, create_line, create_graph, GraphObject, DataObject
+    create_label, generic_create_line, create_graph, GraphObject, DataObject
 )
 
 @pytest.mark.parametrize(
