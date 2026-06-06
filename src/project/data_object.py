@@ -20,7 +20,7 @@ def create_label(title, min_width=None, max_height=None):
     label.setStyleSheet(cg.value_style)
     return label
 
-def create_line(graph_obj, name, x_data, y_data, colour, line_width, line_dashed, symbol_brush = None, symbol = None):  
+def generic_create_line(graph_obj, name, x_data, y_data, colour, line_width, line_dashed, symbol_brush = None, symbol = None) -> pg.PlotDataItem:  
     '''
     Creates and returns a pyqt5 line attached to the given graph
     '''
@@ -138,10 +138,14 @@ class DataObject:
     def initialize(self, timestamp = None):
         if self.graph_obj:
             if not self.graph_obj.initialized: self.graph_obj.initialize()
-            self.line = create_line(self.graph_obj, self.name, [], [], self.line_colour, cg.linewidth, self.line_dashed, self.symbol_brush, symbol = 'o' if self.symbol_brush else None) # should automatically create line w/ empty data
+            # self.line = self.create_empty_line
+            self.init_empty_line()
         if self.has_label:
             self.label = create_label(self.name + ": ---- ") # should automatically create label
         else: self.label = None
+
+    def init_empty_line(self) -> None:
+        self.line = generic_create_line(self.graph_obj, self.name, [], [], self.line_colour, cg.linewidth, self.line_dashed, self.symbol_brush, symbol = 'o' if self.symbol_brush else None) # should automatically create line w/ empty data
         
     def get_current(self):
         '''
@@ -379,6 +383,7 @@ class PIDObject(DataObject):
         self.last_arrow_time = None # Last arrow placed is gone, so set this to none
         self.lat_ref = None # reset first gps fix
         self.lon_ref = None 
+        self.init_empty_line() # re-create line with no data
 
 
     
@@ -410,7 +415,7 @@ class AISObject(DataObject):
             print("ERROR: AISObject.initialize received null timestamp")
         self.init_logging(timestamp)
         # self.polaris_line = self.add_line("POLARIS", [], [], None, None, False, symbol_brush = self.polaris_brush, symbol = 'x')
-        self.polaris_line = create_line(self.graph_obj, "POLARIS", [], [], None, None, False, self.polaris_brush, 'x')
+        self.polaris_line = generic_create_line(self.graph_obj, "POLARIS", [], [], None, None, False, self.polaris_brush, 'x')
 
     def add_frame(self, x, y, key, data, x_key):
         '''x_key is the key for the value containing the x_value'''
