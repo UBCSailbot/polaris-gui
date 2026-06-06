@@ -19,6 +19,7 @@ import project.utility as util
 from project.remote_debugger import (
     CANWindow
 )
+import math
 
 
 
@@ -341,12 +342,18 @@ def run_local_test(msg_queue: multiprocessing.Queue, delay, data = None):
         # NOTE: BE CAREFUL!! Using standard libraries, will likely need to do conversion
     # NOTE: these values will be put into the local_test_script, and visually checked manually
     # lat_test_straight_line = [49.2722, 49.272201, 49.272202, 49.272203, 49.272204, 49.272205, 49.272206, 49.272207, 49.272208, 49.272209]
-    num_dp = 50
+    num_dp = 100
+    lat_ref = 49.2722 
+    lon_ref = -123.1985
     lat_test_straight_line = [49.2722 + (i * 0.000001) for i in range(0, num_dp)]
-    # lon_test_straight_line = [-123.1985, -123.198499, -123.198498, -123.198497, -123.198496, -123.198495, -123.198494, -123.198493, -123.198492, -123.198491]
     lon_test_straight_line = [-123.1985 + (i * 0.000001) for i in range(0, num_dp)]
     d_heading_straight_line = [45] * len(lat_test_straight_line) 
     a_heading_straight_line = [0, 90] * (len(lat_test_straight_line) // 2 + 1)
+    
+    lat_test_sine_path = [lat_ref + (0.001 * math.sin(i * 0.1)) for i in range(0, num_dp)]
+    lon_test_sine_path = [lon_ref + (0.00001 * (i * 0.1)) for i in range(0, num_dp)]
+    d_heading_sine_path = [90 * math.sin(i) for i in range(0, num_dp)]
+    a_heading_sine_path = [90, 90, 90, 45, 45, 45, 90, 90, 90, 135, 135, 135] * num_dp
     
     while True:
         try:
@@ -374,13 +381,13 @@ def run_local_test(msg_queue: multiprocessing.Queue, delay, data = None):
             # print(f"Message: {ais_msg}")
 
             if (cycle > 0):
-                if (len(lat_test_straight_line) > (cycle - 1)):
+                if (num_dp > (cycle - 1)):
                     # rudder_data is pretty random except for the actual heading
-                    rudder_data = generate_rudder_msg(50, 1.1, 1.2, a_heading_straight_line[cycle - 1], 45, 10, 11, 1.5) # TODO: fill in args - most can be just static values
+                    rudder_data = generate_rudder_msg(50, 1.1, 1.2, a_heading_sine_path[cycle - 1], 45, 10, 11, 1.5) # TODO: fill in args - most can be just static values
                     msg = format_as_candump(rudder_data)
                     msg_queue.put(msg)
                     print(f"Message: {msg}")
-                    gps_data = generate_gps_msg(lat_test_straight_line[cycle - 1], lon_test_straight_line[cycle - 1])
+                    gps_data = generate_gps_msg(lat_test_sine_path[cycle - 1], lon_test_sine_path[cycle - 1])
                     msg = format_as_candump(gps_data)
                     msg_queue.put(msg)  # NOTE: do I need to make this non-blocking or smth?
                     # print(f"Unformatted: {gps_data}")

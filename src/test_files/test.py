@@ -19,10 +19,25 @@ def create_arrow_item(angle: int, headLen: int, tailLen: int, tailWidth: int, he
     return MyArrowItem(angle=angle, headLen=headLen, tailLen=tailLen, tailWidth=tailWidth, headWidth=headWidth, pen=pen, brush=brush)
 
 # Sample data points
-x = np.array([1, 2, 3, 4, 5, -2, -2, 10, 10])
-y = np.array([2, 4, 5, 5, 3, -1, 8, -1, 8])
+# x = np.array([1, 2, 3, 4, 5, -2, -2, 10, 10])
+# y = np.array([2, 4, 5, 5, 3, -1, 8, -1, 8])
 desired_heading = np.array([180, 180, 180, 180, 180])
 actual_heading = np.array([130, 135, 165, 222.5, 205])
+
+lat_ref = 49.2722
+lon_ref = -123.1985
+num_dp = 500
+lat_test_sine_path = [lat_ref + (0.00001 * (i * 0.1)) for i in range(0, num_dp)]
+lon_test_sine_path = [lon_ref + (0.00001 * math.sin(i * 0.1)) for i in range(0, num_dp)]
+d_heading_sine_path = [90 * math.sin(i) for i in range(0, num_dp)]
+a_heading_sine_path = [90, 90, 90, 45, 45, 45, 90, 90, 90, 135, 135, 135] * num_dp
+    
+y = [(lat_data - lat_ref) * 110562 for lat_data in lat_test_sine_path]
+x = [(lon_data - lon_ref) * math.cos(math.radians(lat_ref)) * 111320 for lon_data in lon_test_sine_path]
+print("lat[0:5] = ", lat_test_sine_path[0:5])
+print("lon[0:5] = ", lon_test_sine_path[0:5])
+print("x[0:5] = ", x[0:5])
+print("y[0:5] = ", y[0:5])
 
 app = QtWidgets.QApplication([])
 
@@ -49,34 +64,34 @@ last_win_y = None
 last_glo_x = None
 last_glo_y = None
 
-for i in range(0, len(x)):
-    if len(desired_heading) > i:
-        arrow = create_arrow_item(angle=desired_heading[i], headLen=20, tailLen=45, tailWidth=8, headWidth=8, pen={'color': 'w', 'width': 3}, brush='b')
-        actual_arrow = create_arrow_item(angle=actual_heading[i], headLen=20, tailLen=45, tailWidth=8, headWidth=8, pen={'color': 'w', 'width': 3}, brush='r')
-        arrow.setPos(x[i], y[i])
-        actual_arrow.setPos(x[i], y[i])
-        p.addItem(arrow)
-        p.addItem(actual_arrow)
+# for i in range(0, len(x)):
+#     if len(desired_heading) > i:
+#         arrow = create_arrow_item(angle=desired_heading[i], headLen=20, tailLen=45, tailWidth=8, headWidth=8, pen={'color': 'w', 'width': 3}, brush='b')
+#         actual_arrow = create_arrow_item(angle=actual_heading[i], headLen=20, tailLen=45, tailWidth=8, headWidth=8, pen={'color': 'w', 'width': 3}, brush='r')
+#         arrow.setPos(x[i], y[i])
+#         actual_arrow.setPos(x[i], y[i])
+#         p.addItem(arrow)
+#         p.addItem(actual_arrow)
 
-    scene_pixel = p.plotItem.vb.mapViewToScene(pg.Point(x[i], y[i]))
-    window_pixel = p.mapToParent(scene_pixel.toPoint())
-    global_screen_pixel = p.mapToGlobal(scene_pixel.toPoint())
+#     scene_pixel = p.plotItem.vb.mapViewToScene(pg.Point(x[i], y[i]))
+#     window_pixel = p.mapToParent(scene_pixel.toPoint())
+#     global_screen_pixel = p.mapToGlobal(scene_pixel.toPoint())
 
-    # print(f"scene_pixel({x[i]},{y[i]}): ", scene_pixel)
-    if (last_x is not None) and (last_y is not None):
-        print(f"distance from ({last_x},{last_y}) to ({x[i]}, {y[i]}) = ", math.sqrt((last_x - x[i]) ** 2 + (last_y - y[i]) ** 2))
-        print(f"screen pixel distance from ({last_x},{last_y}) to ({x[i]}, {y[i]}) = ", math.sqrt((last_pix_x - scene_pixel.x()) ** 2 + (last_pix_y - scene_pixel.y()) ** 2))
-        print(f"window pixel distance from ({last_x},{last_y}) to ({x[i]}, {y[i]}) = ", math.sqrt((last_win_x - window_pixel.x()) ** 2 + (last_win_y - window_pixel.y()) ** 2))
-        print(f"global pixel distance from ({last_x},{last_y}) to ({x[i]}, {y[i]}) = ", math.sqrt((last_glo_x - global_screen_pixel.x()) ** 2 + (last_glo_y - global_screen_pixel.y()) ** 2))
+#     # print(f"scene_pixel({x[i]},{y[i]}): ", scene_pixel)
+#     if (last_x is not None) and (last_y is not None):
+#         print(f"distance from ({last_x},{last_y}) to ({x[i]}, {y[i]}) = ", math.sqrt((last_x - x[i]) ** 2 + (last_y - y[i]) ** 2))
+#         print(f"screen pixel distance from ({last_x},{last_y}) to ({x[i]}, {y[i]}) = ", math.sqrt((last_pix_x - scene_pixel.x()) ** 2 + (last_pix_y - scene_pixel.y()) ** 2))
+#         print(f"window pixel distance from ({last_x},{last_y}) to ({x[i]}, {y[i]}) = ", math.sqrt((last_win_x - window_pixel.x()) ** 2 + (last_win_y - window_pixel.y()) ** 2))
+#         print(f"global pixel distance from ({last_x},{last_y}) to ({x[i]}, {y[i]}) = ", math.sqrt((last_glo_x - global_screen_pixel.x()) ** 2 + (last_glo_y - global_screen_pixel.y()) ** 2))
     
-    last_x = x[i]
-    last_y = y[i]
-    last_pix_x = scene_pixel.x()
-    last_pix_y = scene_pixel.y()
-    last_win_x = window_pixel.x()
-    last_win_y = window_pixel.y()
-    last_glo_x = global_screen_pixel.x()
-    last_glo_y = global_screen_pixel.y()
+#     last_x = x[i]
+#     last_y = y[i]
+#     last_pix_x = scene_pixel.x()
+#     last_pix_y = scene_pixel.y()
+#     last_win_x = window_pixel.x()
+#     last_win_y = window_pixel.y()
+#     last_glo_x = global_screen_pixel.x()
+#     last_glo_y = global_screen_pixel.y()
 
 # vb = p.plotItem.vb
 
