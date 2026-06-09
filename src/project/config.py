@@ -83,8 +83,8 @@ data_timeout = 5 * 60 # amt of time (in seconds) before data gets removed
 plrs_path_data_timeout = 30 # 2 * 60 # amt of time (in seconds) before POLARIS path data is deleted (for PID tuning)
 
 # Set range of ships centered around POLARIS +- <lat/lon>_range on AIS graph
-latitude_range = 2 # in decimal degrees
-longitude_range = 2 # in decimal degrees
+latitude_range = 0.1 # in decimal degrees
+longitude_range = 0.1 # in decimal degrees
 
 # ==== Heading ====
 ARROW_TIME_SCALING_ENABLED = True # If True, how often heading arrows appear is time-based; if False, it is distance-based 
@@ -109,7 +109,8 @@ actual_heading_arrow_name = "actual_heading_arrow"
 # ==== Joystick ====
 movement_sensitivity = 1 # number of decimal point precision
 max_rudder_angle = 20 # degrees
-max_trimtab_angle = 20 # degrees
+min_trimtab_angle = -12 # degrees
+max_trimtab_angle = 3  # degrees
 
 num_axes = 8 # number of possible switches/joystick axes for Radiomaster Boxer joystick
 trimtab_axis = 0 # joystick axis used to move trimtab
