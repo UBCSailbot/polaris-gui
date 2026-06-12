@@ -10,9 +10,12 @@ import math
 graph_margin = 0.2
 
 def create_label(title, min_width=None, max_height=None):
-    if (min_width is None): min_width = cg.value_label_min_width
-    if (max_height is None): max_height = cg.value_label_max_height
-    if (min_width <= 0 or max_height <= 0): raise ValueError
+    if (min_width is None):
+        min_width = cg.value_label_min_width
+    if (max_height is None):
+        max_height = cg.value_label_max_height
+    if (min_width <= 0 or max_height <= 0):
+        raise ValueError
     label = QLabel(title)
     label.setMinimumWidth(min_width)
     label.setMaximumHeight(max_height)
@@ -137,12 +140,14 @@ class DataObject:
     
     def initialize(self, timestamp = None):
         if self.graph_obj:
-            if not self.graph_obj.initialized: self.graph_obj.initialize()
+            if not self.graph_obj.initialized:
+                self.graph_obj.initialize()
             # self.line = self.create_empty_line
             self.init_empty_line()
         if self.has_label:
             self.label = create_label(self.name + ": ---- ") # should automatically create label
-        else: self.label = None
+        else:
+            self.label = None
 
     def init_empty_line(self) -> None:
         self.line = generic_create_line(self.graph_obj, self.name, [], [], self.line_colour, cg.linewidth, self.line_dashed, self.symbol_brush, symbol = 'o' if self.symbol_brush else None) # should automatically create line w/ empty data
@@ -170,7 +175,7 @@ class DataObject:
         try:
             del self.data[x]
         except KeyError:
-            print(f"ERR - trying to apply remove_datapoint() on a point which does not exist")
+            print("ERR - trying to apply remove_datapoint() on a point which does not exist")
     
     def update_line_data(self):
         if (self.line is not None):
@@ -248,7 +253,8 @@ class PIDObject(DataObject):
     
     def parse_frame(self, current_time, data_line, parsed_dict=None):
         # NOTE: There definitely should be a parsed_dict when this function is called, error otherwise
-        if (parsed_dict is None): raise ValueError("ERROR: No parsed_dict passed to PIDObject.parse_frame()")
+        if (parsed_dict is None):
+            raise ValueError("ERROR: No parsed_dict passed to PIDObject.parse_frame()")
         else:
             print("parsed_dict = ", parsed_dict)
             x = round(parsed_dict[self.x_name], self.dp)
@@ -282,8 +288,9 @@ class PIDObject(DataObject):
         if cg.ARROW_TIME_SCALING_ENABLED:
             if (current_time - cg.min_time_between_arrows) >= self.last_arrow_time:
                 self.last_arrow_time = current_time
-                return True 
-            else: return False
+                return True
+            else:
+                return False
         else: # Distance-based scaling
             last_x = self.data[self.last_arrow_time][self.x_name]
             last_y = self.data[self.last_arrow_time][self.y_name]
@@ -354,7 +361,8 @@ class PIDObject(DataObject):
  
     def update_line_data(self):
         '''NOTE: This function operates on the assumption that self.dict is of the format current_time: (x, y)'''
-        if (self.line is None): raise Exception("ERROR - PIDObject has no line")
+        if (self.line is None):
+            raise Exception("ERROR - PIDObject has no line")
         else:
             x = [value[self.x_name] for value in self.data.values()]
             y = [value[self.y_name]  for value in self.data.values()]
@@ -373,7 +381,7 @@ class PIDObject(DataObject):
 
             del self.data[x]
         except KeyError:
-            print(f"ERR - trying to apply remove_datapoint() on a point which does not exist")
+            print("ERR - trying to apply remove_datapoint() on a point which does not exist")
 
     def clear(self):
         '''
@@ -486,7 +494,8 @@ class AISObject(DataObject):
 
     def log_data(self, timestamp, elapsed_time):
         '''log AIS data from current batch into csv file''' 
-        if (not self.dataset): return # No data in dataset
+        if (not self.dataset):
+            return # No data in dataset
         try:
             with open(self.ais_log_file, 'a', newline='') as csv_file:
                 writer = csv.writer(csv_file)
@@ -496,7 +505,8 @@ class AISObject(DataObject):
                     for key in ais_attributes: # get the keys in data
                         if frame[key] is None:
                             values.append("None")
-                        else: values.append(frame[key])
+                        else:
+                            values.append(frame[key])
                     writer.writerow(values)
                 csv_file.flush()  # Flush immediately to prevent data loss
         except Exception as e:

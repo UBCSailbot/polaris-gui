@@ -143,7 +143,7 @@ def send_sensor_command(client, frame_id, data: float):
         if (frame_id == pH_id): numBytes = 2
         elif (frame_id == temp_sensor_id): numBytes = 3
         elif (frame_id == sal_id): numBytes = 4
-        else: print(f"[ERROR] send_sensor_command(): frame_id not recognized")
+        else: print("[ERROR] send_sensor_command(): frame_id not recognized")
         hexed_data = convert_to_hex(can_data, numBytes)
         # print("data converted to hex: ", hexed_data)
         hex_bytes = convert_to_little_endian(hexed_data)
@@ -456,12 +456,12 @@ def main():
                 print("Failed to send command, continuing...")
 
             # time.sleep(delay)
-            print(f"Sending gps command...")
+            print("Sending gps command...")
             success = send_gps_command(client)
             if not success:
                 print("Failed to send command, continuing...")
 
-            print(f"Sending AIS command...")
+            print("Sending AIS command...")
             success = send_ais_command(client, 10) # TODO: test with larger numbers of ships - test with more than 127 - note: I did do this, might try again later
             if not success:
                 print("Failed to send command, continuing...")

@@ -1,7 +1,7 @@
 import pygame
 
 from project.config import (
-    movement_sensitivity, num_axes, LATCHED, UNLATCHED
+    movement_sensitivity, num_axes, LATCHED
 )
 
 # Handles joystick interaction & function
@@ -54,7 +54,8 @@ class JoystickMixin():
         if self.joystick is not None:
             pygame.event.pump() # update position
             return round(self.joystick.get_axis(axis)) == LATCHED
-        else: return True # default state is latched (locked)
+        else:
+            return True # default state is latched (locked)
 
     def set_joystick_enabled(self, state: bool) -> None:
         '''Set enabled to state'''

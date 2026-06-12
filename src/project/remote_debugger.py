@@ -1,6 +1,5 @@
 import sys
 import signal
-import paramiko
 import multiprocessing
 import time
 import csv
@@ -39,8 +38,7 @@ _bootstrap_qt_runtime()
 
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout,
-    QMessageBox, QTextEdit, QHBoxLayout, QCheckBox, QGridLayout, QComboBox,
-    QSizePolicy
+    QMessageBox, QTextEdit, QHBoxLayout, QCheckBox, QGridLayout, QComboBox
 )
 
 from PyQt5.QtCore import QTimer, Qt
@@ -50,7 +48,6 @@ from project.can_processes import (
     candump_process, cansend_worker, temperature_reader, can_logging_process
 )
 
-import project.pyqt_widgets
 from project.joystick_mixin import JoystickMixin
 from project.data_object import *
 from project.utility import *
@@ -440,7 +437,8 @@ class CANWindow(QWidget, JoystickMixin):
                 graph_objs[i].show()
                 dropdowns[i].setCurrentText(graph_objs[i].dropdown_label)
                 dropdowns[i].setVisible(True)
-            else: break
+            else:
+                break
 
         d_top.currentTextChanged.connect(lambda text: self.setGraph(text, 0, dropdowns))
         d_mid.currentTextChanged.connect(lambda text: self.setGraph(text, 1, dropdowns))
@@ -562,7 +560,8 @@ class CANWindow(QWidget, JoystickMixin):
             # if not from_keyboard:
             #     self.trimtab_angle = angle
 
-            if from_keyboard: angle = self.trimtab_angle
+            if from_keyboard:
+                angle = self.trimtab_angle
             else:
                 angle = round(set_angle, 3) if set_angle is not None else round(float(self.trim_input.text()), 3)
                 self.trimtab_angle = angle
@@ -674,7 +673,7 @@ class CANWindow(QWidget, JoystickMixin):
             try:
                 self.can_log_queue.put_nowait(line)
             except:
-                print(f"line was not logged!")
+                print("line was not logged!")
 
             if line.startswith(can_line):
                 new_msg_to_log = True
@@ -834,7 +833,8 @@ class CANWindow(QWidget, JoystickMixin):
         # Handle joystick updates 
         if (self.get_joystick_enabled()):
             moved, pos = self.joystick_moved(cg.rudder_axis, cg.rudder_latch)
-            if moved: self.send_rudder(set_angle = cg.max_rudder_angle * pos)
+            if moved:
+                self.send_rudder(set_angle = cg.max_rudder_angle * pos)
             moved, pos = self.joystick_moved(cg.trimtab_axis, cg.trimtab_latch)
             if moved:
                 trimtab_angle = (

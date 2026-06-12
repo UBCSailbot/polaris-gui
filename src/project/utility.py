@@ -150,11 +150,15 @@ def parse_0x120_frame(data_hex):
         print(f"raw = {raw}")
         raise ValueError()
     
-    if (actual < 100): actual = round(actual, 2)
-    elif (actual < 1000): actual = round(actual, 1)
-    elif (actual < 10000): actual = round(actual)
-    elif (actual < 100000): actual = round(actual, -1)
-    return {"sal": actual} 
+    if (actual < 100):
+        actual = round(actual, 2)
+    elif (actual < 1000):
+        actual = round(actual, 1)
+    elif (actual < 10000):
+        actual = round(actual)
+    elif (actual < 100000):
+        actual = round(actual, -1)
+    return {"sal": actual}
 
 # Salinity parsing function
 def sal_parsing_fn(data_hex):
@@ -177,10 +181,14 @@ def sal_parsing_fn(data_hex):
         print(f"raw = {raw}")
         raise ValueError()
     
-    if (actual < 100): actual = round(actual, 2)
-    elif (actual < 1000): actual = round(actual, 1)
-    elif (actual < 10000): actual = round(actual)
-    elif (actual < 100000): actual = round(actual, -1)
+    if (actual < 100):
+        actual = round(actual, 2)
+    elif (actual < 1000):
+        actual = round(actual, 1)
+    elif (actual < 10000):
+        actual = round(actual)
+    elif (actual < 100000):
+        actual = round(actual, -1)
     return actual
 
 # pH data frame
