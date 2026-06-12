@@ -8,6 +8,7 @@ from datetime import datetime
 
 os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
 
+
 def _bootstrap_qt_runtime():
     if os.environ.get("POLARIS_QT_BOOTSTRAPPED") == "1":
         return
@@ -34,27 +35,44 @@ def _bootstrap_qt_runtime():
     env["LD_LIBRARY_PATH"] = f"{qt_lib_dir}:{current}" if current else qt_lib_dir
     os.execvpe(sys.executable, [sys.executable, *sys.argv], env)
 
+
 _bootstrap_qt_runtime()
 
 from PyQt5.QtWidgets import (
-    QApplication, QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout,
-    QMessageBox, QTextEdit, QHBoxLayout, QCheckBox, QGridLayout, QComboBox
+    QApplication,
+    QWidget,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QVBoxLayout,
+    QMessageBox,
+    QTextEdit,
+    QHBoxLayout,
+    QCheckBox,
+    QGridLayout,
+    QComboBox,
 )
 
 from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtGui import QPixmap, QFont
 
 from project.can_processes import (
-    candump_process, cansend_worker, temperature_reader, can_logging_process
+    candump_process,
+    cansend_worker,
+    temperature_reader,
+    can_logging_process,
 )
 
 from project.joystick_mixin import JoystickMixin
 from project.data_object import *
 from project.utility import *
 
+
 ### ----------  PyQt5 GUI ---------- ###
 class CANWindow(QWidget, JoystickMixin):
-    def __init__(self, queue, temp_pipe, cmd_queue, response_queue, can_log_queue, timestamp):
+    def __init__(
+        self, queue, temp_pipe, cmd_queue, response_queue, can_log_queue, timestamp
+    ):
         super().__init__()
         self.queue = queue
         self.temp_pipe = temp_pipe
@@ -62,8 +80,8 @@ class CANWindow(QWidget, JoystickMixin):
         self.cansend_response_queue = response_queue
         self.can_log_queue = can_log_queue
 
-        self.rudder_angle = 0 # degrees
-        self.trimtab_angle = 0 # degrees
+        self.rudder_angle = 0  # degrees
+        self.trimtab_angle = 0  # degrees
         self.last_temp_update = time.time()  # Track last temperature update
 
         self.setWindowTitle("Remote Node GUI - POLARIS")
@@ -80,30 +98,28 @@ class CANWindow(QWidget, JoystickMixin):
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_status)
-        self.timer.start(gui_update_freq) # Updates every update_freq milliseconds
+        self.timer.start(gui_update_freq)  # Updates every update_freq milliseconds
 
     def _init_logging(self, timestamp):
         """Initialize CSV logging files with timestamped names"""
         # Create logs directory if it doesn't exist
-        if not os.path.exists('logs'):
-            os.makedirs('logs')
-        
-        # Create timestamped filenames        
+        if not os.path.exists("logs"):
+            os.makedirs("logs")
+
+        # Create timestamped filenames
         # Values log file (CAN dump logging is now handled by separate process)
-        self.values_log_file = os.path.join('logs', f'values_{timestamp}.csv')
-        self.values_csv_file = open(self.values_log_file, 'w', newline='')
+        self.values_log_file = os.path.join("logs", f"values_{timestamp}.csv")
+        self.values_csv_file = open(self.values_log_file, "w", newline="")
         self.values_writer = csv.writer(self.values_csv_file)
 
         # Header names
-        values_header = [
-            'Timestamp', 'Elapsed_Time_s'
-        ]
+        values_header = ["Timestamp", "Elapsed_Time_s"]
         for obj in data_objs:
             values_header.append(obj.name)
 
         self.values_writer.writerow(values_header)
         self.values_csv_file.flush()  # Ensure header is written immediately
-        
+
         print(f"Values logging initialized: {self.values_log_file}")
 
     # Makes given history the same length as time_history so it is plottable (note: this function works because lists are mutable and can be referenced through formal param)
@@ -119,12 +135,12 @@ class CANWindow(QWidget, JoystickMixin):
         try:
             timestamp = datetime.now().isoformat()
             elapsed_time = time.time() - self.time_start
-            values = [timestamp, f'{elapsed_time:.3f}']
+            values = [timestamp, f"{elapsed_time:.3f}"]
             # print("line 222")
             for obj in data_objs:
                 val = obj.get_current()[1]
                 # print("line 225")
-                if (val is not None):
+                if val is not None:
                     values.append(str(val))
                 else:
                     values.append("None")
@@ -139,7 +155,7 @@ class CANWindow(QWidget, JoystickMixin):
     def closeEvent(self, event):
         """Handle window close event to ensure files are properly closed"""
         try:
-            if hasattr(self, 'values_csv_file'):
+            if hasattr(self, "values_csv_file"):
                 self.values_csv_file.close()
             print("Log files closed successfully")
         except Exception as e:
@@ -176,8 +192,12 @@ class CANWindow(QWidget, JoystickMixin):
         checkbox_layout.addWidget(self.manual_steer_checkbox)
         checkbox_layout.addWidget(self.keyboard_checkbox)
 
-        self.instructions1_display = QLabel("For Rudder    (+/- 3 degrees): A / S / D  (Left / Center / Right)")
-        self.instructions2_display = QLabel("For Trim Tab (+/- 3 degrees): Q / W / E (Left / Center / Right)")
+        self.instructions1_display = QLabel(
+            "For Rudder    (+/- 3 degrees): A / S / D  (Left / Center / Right)"
+        )
+        self.instructions2_display = QLabel(
+            "For Trim Tab (+/- 3 degrees): Q / W / E (Left / Center / Right)"
+        )
 
         self.rudder_display = QLabel("Current Set Rudder Angle:  0 degrees")
         self.trimtab_display = QLabel("Current Trim Tab Angle:   0 degrees")
@@ -209,7 +229,6 @@ class CANWindow(QWidget, JoystickMixin):
         self.rudder_button.clicked.connect(self.send_rudder)
         self.rudder_input_group = QWidget()
         self.rudder_input_group.setLayout(self.rudder_input_layout)
-        
 
         self.trim_input = QLineEdit()
         self.trim_button = QPushButton("Send Trim Tab")
@@ -224,7 +243,6 @@ class CANWindow(QWidget, JoystickMixin):
         self.trim_input_layout.addWidget(self.trim_button)
         self.trim_input_group = QWidget()
         self.trim_input_group.setLayout(self.trim_input_layout)
-
 
         self.p_input = QLineEdit()
         self.p_input.setPlaceholderText("P")
@@ -293,17 +311,20 @@ class CANWindow(QWidget, JoystickMixin):
 
         # Create a grid layout for command buttons
         self.commands_grid = QGridLayout()
-        
+
         # Define commands with labels
         commands = [
             ("SSH Connect", "ssh sailbot@192.168.0.10"),
             ("CAN0 Down", "sudo ip link set can0 down"),
-            ("CAN0 Up", "sudo ip link set can0 up type can bitrate 500000 dbitrate 1000000 fd on")
-           # ("Check CAN Status", "ip link show can0"),
-           # ("View System Logs", "dmesg | tail"),
-           # ("System Info", "uname -a")
+            (
+                "CAN0 Up",
+                "sudo ip link set can0 up type can bitrate 500000 dbitrate 1000000 fd on",
+            ),
+            # ("Check CAN Status", "ip link show can0"),
+            # ("View System Logs", "dmesg | tail"),
+            # ("System Info", "uname -a")
         ]
-        
+
         # Create buttons for each command
         self.command_buttons = []
         for i, (label, command) in enumerate(commands):
@@ -325,9 +346,11 @@ class CANWindow(QWidget, JoystickMixin):
                     background-color: #003d7a;
                 }
             """)
-            btn.clicked.connect(lambda checked, cmd=command: self.copy_to_clipboard(cmd))
+            btn.clicked.connect(
+                lambda checked, cmd=command: self.copy_to_clipboard(cmd)
+            )
             self.command_buttons.append(btn)
-            
+
             # Add to grid layout (2 columns)
             row = i // 2
             col = i % 2
@@ -352,10 +375,9 @@ class CANWindow(QWidget, JoystickMixin):
                     color: black;
                 }
             """
-        
+
         self.power_off_btn.setStyleSheet(red_button_style)
         self.restart_btn.setStyleSheet(red_button_style)
-
 
         # TODO: add heartbeat widgets to left_layout (below)
 
@@ -404,9 +426,9 @@ class CANWindow(QWidget, JoystickMixin):
         labels_layout.setSpacing(0)
 
         for graph_obj in all_objs:
-            if (graph_obj.label is not None):
+            if graph_obj.label is not None:
                 labels_layout.addWidget(graph_obj.label)
-        
+
         labels_layout.addStretch(1)
 
         # Graph dropdowns (Top, Middle, Bottom)
@@ -416,10 +438,12 @@ class CANWindow(QWidget, JoystickMixin):
         d_bot = QComboBox()
         dropdowns = [d_top, d_mid, d_bot]
 
-        self.right_graphs_layout = QGridLayout() # create GridLayout for three graphs (0, 0), (1, 0), (2, 0)
+        self.right_graphs_layout = (
+            QGridLayout()
+        )  # create GridLayout for three graphs (0, 0), (1, 0), (2, 0)
         # Note: It is important that each distinct graph canvas is only added as a widget
         #       a single time, or else problems
-        self.visibleGraphObjs = [] # list of GraphObjs with visible graphs, in order of position descending
+        self.visibleGraphObjs = []  # list of GraphObjs with visible graphs, in order of position descending
 
         for d in dropdowns:
             d.setFont(QFont(cg.d_font_type, cg.d_font_size))
@@ -429,9 +453,9 @@ class CANWindow(QWidget, JoystickMixin):
             d.setVisible(False)
             dropdown_layout.addWidget(d)
 
-        # show a maximum of three graphs initially 
+        # show a maximum of three graphs initially
         for i in range(0, 3):
-            if (i < len(graph_objs)):
+            if i < len(graph_objs):
                 self.right_graphs_layout.addWidget(graph_objs[i].graph, i, 0)
                 self.visibleGraphObjs.append(graph_objs[i])
                 graph_objs[i].show()
@@ -443,7 +467,7 @@ class CANWindow(QWidget, JoystickMixin):
         d_top.currentTextChanged.connect(lambda text: self.setGraph(text, 0, dropdowns))
         d_mid.currentTextChanged.connect(lambda text: self.setGraph(text, 1, dropdowns))
         d_bot.currentTextChanged.connect(lambda text: self.setGraph(text, 2, dropdowns))
-        
+
         right_layout.addLayout(dropdown_layout)
         right_layout.addLayout(self.right_graphs_layout)
 
@@ -453,11 +477,10 @@ class CANWindow(QWidget, JoystickMixin):
         bottom_layout.addLayout(right_layout, 1)
 
         self.setLayout(bottom_layout)
-    
+
     def set_manual_steer(self, checked):
         self.rudder_input_group.setVisible(checked)
         self.desired_heading_input_group.setVisible(not checked)
-        
 
     def toggle_keyboard_mode(self, checked):
         self.rudder_input.setDisabled(checked)
@@ -477,42 +500,50 @@ class CANWindow(QWidget, JoystickMixin):
         clipboard.setText(text)
         # Show a brief confirmation
         self.output_display.append(f"[COPIED] {text}")
-            
+
     # NOTE: Commented out this function as I don't need it
     # def getGraphObjFromXName(self, name):
     #     for obj in all_objs:
     #         if ((obj.graph_obj is not None) and (obj.graph_obj.dropdown_label == name)):
     #             return obj.graph_obj
-            
+
     def getObjFromLabel(self, dropdown_label) -> DataObject:
         for obj in all_objs:
-            if ((obj.graph_obj is not None) and (obj.graph_obj.dropdown_label == dropdown_label)):
+            if (obj.graph_obj is not None) and (
+                obj.graph_obj.dropdown_label == dropdown_label
+            ):
                 return obj
-        
+
     def setGraph(self, name: str, spot: int, dropdowns: list[QComboBox]) -> None:
-        '''
+        """
         Shows given graph at spot\n
         name = DataObj.graph_obj.dropdown_label\n
         spot = 0, 1, 2 (top, mid, bot)\n
-        '''
-        newObj = self.getObjFromLabel(name) 
+        """
+        newObj = self.getObjFromLabel(name)
         # newGraphObj = self.getGraphObjFromXName(name) # get graph to put in spot
         newGraphObj = newObj.graph_obj
 
-        if (newGraphObj.dropdown_label == self.visibleGraphObjs[spot].dropdown_label):
-            return # do nothing
-        if newGraphObj in self.visibleGraphObjs: # if graph to put in spot is already visible
+        if newGraphObj.dropdown_label == self.visibleGraphObjs[spot].dropdown_label:
+            return  # do nothing
+        if (
+            newGraphObj in self.visibleGraphObjs
+        ):  # if graph to put in spot is already visible
             # don't allow the switch to happen - set dropdown text back to original and print error message
             print("[ERR] Graph is already visible")
-            dropdowns[spot].setCurrentText(self.visibleGraphObjs[spot].dropdown_label) # switch text back to original
-        else: 
-            self.right_graphs_layout.removeWidget(self.visibleGraphObjs[spot].graph) # remove graph currently in spot
+            dropdowns[spot].setCurrentText(
+                self.visibleGraphObjs[spot].dropdown_label
+            )  # switch text back to original
+        else:
+            self.right_graphs_layout.removeWidget(
+                self.visibleGraphObjs[spot].graph
+            )  # remove graph currently in spot
             self.visibleGraphObjs[spot].hide()
             self.right_graphs_layout.addWidget(newGraphObj.graph, spot, 0)
             newGraphObj.show()
-            self.visibleGraphObjs[spot] = newGraphObj  
-            newObj.update_line_data() 
-        
+            self.visibleGraphObjs[spot] = newGraphObj
+            newObj.update_line_data()
+
         dropdowns[spot].clearFocus()
 
     def keyPressEvent(self, event):
@@ -539,14 +570,14 @@ class CANWindow(QWidget, JoystickMixin):
         elif key == Qt.Key_W:
             self.trimtab_angle = 0
             self.send_trim_tab(from_keyboard=True)
-    
+
     def can_send(self, frame_id, data, display_msg):
-        '''
+        """
         Helper function for sending CAN messages\n
         frame_id: full frame id of message as a string WITHOUT 0x prefix (eg. 001, 041)\n
         data: hex string of message in little endian (assumes valid data)\n
         display_msg: Message to be outputted on GUI CAN_DUMP display
-        '''
+        """
         try:
             msg = "cansend " + can_line + " " + frame_id + "##0" + data
             self.cansend_queue.put(msg)
@@ -563,15 +594,23 @@ class CANWindow(QWidget, JoystickMixin):
             if from_keyboard:
                 angle = self.trimtab_angle
             else:
-                angle = round(set_angle, 3) if set_angle is not None else round(float(self.trim_input.text()), 3)
+                angle = (
+                    round(set_angle, 3)
+                    if set_angle is not None
+                    else round(float(self.trim_input.text()), 3)
+                )
                 self.trimtab_angle = angle
 
             if angle < cg.min_trimtab_angle or angle > cg.max_trimtab_angle:
-                raise ValueError(f"Invalid angle input for Trim Tab: must be between {cg.min_trimtab_angle} and {cg.max_trimtab_angle} degrees")
-            
-            value = convert_to_hex(int((angle+90) * 1000), 4)
+                raise ValueError(
+                    f"Invalid angle input for Trim Tab: must be between {cg.min_trimtab_angle} and {cg.max_trimtab_angle} degrees"
+                )
+
+            value = convert_to_hex(int((angle + 90) * 1000), 4)
             self.can_send("002", convert_to_little_endian(value), "TRIMTAB SENT")
-            self.trimtab_display.setText(f"Current Trim Tab Angle: {self.trimtab_angle} degrees")
+            self.trimtab_display.setText(
+                f"Current Trim Tab Angle: {self.trimtab_angle} degrees"
+            )
         except ValueError as e:
             print(f"ValueError: {e}")
             self.show_error(f"ValueError: {e}")
@@ -579,11 +618,11 @@ class CANWindow(QWidget, JoystickMixin):
     def send_desired_heading(self):
         try:
             heading = float(self.desired_heading_input.text())
-            if ((heading < 0) or (heading > 360)): 
+            if (heading < 0) or (heading > 360):
                 raise ValueError
             # Note: We lose precision of decimal places if too many are entered: only keeps 3 dp
             data = convert_to_little_endian(convert_to_hex(int(heading * 1000), 4))
-            status_byte = "00" # a = 0, b = 0 
+            status_byte = "00"  # a = 0, b = 0
             self.can_send("001", data + status_byte, "HEADING SENT")
             desired_heading_obj.add_datapoint(time.time() - self.time_start, heading)
             # desired_heading_obj.update_label() # No explicit label with the other objects for this item; already have Heading Set Angle
@@ -594,27 +633,31 @@ class CANWindow(QWidget, JoystickMixin):
             self.show_error(f"Exception thrown from send_desired_heading: {exp}")
 
     def send_rudder(self, from_keyboard=False, set_angle: float = None):
-        '''set_angle is a given angle'''
+        """set_angle is a given angle"""
         try:
             if from_keyboard:
                 angle = self.rudder_angle
-            elif set_angle is not None: 
+            elif set_angle is not None:
                 angle = round(set_angle, 3)
-            else: 
+            else:
                 angle = int(self.rudder_input.text())
-            
+
             if not from_keyboard:
-                self.rudder_angle = angle # TODO: Why is this here? Keep self.rudder_angle up-to-date?
+                self.rudder_angle = (
+                    angle  # TODO: Why is this here? Keep self.rudder_angle up-to-date?
+                )
 
-            if (angle < -90):
+            if angle < -90:
                 raise ValueError("ERR - Rudder Angle input < -90")
-            
-            data = convert_to_little_endian(convert_to_hex(int((angle+90) * 1000), 4))
 
-            status_byte = "80" # a = 1, b = 0, c = 0
+            data = convert_to_little_endian(convert_to_hex(int((angle + 90) * 1000), 4))
+
+            status_byte = "80"  # a = 1, b = 0, c = 0
             self.can_send("001", data + status_byte, "RUDDER SENT")
-            self.rudder_display.setText(f"Current Set Rudder Angle:  {self.rudder_angle} degrees")
-            
+            self.rudder_display.setText(
+                f"Current Set Rudder Angle:  {self.rudder_angle} degrees"
+            )
+
             # print("line 709")
 
             set_rudder_obj.add_datapoint(time.time() - self.time_start, angle)
@@ -634,13 +677,19 @@ class CANWindow(QWidget, JoystickMixin):
     def send_restart_power(self):
         self.can_send("202", "14", "RESTART POWER")
         self.can_send("003", "0F", "")
-    
+
     def send_pid(self):
         # check for valid p, i, d inputs
         try:
-            p = convert_to_little_endian(convert_to_hex(int(float(self.p_input.text()) * 1000000), 4))
-            i = convert_to_little_endian(convert_to_hex(int(float(self.i_input.text()) * 1000000), 4))
-            d = convert_to_little_endian(convert_to_hex(int(float(self.d_input.text()) * 1000000), 4))
+            p = convert_to_little_endian(
+                convert_to_hex(int(float(self.p_input.text()) * 1000000), 4)
+            )
+            i = convert_to_little_endian(
+                convert_to_hex(int(float(self.i_input.text()) * 1000000), 4)
+            )
+            d = convert_to_little_endian(
+                convert_to_hex(int(float(self.d_input.text()) * 1000000), 4)
+            )
             can_data = p + i + d
             self.can_send("200", can_data, "SEND PID")
 
@@ -658,14 +707,14 @@ class CANWindow(QWidget, JoystickMixin):
         # Update time independently of CAN messages
         current_time = time.time() - self.time_start
         # print(f"current position data = {pid_obj.data}")
-        
+
         # Process any new CAN messages
         while not self.queue.empty():
             line = self.queue.get()
             # self.output_display.append(line)
 
             new_msg_to_log = False
-  
+
             # print(f"line parsed = {line}")
 
             # Send to separate logging process (non-blocking)
@@ -681,117 +730,153 @@ class CANWindow(QWidget, JoystickMixin):
                 if len(parts) > 2:
                     frame_id = parts[1].lower()
                     self.time_history.append(current_time)
-                    
+
                     # TODO: Use a dictionary with frame id:function - just runs the function associated with frame id?
                     # There's definitely some abstraction that can be done here
                     match frame_id:
-                        case "001": # Sent frame to rudder
+                        case "001":  # Sent frame to rudder
                             pass
-                        case "002": # Sent frame to trim tab
+                        case "002":  # Sent frame to trim tab
                             pass
-                        case "040": # Sail_Wind frame
+                        case "040":  # Sail_Wind frame
                             try:
-                                raw_data = line.split(']')[-1].strip().split()
-                                parsed = parse_sail_wind_sensor_frame(''.join(raw_data))
+                                raw_data = line.split("]")[-1].strip().split()
+                                parsed = parse_sail_wind_sensor_frame("".join(raw_data))
                                 for obj in sail_wind_objs:
                                     obj.parse_frame(current_time, None, parsed)
                                     obj.update_label()
                             except Exception as e:
-                                self.output_display.append(f"[PARSE ERROR 0x040] {str(e)}")
-                        case "041": # Data_Wind frame
+                                self.output_display.append(
+                                    f"[PARSE ERROR 0x040] {str(e)}"
+                                )
+                        case "041":  # Data_Wind frame
                             try:
-                                raw_data = line.split(']')[-1].strip().split()
-                                parsed = parse_wind_sensor_frame(''.join(raw_data))
+                                raw_data = line.split("]")[-1].strip().split()
+                                parsed = parse_wind_sensor_frame("".join(raw_data))
                                 for obj in data_wind_objs:
                                     obj.parse_frame(current_time, None, parsed)
                                     obj.update_label()
                             except Exception as e:
-                                self.output_display.append(f"[PARSE ERROR 0x041] {str(e)}")
-                        case "060": # AIS frame
+                                self.output_display.append(
+                                    f"[PARSE ERROR 0x041] {str(e)}"
+                                )
+                        case "060":  # AIS frame
                             try:
-                                raw_data = line.split(']')[-1].strip().split()
-                                parsed = parse_0x060_frame(''.join(raw_data), current_time)
-                                if parsed[AIS_Attributes.TOTAL] != 0: # if ship frame is valid
-                                    ais_obj.add_frame(parsed[AIS_Attributes.LONGITUDE], parsed[AIS_Attributes.LATITUDE], parsed[AIS_Attributes.SID], parsed, AIS_Attributes.LONGITUDE)
-                                    if parsed[AIS_Attributes.IDX] == (parsed[AIS_Attributes.TOTAL] - 1):
-                                        ais_obj.log_data(datetime.now().isoformat(), time.time() - self.time_start)
+                                raw_data = line.split("]")[-1].strip().split()
+                                parsed = parse_0x060_frame(
+                                    "".join(raw_data), current_time
+                                )
+                                if (
+                                    parsed[AIS_Attributes.TOTAL] != 0
+                                ):  # if ship frame is valid
+                                    ais_obj.add_frame(
+                                        parsed[AIS_Attributes.LONGITUDE],
+                                        parsed[AIS_Attributes.LATITUDE],
+                                        parsed[AIS_Attributes.SID],
+                                        parsed,
+                                        AIS_Attributes.LONGITUDE,
+                                    )
+                                    if parsed[AIS_Attributes.IDX] == (
+                                        parsed[AIS_Attributes.TOTAL] - 1
+                                    ):
+                                        ais_obj.log_data(
+                                            datetime.now().isoformat(),
+                                            time.time() - self.time_start,
+                                        )
                             except Exception as e:
-                                self.output_display.append(f"[PARSE ERROR 0x060] {str(e)}")
+                                self.output_display.append(
+                                    f"[PARSE ERROR 0x060] {str(e)}"
+                                )
 
-                        case "070": # GPS frame
-                                try:
-                                    raw_data = line.split(']')[-1].strip().split()
-                                    parsed = parse_0x070_frame(''.join(raw_data))
-                                    for obj in gps_objs:
-                                        obj.parse_frame(current_time, None, parsed)
-                                        obj.update_label()
+                        case "070":  # GPS frame
+                            try:
+                                raw_data = line.split("]")[-1].strip().split()
+                                parsed = parse_0x070_frame("".join(raw_data))
+                                for obj in gps_objs:
+                                    obj.parse_frame(current_time, None, parsed)
+                                    obj.update_label()
 
-                                    if ais_obj.graph_obj.isVisible(): # graph POLARIS's current position if graph is visible
-                                        lon = gps_lon_obj.get_current()[1]
-                                        lat = gps_lat_obj.get_current()[1]
-                                        ais_obj.update_polaris_pos(lon, lat)
-                                        ais_obj.update_range(lon - cg.longitude_range, lon + cg.longitude_range, lat - cg.latitude_range, lat + cg.latitude_range)
-                                        
-                                
-                                except Exception as e:
-                                    self.output_display.append(f"[PARSE ERROR 0x070] {str(e)}")
+                                if ais_obj.graph_obj.isVisible():  # graph POLARIS's current position if graph is visible
+                                    lon = gps_lon_obj.get_current()[1]
+                                    lat = gps_lat_obj.get_current()[1]
+                                    ais_obj.update_polaris_pos(lon, lat)
+                                    ais_obj.update_range(
+                                        lon - cg.longitude_range,
+                                        lon + cg.longitude_range,
+                                        lat - cg.latitude_range,
+                                        lat + cg.latitude_range,
+                                    )
 
-                        case "100": # water_temp sensor frame
+                            except Exception as e:
+                                self.output_display.append(
+                                    f"[PARSE ERROR 0x070] {str(e)}"
+                                )
+
+                        case "100":  # water_temp sensor frame
                             try:
                                 temp_sensor_obj.parse_frame(current_time, line)
                                 temp_sensor_obj.update_label()
                             except Exception as e:
-                                self.output_display.append(f"[PARSE ERROR 0x100] {str(e)}")
-                       
-                        case "110": # pH sensor frame
-                            try:               
+                                self.output_display.append(
+                                    f"[PARSE ERROR 0x100] {str(e)}"
+                                )
+
+                        case "110":  # pH sensor frame
+                            try:
                                 pH_obj.parse_frame(current_time, line)
                                 pH_obj.update_label()
                             except Exception as e:
-                                self.output_display.append(f"[PARSE ERROR 0x110] {str(e)}")
+                                self.output_display.append(
+                                    f"[PARSE ERROR 0x110] {str(e)}"
+                                )
 
-                        case "120": # salinity sensor frame
-                            try: 
+                        case "120":  # salinity sensor frame
+                            try:
                                 sal_obj.parse_frame(current_time, line)
-                                sal_obj.update_label()                                            
+                                sal_obj.update_label()
                             except Exception as e:
-                                self.output_display.append(f"[PARSE ERROR 0x120] {str(e)}") 
+                                self.output_display.append(
+                                    f"[PARSE ERROR 0x120] {str(e)}"
+                                )
 
-                        case "130": # PDB Heartbeat frame
+                        case "130":  # PDB Heartbeat frame
                             pdb_hb_module.set_alive(current_time)
                         case "131":
                             rudr_hb_module.set_alive(current_time)
-                        case "132": # SAIL Heartbeat frame
+                        case "132":  # SAIL Heartbeat frame
                             sail_hb_module.set_alive(current_time)
                         case "133":
                             sense_hb_module.set_alive(current_time)
 
-                        case "204": # Handle 0x204 frame (actual rudder angle)
-
+                        case "204":  # Handle 0x204 frame (actual rudder angle)
                             try:
-                                raw_data = line.split(']')[-1].strip().split()
-                                parsed = parse_0x204_frame(''.join(raw_data))
+                                raw_data = line.split("]")[-1].strip().split()
+                                parsed = parse_0x204_frame("".join(raw_data))
                                 for obj in rudder_objs:
                                     obj.parse_frame(current_time, None, parsed)
                                     obj.update_label()
                             except Exception as e:
-                                self.output_display.append(f"[PARSE ERROR 0x204] {str(e)}")
-                           
+                                self.output_display.append(
+                                    f"[PARSE ERROR 0x204] {str(e)}"
+                                )
+
                         case "206":
                             try:
-                                raw_data = line.split(']')[-1].strip().split()
-                                parsed = parse_0x206_frame(''.join(raw_data))
+                                raw_data = line.split("]")[-1].strip().split()
+                                parsed = parse_0x206_frame("".join(raw_data))
                                 for obj in pdb_objs:
-                                    obj.parse_frame(current_time, None, parsed)                           
+                                    obj.parse_frame(current_time, None, parsed)
                                     obj.update_label()
                             except Exception as e:
-                                self.output_display.append(f"[PARSE ERROR 0x206] {str(e)}")
-        
+                                self.output_display.append(
+                                    f"[PARSE ERROR 0x206] {str(e)}"
+                                )
+
                         case _:
                             print(f"Frame id not recognized: {frame_id}")
 
                 # Log current values
-                if (new_msg_to_log and (len(self.time_history) > 0)):
+                if new_msg_to_log and (len(self.time_history) > 0):
                     # actual_rudder = self.actual_rudder_history[-1] if self.actual_rudder_history else None
                     self._log_values()
 
@@ -802,7 +887,7 @@ class CANWindow(QWidget, JoystickMixin):
         # Update heartbeat displays
         for mod in heartbeat_modules:
             mod.update_status(current_time)
-                        
+
         # Always update plots every timer cycle (independent of CAN messages) # TODO: Modify this - batch plot updates?
         if len(self.time_history) > 0:
             self._update_plot_ranges(current_time)
@@ -810,9 +895,13 @@ class CANWindow(QWidget, JoystickMixin):
         # Handle temperature updates with connection status tracking
         if self.temp_pipe.poll():
             connected, value = self.temp_pipe.recv()
-            self.temp_label.setText(f"RPI Temp: {value}" if connected else "RPI Temp: --")
+            self.temp_label.setText(
+                f"RPI Temp: {value}" if connected else "RPI Temp: --"
+            )
             self.status_label.setText("CONNECTED" if connected else "DISCONNECTED")
-            self.status_label.setStyleSheet("color: green" if connected else "color: red")
+            self.status_label.setStyleSheet(
+                "color: green" if connected else "color: red"
+            )
             self.last_temp_update = time.time()
         else:
             # Check if we haven't received a temperature update in too long (connection lost)
@@ -830,15 +919,16 @@ class CANWindow(QWidget, JoystickMixin):
             elif out:
                 self.output_display.append(f"[OUT] {out.strip()}")
 
-        # Handle joystick updates 
-        if (self.get_joystick_enabled()):
+        # Handle joystick updates
+        if self.get_joystick_enabled():
             moved, pos = self.joystick_moved(cg.rudder_axis, cg.rudder_latch)
             if moved:
-                self.send_rudder(set_angle = cg.max_rudder_angle * pos)
+                self.send_rudder(set_angle=cg.max_rudder_angle * pos)
             moved, pos = self.joystick_moved(cg.trimtab_axis, cg.trimtab_latch)
             if moved:
                 trimtab_angle = (
-                    cg.max_trimtab_angle * pos if pos >= 0
+                    cg.max_trimtab_angle * pos
+                    if pos >= 0
                     else abs(cg.min_trimtab_angle) * pos
                 )
                 self.send_trim_tab(set_angle=trimtab_angle)
@@ -847,29 +937,33 @@ class CANWindow(QWidget, JoystickMixin):
         # === Auto-scale and scroll X axis ===
         if len(self.time_history) > 1:
             for obj in data_objs:
-                if (obj.graph_obj is not None):
-                    obj.graph_obj.update_xlim(max(0, current_time - scroll_window), current_time)
+                if obj.graph_obj is not None:
+                    obj.graph_obj.update_xlim(
+                        max(0, current_time - scroll_window), current_time
+                    )
 
     def show_error(self, msg):
         QMessageBox.critical(self, "Error", msg)
+
 
 def key_interrupt_cleanup(a, b):
     sys.exit(app.exec_())
     cleanup()
 
+
 def cleanup():
     print("Cleaning up...")
-        
+
     # Close window and log files
     try:
         window.closeEvent(None)
     except:
         pass
-    
+
     # Clean up processes
     cmd_queue.put("__EXIT__")
     can_log_queue.put("__EXIT__")
-    
+
     candump_proc.terminate()
     temp_proc.terminate()
     cansend_proc.terminate()
@@ -888,8 +982,9 @@ def cleanup():
     response_queue.close()
     cmd_queue.close()
     can_log_queue.close()
-    
+
     print("Cleanup complete.")
+
 
 if __name__ == "__main__":
     multiprocessing.set_start_method("spawn")
@@ -901,13 +996,19 @@ if __name__ == "__main__":
     response_queue = multiprocessing.Queue()
     can_log_queue = multiprocessing.Queue()
     current_time = datetime.now()
-    timestamp = current_time.strftime('%Y%m%d_%H%M%S')
-    current_time = current_time.timestamp() # convert to seconds since epoch
+    timestamp = current_time.strftime("%Y%m%d_%H%M%S")
+    current_time = current_time.timestamp()  # convert to seconds since epoch
 
-    candump_proc = multiprocessing.Process(target=candump_process, args=(queue, False)) # Testing mode set to false when run from main
+    candump_proc = multiprocessing.Process(
+        target=candump_process, args=(queue, False)
+    )  # Testing mode set to false when run from main
     temp_proc = multiprocessing.Process(target=temperature_reader, args=(child_conn,))
-    cansend_proc = multiprocessing.Process(target=cansend_worker, args=(cmd_queue, response_queue, can_log_queue))
-    can_logging_proc = multiprocessing.Process(target=can_logging_process, args=(queue, can_log_queue, timestamp))
+    cansend_proc = multiprocessing.Process(
+        target=cansend_worker, args=(cmd_queue, response_queue, can_log_queue)
+    )
+    can_logging_proc = multiprocessing.Process(
+        target=can_logging_process, args=(queue, can_log_queue, timestamp)
+    )
 
     candump_proc.start()
     temp_proc.start()
@@ -919,16 +1020,18 @@ if __name__ == "__main__":
 
     app = QApplication(sys.argv)
     for obj in all_objs:
-        obj.initialize(timestamp) # create QWidgets
+        obj.initialize(timestamp)  # create QWidgets
     for mod in heartbeat_modules:
         mod.init_time(current_time)
-    window = CANWindow(queue, parent_conn, cmd_queue, response_queue, can_log_queue, timestamp)
-    window.initialize_joystick() # Joystick initialization
+    window = CANWindow(
+        queue, parent_conn, cmd_queue, response_queue, can_log_queue, timestamp
+    )
+    window.initialize_joystick()  # Joystick initialization
     window.show()
 
     try:
         sys.exit(app.exec_())
-    except KeyboardInterrupt: # note: Ctrl+C doesn't work due to QT loop taking over
+    except KeyboardInterrupt:  # note: Ctrl+C doesn't work due to QT loop taking over
         print("\nKeyboard interrupt received, shutting down...")
     except Exception as e:
         print(f"Unexpected error: {e}")

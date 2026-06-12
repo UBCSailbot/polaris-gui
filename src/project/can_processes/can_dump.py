@@ -4,11 +4,12 @@ import paramiko
 from project.data_object import *
 from project.utility import *
 
+
 ### ----------  Background CAN Dump Process ---------- ###
 def candump_process(queue: multiprocessing.Queue, testing):
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    if (testing):
+    if testing:
         # TODO
         print("TESTING MODE ON")
     else:
@@ -24,7 +25,7 @@ def candump_process(queue: multiprocessing.Queue, testing):
                     line = session.recv(1024).decode()
                     lines = line.split("\n")
                     for l in lines:
-                        if (l != ""):
+                        if l != "":
                             queue.put(l.strip())
                 time.sleep(0.1)
         except Exception as e:
