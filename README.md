@@ -50,6 +50,16 @@ Regular CAN up:
 CAN up command with loopback (use if using candump can1):
 "CAN1 Up", "sudo ip link set can1 up type can bitrate 500000 dbitrate 1000000 fd on loopback on"
 
+# Steps for setting up the GUI after a fresh clone:
+1. First you should have already cloned the repo using `git clone ...`
+2. Go to the root folder `/polaris-gui`
+3. Run `python3 -m venv .venv`
+4. Run `source .venv/bin/activate`
+5. Run `pip install -r requirements.txt`
+6. Run `pip install -e .`
+7. Switch to the most updated branch
+8. Set up is finished! To run the main program, run `python ./src/project/remote_debugger.py`
+
 ## If you get an error the following error:
 
 Warning: Ignoring XDG_SESSION_TYPE=wayland on Gnome. Use QT_QPA_PLATFORM=wayland to run on Wayland anyway.
