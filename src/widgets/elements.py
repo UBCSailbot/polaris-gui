@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
-from config import Config as cg
+import config as cg
 from config import input_label_style
 from utils import all_objs
 

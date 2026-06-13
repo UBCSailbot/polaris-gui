@@ -4,7 +4,7 @@ import sys
 import time
 from datetime import datetime
 
-from objects import all_objs
+from utils import all_objs
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QApplication, QMessageBox, QWidget
 

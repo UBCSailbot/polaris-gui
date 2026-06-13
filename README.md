@@ -11,7 +11,7 @@ This repository contains source code for the GUI application designed to interfa
     2. Run `source .venv/bin/activate` you will need to do this whenever open a new terminal
         * Note: On Windows run `.\.venv\Scripts\activate`. If you get an error saying "Running scripts is disabled on this system", run `Set-ExecutionPolicy Unrestricted -Scope Process` and then try the activation command again.
 4. Install project dependencies with `pip install -r requirements.txt`
-5. Run the application with `python .\src\Remote_Debugger.py`
+5. Run the application with `python .\src\main.py`
 6. Deactive the virtual environment with `deactivate`
     * Note: `deactivate` should work for both Linux and Windows.
 
