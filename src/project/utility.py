@@ -99,8 +99,8 @@ def parse_0x204_frame(data_hex):
         imu_pitch_obj.name: val(4, 6, 100.0) - 180,
         imu_heading_obj.name: val(6, 8, 100.0),
         set_rudder_obj.name: val(8, 10, 100.0) - 90,
-        integral_obj.name: val(10, 12, 1.0),
-        derivative_obj.name: val(12, 14, 1.0),
+        integral_obj.name: val(10, 12, 1.0) - integral_offset,
+        derivative_obj.name: val(12, 14, 1.0) - derivative_offset,
         spd_over_gnd_obj.name: val(14, 16, 1000.0)
     }
     
@@ -366,8 +366,6 @@ sail_hb_module = HeartbeatModule(sail_title_text)
 sense_hb_module = HeartbeatModule(sense_title_text)
 
 heartbeat_modules = [pdb_hb_module, sail_hb_module, rudr_hb_module, sense_hb_module]
-
-# TODO: Add the rest of the modules, one at a time - once done testing all function w/ pdb module
 
 ### ---------- Data Objects ---------- ###
 # NOTE: If multiple data objects take data from the same frame, the parsing function function for all of them is None

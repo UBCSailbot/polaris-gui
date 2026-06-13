@@ -86,7 +86,7 @@ plrs_path_data_timeout = 30 # 2 * 60 # amt of time (in seconds) before POLARIS p
 latitude_range = 0.1 # in decimal degrees
 longitude_range = 0.1 # in decimal degrees
 
-# ==== Heading ====
+# ==== Heading & PID Tuning ====
 ARROW_TIME_SCALING_ENABLED = True # If True, how often heading arrows appear is time-based; if False, it is distance-based 
 min_time_between_arrows = 1 # Minimum time between heading arrows appearance (in seconds)
 min_dist_between_arrows = 15.0 # heading arrows only appear on points at least min_dist_between_arrows metres away from the last recorded point
@@ -105,6 +105,16 @@ h_arrow_actual_brush = 'red'
 # Heading names for reference
 desired_heading_arrow_name = "desired_heading_arrow"
 actual_heading_arrow_name = "actual_heading_arrow"
+
+# PID Tunable Parameters
+# NOTE: 
+pid_unknowns = {
+
+}
+
+# ==== CAN Frame offset parameters ====
+integral_offset = 30000
+derivative_offset = 30000
 
 # ==== Joystick ====
 movement_sensitivity = 1 # number of decimal point precision
