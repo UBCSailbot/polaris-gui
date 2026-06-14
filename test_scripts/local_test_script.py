@@ -26,7 +26,7 @@ import math
 can_line = "can0"
 
 # Time before starting tests to allow remote debugger to initialize (in secs)
-start_delay = 5
+start_delay = 0
 
 # Time between sent frames (in secs)
 delay = 0.20
@@ -345,7 +345,7 @@ def run_local_test(msg_queue: multiprocessing.Queue, delay, data = None):
         # NOTE: BE CAREFUL!! Using standard libraries, will likely need to do conversion
     # NOTE: these values will be put into the local_test_script, and visually checked manually
     # lat_test_straight_line = [49.2722, 49.272201, 49.272202, 49.272203, 49.272204, 49.272205, 49.272206, 49.272207, 49.272208, 49.272209]
-    num_dp = 100
+    num_dp = 300
     lat_ref = 49.2722 
     lon_ref = -123.1985
     lat_test_straight_line = [49.2722 + (i * 0.000001) for i in range(0, num_dp)]
