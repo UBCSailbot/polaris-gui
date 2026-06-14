@@ -1,4 +1,5 @@
 import math
+import struct
 
 from project.data_object import *
 from project.pyqt_widgets.heartbeat_module import HeartbeatModule
@@ -46,6 +47,12 @@ def convert_from_little_endian_str(hex_str):
 def val(raw_bytes, s, e, div) -> float:
     return int.from_bytes(raw_bytes[s:e], 'little') / div
 
+def convert_float_to_binary32hex(val: float) -> str:
+    '''
+    Return a 8-character lowercase hex string in little endian byte order
+    representing the given float in IEEE-754 binary32 format'''
+    # return f"{struct.unpack('<I', struct.pack('<f', val))[0]:08x}"
+    return f"{struct.unpack('<I', struct.pack('!f', val))[0]:08x}"
 
 # NOTE: Currently returns True/False, but parsing functions don't do anything with this return value as of yet - it just prints it as a notice
 # NOTE: May add functionality to also log if a given data point is out of range (ie. is sus)

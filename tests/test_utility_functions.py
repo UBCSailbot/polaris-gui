@@ -45,3 +45,30 @@ def test_convert_to_little_endian(hex_str, expected_value, expected_outcome):
         assert expected_outcome == Outcome.VALUE_ERROR
     except Exception:
         assert False
+
+
+@pytest.mark.parametrize(
+    "input, expected_output",
+    {
+        (0, "00000000"),
+        # (123.45, "42f6e666"),
+        (123.45, "66e6f642"),
+        # (34.2356, "4208f141"), 
+        (34.2356, "41f10842"), 
+        # (0.123456789, "3dfcd6ea"),
+        (0.123456789, "ead6fc3d"),
+        # (-911.2819, "c463d20b")
+        (-911.2819, "0bd263c4")
+    }
+)
+def test_convert_float_to_binary32hex(input, expected_output):
+    try:
+        actual_output = convert_float_to_binary32hex(input)
+        assert actual_output == expected_output
+    except Exception as e:
+        assert False
+
+
+
+# TODO: first test a function to convert data to hex
+# TODO: test the parse_0x204 frame issue
