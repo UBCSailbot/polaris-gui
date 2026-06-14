@@ -248,6 +248,19 @@ class CANWindow(QWidget, JoystickMixin):
         self.pid_layout.addWidget(self.pid_input_button)
         self.pid_layout.addWidget(self.pid_clear_button)
 
+        self.pid_param_dropdown = QComboBox()
+        self.pid_param_dropdown.setFont(QFont(cg.d_font_type, cg.d_font_size))
+        # TODO: add PID unknowns
+        # TODO: Look into 'grouping' for dropdown selection
+        # self.pid_param_dropdown.addItems(cg.pid_unknowns)
+        self.pid_param_dropdown.addItems(["Test Item 1", "Test Item 2", "Test Item 3"])
+        self.pid_param_input = QLineEdit(placeholderText = "Value")
+        self.pid_param_input_layout = QHBoxLayout()
+        self.pid_param_input_layout.addWidget(self.pid_param_dropdown)
+        self.pid_param_input_layout.addWidget(self.pid_param_input)
+        self.pid_param_button = QPushButton("Set PID Parameter")
+        # TODO: Do something (send CAN frame) on button click
+
         self.output_display = QTextEdit()
         self.output_display.setReadOnly(True)
         self.output_display.setMinimumWidth(350)
@@ -359,9 +372,6 @@ class CANWindow(QWidget, JoystickMixin):
         self.power_off_btn.setStyleSheet(red_button_style)
         self.restart_btn.setStyleSheet(red_button_style)
 
-
-        # TODO: add heartbeat widgets to left_layout (below)
-
         left_layout = QVBoxLayout()
         left_layout.addLayout(top_bar_layout)
         left_layout.addLayout(checkbox_layout)
@@ -377,8 +387,14 @@ class CANWindow(QWidget, JoystickMixin):
         input_layout.addWidget(self.rudder_input_group, 0, 0)
         input_layout.addWidget(self.trim_input_group, 0, 1)
         input_layout.addWidget(self.desired_heading_input_group, 0, 0)
+
+        # Add UI elements for PID tuning
         left_layout.addLayout(input_layout)
         left_layout.addLayout(self.pid_layout)
+        
+        # Add UI elements for PID parameter tuning
+        left_layout.addLayout(self.pid_param_input_layout)
+        left_layout.addWidget(self.pid_input_button)
 
         self.rudder_input_group.setVisible(False)
 
@@ -386,7 +402,8 @@ class CANWindow(QWidget, JoystickMixin):
         left_layout.addWidget(QLabel("Candump Output:"))
         left_layout.addWidget(self.output_display)
         left_layout.addSpacing(5)  # Add small spacing
-        # TODO: heartbeat displays go here
+
+        # Add UI elements for heartbeat displays 
         for mod in heartbeat_modules:
             mod.init_label()
             left_layout.addWidget(mod.label)
