@@ -64,6 +64,13 @@ def create_heading_arrow(angle, brush) -> HeadingArrow:
     # so conversion is necessary (standard function interprets angle # as 0 from W increasing clockwise)
     return HeadingArrow(angle=(angle + 90) % 360, headLen=cg.h_arrow_headLen, tailLen=cg.h_arrow_tailLen, headWidth=cg.h_arrow_headWidth, tailWidth=cg.h_arrow_tailWidth, pen=cg.h_arrow_pen, brush=brush)
 
+# A custom class which is used for modifying axis labels on the IMU Headings graph
+# such that it appears like 0 -> 359 -> 0 -> 359 -> ...
+# NOTE: This class only overrides the AxisItem.tickStrings() method
+class IMUHeadingAxisItem(pg.AxisItem):
+    def tickStrings(self, values: list[float], scale: float, spacing: float) -> list[str]:
+        return [str(val % 360) for val in values]
+
 # data is a dictionary with values = data logged, keys = time logged
 class GraphObject: # struct which keeps together objects needed for a graph
     def __init__(self, y_name, x_name, y_units, x_units, minn, maxn, dropdown_label = None, interactable: bool = False): # data = history?
@@ -215,6 +222,10 @@ class DataObject:
                 f"{self.name}: {self.get_current()[1]} {self.units}"
             )
         return
+
+# class IMUHeadingObject(DataObject):
+
+
 
 class PIDObject(DataObject):
     def __init__(self, name, x_name, y_name, dp, units, parsing_fn, timeout_duration: int, line_dashed = False, line_colour = None, symbol_brush = None, has_label = True, graph: GraphObject = None) -> None:
