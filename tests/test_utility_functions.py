@@ -51,14 +51,14 @@ def test_convert_to_little_endian(hex_str, expected_value, expected_outcome):
     "input, expected_output",
     {
         (0, "00000000"),
-        # (123.45, "42f6e666"),
-        (123.45, "66e6f642"),
-        # (34.2356, "4208f141"), 
-        (34.2356, "41f10842"), 
-        # (0.123456789, "3dfcd6ea"),
-        (0.123456789, "ead6fc3d"),
-        # (-911.2819, "c463d20b")
-        (-911.2819, "0bd263c4")
+        (123.45, "42f6e666"),
+        # (123.45, "66e6f642"),
+        (34.2356, "4208f141"), 
+        # (34.2356, "41f10842"), 
+        (0.123456789, "3dfcd6ea"),
+        # (0.123456789, "ead6fc3d"),
+        (-911.2819, "c463d20b")
+        # (-911.2819, "0bd263c4")
     }
 )
 def test_convert_float_to_binary32hex(input, expected_output):
