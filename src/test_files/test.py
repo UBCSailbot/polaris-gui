@@ -9,6 +9,7 @@ import math
 import pyqtgraph as pg
 from PyQt5 import QtCore, QtWidgets, QtGui
 
+from project.data_object import IMUHeadingAxisItem
 
 class MyArrowItem(pg.ArrowItem):
     def paint(self, p, *args):
@@ -32,16 +33,20 @@ lon_test_sine_path = [lon_ref + (0.00001 * math.sin(i * 0.1)) for i in range(0, 
 d_heading_sine_path = [90 * math.sin(i) for i in range(0, num_dp)]
 a_heading_sine_path = [90, 90, 90, 45, 45, 45, 90, 90, 90, 135, 135, 135] * num_dp
     
-y = [(lat_data - lat_ref) * 110562 for lat_data in lat_test_sine_path]
-x = [(lon_data - lon_ref) * math.cos(math.radians(lat_ref)) * 111320 for lon_data in lon_test_sine_path]
-print("lat[0:5] = ", lat_test_sine_path[0:5])
-print("lon[0:5] = ", lon_test_sine_path[0:5])
-print("x[0:5] = ", x[0:5])
-print("y[0:5] = ", y[0:5])
+# y = [(lat_data - lat_ref) * 110562 for lat_data in lat_test_sine_path]
+# x = [(lon_data - lon_ref) * math.cos(math.radians(lat_ref)) * 111320 for lon_data in lon_test_sine_path]
+# print("lat[0:5] = ", lat_test_sine_path[0:5])
+# print("lon[0:5] = ", lon_test_sine_path[0:5])
+# print("x[0:5] = ", x[0:5])
+# print("y[0:5] = ", y[0:5])
+
+y = [i for i in range(-370, 370, 20)]
+x = [i for i in range(0, len(y))]
 
 app = QtWidgets.QApplication([])
 
-p = pg.PlotWidget()
+headingAxisItem = IMUHeadingAxisItem("left")
+p = pg.PlotWidget(axisItems={"left": headingAxisItem})
 p.showGrid(x = True, y = True, alpha = 0.3)
 p.setBackground('w')
 
