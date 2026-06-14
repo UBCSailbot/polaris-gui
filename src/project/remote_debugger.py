@@ -259,6 +259,7 @@ class CANWindow(QWidget, JoystickMixin):
         self.pid_param_input_layout.addWidget(self.pid_param_dropdown)
         self.pid_param_input_layout.addWidget(self.pid_param_input)
         self.pid_param_button = QPushButton("Set PID Parameter")
+        self.pid_param_button.clicked.connect(self.send_pid_param)
         # TODO: Do something (send CAN frame) on button click
 
         self.output_display = QTextEdit()
@@ -394,7 +395,7 @@ class CANWindow(QWidget, JoystickMixin):
         
         # Add UI elements for PID parameter tuning
         left_layout.addLayout(self.pid_param_input_layout)
-        left_layout.addWidget(self.pid_input_button)
+        left_layout.addWidget(self.pid_param_button)
 
         self.rudder_input_group.setVisible(False)
 
@@ -668,9 +669,23 @@ class CANWindow(QWidget, JoystickMixin):
         except Exception as e:
             print(f"Exception thrown from send_pid: {e}")
             self.show_error(f"Exception thrown from send_pid: {e}")
+        
+        return 
 
-    # def get_current_time(self):
-    #     return time.time() - self.time_start
+
+    def send_pid_param(self):
+        try:
+            status_byte = "00"
+            param_index = None
+            value = convert_to_little_endian(convert_float_to_binary32hex(float(self.pid_param_input.text())))
+            # TODO: create CAN message, send message
+        except ValueError as v:
+            self.show_error(f"Invalid input for PID parameter value: {v}")
+
+        except Exception as e:
+            self.show_error(f"Exception thrown from send_pid_param: {e}")
+
+        return
 
     def update_status(self):
         # Update time independently of CAN messages
@@ -869,6 +884,7 @@ class CANWindow(QWidget, JoystickMixin):
 
     def show_error(self, msg):
         QMessageBox.critical(self, "Error", msg)
+        print(f"Error: {msg}")
 
 def key_interrupt_cleanup(a, b):
     sys.exit(app.exec_())
