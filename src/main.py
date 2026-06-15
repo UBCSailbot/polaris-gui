@@ -2,7 +2,40 @@ import multiprocessing
 import signal
 import sys
 import time
+import os
 from datetime import datetime
+
+os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
+
+
+def _bootstrap_qt_runtime():
+    if os.environ.get("POLARIS_QT_BOOTSTRAPPED") == "1":
+        return
+
+    qt_lib_dir = os.path.join(
+        sys.prefix,
+        "lib",
+        f"python{sys.version_info.major}.{sys.version_info.minor}",
+        "site-packages",
+        "PyQt5",
+        "Qt5",
+        "lib",
+    )
+    if not os.path.isdir(qt_lib_dir):
+        return
+
+    current = os.environ.get("LD_LIBRARY_PATH", "")
+    paths = current.split(":") if current else []
+    if qt_lib_dir in paths:
+        return
+
+    env = os.environ.copy()
+    env["POLARIS_QT_BOOTSTRAPPED"] = "1"
+    env["LD_LIBRARY_PATH"] = f"{qt_lib_dir}:{current}" if current else qt_lib_dir
+    os.execvpe(sys.executable, [sys.executable, *sys.argv], env)
+
+
+_bootstrap_qt_runtime()
 
 from utils import all_objs
 from PyQt5.QtCore import Qt, QTimer
