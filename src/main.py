@@ -5,6 +5,24 @@ import time
 import os
 from datetime import datetime
 
+from utils import all_objs, heartbeat_modules
+from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtWidgets import QApplication, QMessageBox, QWidget
+
+from config import gui_update_freq, window_height, window_width, min_trimtab_angle, max_trimtab_angle
+from widgets import (
+    CANWindowControlsMixin,
+    CANWindowLoggingMixin,
+    CANWindowUIMixin,
+    CANWindowUpdateMixin,
+)
+from workers import (
+    can_logging_process,
+    candump_process,
+    cansend_worker,
+    temperature_reader,
+)
+
 os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
 
 
@@ -37,23 +55,6 @@ def _bootstrap_qt_runtime():
 
 _bootstrap_qt_runtime()
 
-from utils import all_objs
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtWidgets import QApplication, QMessageBox, QWidget
-
-from config import gui_update_freq, window_height, window_width, min_trimtab_angle, max_trimtab_angle
-from widgets import (
-    CANWindowControlsMixin,
-    CANWindowLoggingMixin,
-    CANWindowUIMixin,
-    CANWindowUpdateMixin,
-)
-from workers import (
-    can_logging_process,
-    candump_process,
-    cansend_worker,
-    temperature_reader,
-)
 
 
 class CANWindow(
@@ -72,7 +73,6 @@ class CANWindow(
         self.cansend_queue = cmd_queue
         self.cansend_response_queue = response_queue
         self.can_log_queue = can_log_queue
-        self.timestamp = timestamp
 
         self.rudder_angle = 0  # degrees
         self.trimtab_angle = 0  # degrees
@@ -85,7 +85,8 @@ class CANWindow(
         self.time_start = time.time()
         self.time_history = []
 
-        self._init_logging()
+        # Initialize logging
+        self._init_logging(timestamp)
 
         self.init_ui()
 
@@ -109,10 +110,11 @@ class CANWindow(
 
         key = event.key()
         if key == Qt.Key_A:
-            self.rudder_angle = max(self.rudder_angle - 3, -45)
-            self.send_rudder(from_keyboard=True)
-        elif key == Qt.Key_D:
             self.rudder_angle = min(self.rudder_angle + 3, 45)
+            self.send_rudder(from_keyboard=True)
+            # NOTE: now that send_rudder() takes a set_angle, can probably use that instead of setting self.rudder_angle and from_keyboard=True
+        elif key == Qt.Key_D:
+            self.rudder_angle = max(self.rudder_angle - 3, -45)
             self.send_rudder(from_keyboard=True)
         elif key == Qt.Key_S:
             self.rudder_angle = 0
@@ -174,14 +176,19 @@ def cleanup():
 if __name__ == "__main__":
     multiprocessing.set_start_method("spawn")
 
+    # Multiprocess initialization
     queue = multiprocessing.Queue()
     parent_conn, child_conn = multiprocessing.Pipe()
     cmd_queue = multiprocessing.Queue()
     response_queue = multiprocessing.Queue()
     can_log_queue = multiprocessing.Queue()
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    current_time = datetime.now()
+    timestamp = current_time.strftime("%Y%m%d_%H%M%S")
+    current_time = current_time.timestamp()  # convert to seconds since epoch
 
-    candump_proc = multiprocessing.Process(target=candump_process, args=(queue, False))
+    candump_proc = multiprocessing.Process(
+        target=candump_process, args=(queue, False)
+    )  # Testing mode set to false when run from main
     temp_proc = multiprocessing.Process(target=temperature_reader, args=(child_conn,))
     cansend_proc = multiprocessing.Process(
         target=cansend_worker, args=(cmd_queue, response_queue, can_log_queue)
@@ -195,14 +202,18 @@ if __name__ == "__main__":
     cansend_proc.start()
     can_logging_proc.start()
 
+    # Cleanup (CTRL + C) initialization
     signal.signal(signal.SIGINT, key_interrupt_cleanup)
 
     app = QApplication(sys.argv)
     for obj in all_objs:
-        obj.initialize()  # create QWidgets
+        obj.initialize(timestamp)  # create QWidgets
+    for mod in heartbeat_modules:
+        mod.init_time(current_time)
     window = CANWindow(
         queue, parent_conn, cmd_queue, response_queue, can_log_queue, timestamp
     )
+    window.initialize_joystick()  # Joystick initialization
     window.show()
 
     try:

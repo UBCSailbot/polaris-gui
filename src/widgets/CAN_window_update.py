@@ -53,6 +53,7 @@ class CANWindowUpdateMixin:
     def update_status(self):
         # Update time independently of CAN messages
         current_time = time.time() - self.time_start
+        # print(f"current position data = {pid_obj.data}")
 
         # Process any new CAN messages
         while not self.queue.empty():
@@ -77,8 +78,7 @@ class CANWindowUpdateMixin:
                     frame_id = parts[1].lower()
                     self.time_history.append(current_time)
 
-                    # TODO: Use a dictionary with frame id:function - just runs the
-                    # function associated with frame id?
+                    # TODO: Use a dictionary with frame id:function - just runs the function associated with frame id?
                     # There's definitely some abstraction that can be done here
                     match frame_id:
                         case "001":  # Sent frame to rudder
@@ -113,7 +113,9 @@ class CANWindowUpdateMixin:
                                 parsed = parse_0x060_frame(
                                     "".join(raw_data), current_time
                                 )
-                                if parsed[AIS_Attributes.TOTAL] != 0:
+                                if (
+                                    parsed[AIS_Attributes.TOTAL] != 0
+                                ):  # if ship frame is valid
                                     ais_obj.add_frame(
                                         parsed[AIS_Attributes.LONGITUDE],
                                         parsed[AIS_Attributes.LATITUDE],
@@ -132,6 +134,7 @@ class CANWindowUpdateMixin:
                                 self.output_display.append(
                                     f"[PARSE ERROR 0x060] {str(e)}"
                                 )
+
                         case "070":  # GPS frame
                             try:
                                 raw_data = line.split("]")[-1].strip().split()
@@ -140,7 +143,7 @@ class CANWindowUpdateMixin:
                                     obj.parse_frame(current_time, None, parsed)
                                     obj.update_label()
 
-                                if ais_obj.graph_obj.isVisible():
+                                if ais_obj.graph_obj.isVisible():  # graph POLARIS's current position if graph is visible
                                     lon = gps_lon_obj.get_current()[1]
                                     lat = gps_lat_obj.get_current()[1]
                                     ais_obj.update_polaris_pos(lon, lat)
@@ -150,6 +153,7 @@ class CANWindowUpdateMixin:
                                         lat - latitude_range,
                                         lat + latitude_range,
                                     )
+
                             except Exception as e:
                                 self.output_display.append(
                                     f"[PARSE ERROR 0x070] {str(e)}"
@@ -182,6 +186,15 @@ class CANWindowUpdateMixin:
                                     f"[PARSE ERROR 0x120] {str(e)}"
                                 )
 
+                        case "130":  # PDB Heartbeat frame
+                            pdb_hb_module.set_alive(current_time)
+                        case "131":
+                            rudr_hb_module.set_alive(current_time)
+                        case "132":  # SAIL Heartbeat frame
+                            sail_hb_module.set_alive(current_time)
+                        case "133":
+                            sense_hb_module.set_alive(current_time)
+
                         case "204":  # Handle 0x204 frame (actual rudder angle)
                             try:
                                 raw_data = line.split("]")[-1].strip().split()
@@ -211,8 +224,7 @@ class CANWindowUpdateMixin:
 
                 # Log current values
                 if new_msg_to_log and (len(self.time_history) > 0):
-                    # actual_rudder = self.actual_rudder_history[-1] if
-                    # self.actual_rudder_history else None
+                    # actual_rudder = self.actual_rudder_history[-1] if self.actual_rudder_history else None
                     self._log_values()
 
         # trim values no longer being graphed
@@ -223,17 +235,9 @@ class CANWindowUpdateMixin:
         for mod in heartbeat_modules:
             mod.update_status(current_time)
 
-        # Always update plots every timer cycle (independent of CAN messages)
-        # # TODO: Modify this - batch plot updates?
+        # Always update plots every timer cycle (independent of CAN messages) # TODO: Modify this - batch plot updates?
         if len(self.time_history) > 0:
             self._update_plot_ranges(current_time)
-
-        # Add new data point to desired_heading graph every 5 secs -
-        # since it's not regularly updated with CAN messages
-        # current_dheading = desired_heading_obj.get_current()
-        # if (current_dheading[1] is not None and ((current_time -
-        # current_dheading[0]) > 5)): # if not graphed since 5 seconds ago
-        #     desired_heading_obj.add_datapoint(current_time, current_dheading[1])
 
         # Handle temperature updates with connection status tracking
         if self.temp_pipe.poll():
@@ -247,8 +251,7 @@ class CANWindowUpdateMixin:
             )
             self.last_temp_update = time.time()
         else:
-            # Check if we haven't received a temperature update in too long
-            # (connection lost)
+            # Check if we haven't received a temperature update in too long (connection lost)
             if time.time() - self.last_temp_update > 5.0:  # 5 second timeout
                 self.temp_label.setText("RPI Temp: --")
                 self.status_label.setText("DISCONNECTED")
@@ -256,6 +259,7 @@ class CANWindowUpdateMixin:
 
         # Handle CAN send responses
         while not self.cansend_response_queue.empty():
+            print()
             cmd, out, err = self.cansend_response_queue.get()
             if err:
                 self.output_display.append(f"[ERR] {err.strip()}")
