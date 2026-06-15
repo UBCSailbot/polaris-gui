@@ -11,7 +11,7 @@ window_height = 450
 window_width = 1350
 
 # update_freq = 100 # frequency at which CAN messages are collected & processed - TODO: implement separation of CAN msg processing and gui updating
-gui_update_freq = 100  # frequency of UI update in millis
+gui_update_freq = 50  # frequency of UI update in millis
 
 # ==== Live Values ====
 value_label_min_width = 300
@@ -44,8 +44,23 @@ value_warning = """
 
 input_label_style = "font-weight: bold;"
 
+# ==== Heartbeat UI Style ====
+heartbeat_timeout = 10  # Timeout for CAN frame (in secs)
+heartbeat_status_good_text = "ALIVE"
+heartbeat_status_bad_text = "NOT RESPONDING"
+
+heartbeat_label_style = """
+            color: black;
+            font-size: 16px;
+            padding: 2px;
+            margin: 2px;
+        """
+
+heartbeat_status_good_style = "color: green;"
+heartbeat_status_bad_style = "color: red;"
+
 # ==== Dropdown font ====
-d_font_type = "Comic Sans"
+d_font_type = "Comic Sans"  # hahaha
 d_font_size = 14
 
 # ==== Graph config ====
@@ -59,3 +74,49 @@ graph_y_units = "s"
 graph_min_width = 250
 graph_min_height = 300
 scroll_window = 60  # in seconds
+
+LAST_UPDATED = (
+    "time_since_last_update"  # tracks amount of time since a datapoint was updated
+)
+data_timeout = 5 * 60  # amt of time (in seconds) before data gets removed
+plrs_path_data_timeout = 30  # 2 * 60 # amt of time (in seconds) before POLARIS path data is deleted (for PID tuning)
+
+# Set range of ships centered around POLARIS +- <lat/lon>_range on AIS graph
+latitude_range = 0.1  # in decimal degrees
+longitude_range = 0.1  # in decimal degrees
+
+# ==== Heading ====
+ARROW_TIME_SCALING_ENABLED = True  # If True, how often heading arrows appear is time-based; if False, it is distance-based
+min_time_between_arrows = (
+    1  # Minimum time between heading arrows appearance (in seconds)
+)
+min_dist_between_arrows = 15.0  # heading arrows only appear on points at least min_dist_between_arrows metres away from the last recorded point
+# NOTE: below is NOT implemented in PIDObject.should_create_arrow
+# max_time_between_arrows = 0.1 # if time since last arrow placed is more than this time, put an arrow no matter the distance
+
+# Arrow Styles
+h_arrow_headLen = 20
+h_arrow_tailLen = 40
+h_arrow_tailWidth = 7
+h_arrow_headWidth = 7
+h_arrow_pen = {"color": "black", "width": 2}
+h_arrow_desired_brush = "blue"
+h_arrow_actual_brush = "red"
+
+# Heading names for reference
+desired_heading_arrow_name = "desired_heading_arrow"
+actual_heading_arrow_name = "actual_heading_arrow"
+
+# ==== Joystick ====
+movement_sensitivity = 1  # number of decimal point precision
+max_rudder_angle = 20  # degrees
+min_trimtab_angle = -12  # degrees
+max_trimtab_angle = 3  # degrees
+
+num_axes = 8  # number of possible switches/joystick axes for Radiomaster Boxer joystick
+trimtab_axis = 0  # joystick axis used to move trimtab
+trimtab_latch = 6  # latch axis number
+rudder_axis = 3  # joystick axis used to move rudder
+rudder_latch = 4  # latch axis number
+LATCHED = 1  # latched == locked, unlatched == unlocked
+UNLATCHED = -1
