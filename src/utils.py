@@ -1,9 +1,20 @@
 from enum import Enum
 
-from data_object import GraphObject, DataObject, AISObject
+from data_object import (
+    GraphObject,
+    DataObject,
+    AISObject,
+    PIDObject,
+    AIS_Attributes,
+    ais_attributes,
+    generic_create_line,
+)
 from pyqtgraph import mkBrush, mkPen
 
-from config import graph_y, graph_y_units
+import math
+
+import config as cg
+from widgets.heartbeat_module import HeartbeatModule
 
 # SSH Credentials
 hostname = "192.168.0.10"
@@ -13,36 +24,72 @@ password = "sailbot"
 can_line = "can0"
 
 
-### ----------  Structs/Enums ---------- ###
-class AIS_Attributes(Enum):
-    SID = "ship_id"
-    LONGITUDE = "longitude"
-    LATITUDE = "latitude"
-    SOG = "speed_over_gnd"
-    SOG_NA = 1023
-    COG = "course_over_gnd"
-    COG_NA = 3600
-    HEADING = "true_heading"
-    HEADING_NA = 511
-    ROT = "rate_of_turn"
-    ROT_NA = -128
-    LENGTH = "ship_length"
-    LENGTH_NA = 0
-    WIDTH = "ship_width"
-    WIDTH_NA = 0
-    IDX = "index"
-    TOTAL = "total_ships"
+# Aliases for config values (used by legacy code)
+graph_y = cg.graph_y
+graph_y_units = cg.graph_y_units
 
+# Forward declarations for objects referenced in parsing functions (defined later)
+volt2_obj = None
+temp1_obj = None
+volt3_obj = None
+temp2_obj = None
+temp3_obj = None
+volt4_obj = None
+volt1_obj = None
+mppt_hp_obj = None
+mppt_hs_obj = None
+mppt_sp_obj = None
+mppt_ss_obj = None
+actual_rudder_obj = None
+imu_roll_obj = None
+imu_pitch_obj = None
+imu_heading_obj = None
+set_rudder_obj = None
+integral_obj = None
+derivative_obj = None
+spd_over_gnd_obj = None
+data_wind_dir_obj = None
+data_wind_spd_obj = None
+sail_wind_dir_obj = None
+sail_wind_spd_obj = None
+pid_obj = None
+desired_heading_obj = None
+gps_lat_obj = None
+gps_lon_obj = None
+ais_obj = None
+pH_parsing_fn = None
+temp_sensor_parsing_fn = None
+sal_parsing_fn = None
 
 ### ----------  Utility Functions ---------- ###
 # Note that these functions are designed to work with positive numbers
 def convert_to_hex(decimal, num_bytes):
-    return format(decimal, "X").zfill(2 * num_bytes)
+    # return format(decimal, "X").zfill(2 * num_bytes)
+    if decimal < 0 or num_bytes <= 0:
+        print("ERROR - convert_to_hex received unexpected argument value")
+        raise ValueError
+    ret = format(decimal, "X").zfill(2 * num_bytes)
+    if len(ret) > (2 * num_bytes):
+        print(
+            "ERROR - convert_to_hex received number too large for given number of bytes"
+        )
+        raise ValueError
+    if len(ret) != (2 * num_bytes):
+        print("ERROR - convert_to_hex converted to string of unexpected length")
+        raise Exception
+    return ret
 
 
 def convert_to_little_endian(hex_str):
-    raw = bytes.fromhex(hex_str)
-    return raw[::-1].hex()
+    try:
+        raw = bytes.fromhex(hex_str)
+        return raw[::-1].hex()
+    except TypeError:
+        print("ERROR - convert_to_little_endian() received unexpected argument type")
+        raise TypeError
+    except ValueError:
+        print("ERROR - convert_to_little_endian() received unexpected string")
+        raise ValueError
 
 
 def convert_from_little_endian_str(hex_str):
@@ -51,22 +98,22 @@ def convert_from_little_endian_str(hex_str):
     return int(big_endian, 16)
 
 
-def val(raw_bytes, s, e, div):
+def val(raw_bytes, s, e, div) -> float:
     return int.from_bytes(raw_bytes[s:e], "little") / div
 
 
-# NOTE: Currently returns True/False, but parsing functions don't do anything with this
-# return value as of yet - it just prints it as a notice
-# NOTE: May add functionality to also log if a given data point is out of range
-# (ie. is sus)
-def range_check(num, minn=None, maxn=None):
-    """Prints error and returns False if given num is not within [min, max] (inclusive);
-    if None is given for either max or min, that boundary is not checked."""
+# NOTE: Currently returns True/False, but parsing functions don't do anything with this return value as of yet - it just prints it as a notice
+# NOTE: May add functionality to also log if a given data point is out of range (ie. is sus)
+def range_check(quantity, num, minn=None, maxn=None):
+    """Prints error and returns False if given num is not within [min, max] (inclusive); if None is given for either max or min, that boundary is not checked."""
+    if num is None:
+        print(f"Warning: {quantity} passed to range_check was None")
+        return
     if maxn is not None and num > maxn:
-        print(f"ERROR - Value {num} is higher than expected range")
+        print(f"ERROR - {quantity} {num} is higher than expected range")
         return False
     if minn is not None and num < minn:
-        print(f"ERROR - Value {num} is lower than expected range")
+        print(f"ERROR - {quantity} {num} is lower than expected range")
         return False
     return True
 
@@ -79,19 +126,19 @@ def parse_0x206_frame(data_hex):
     if len(raw_bytes) != 24:
         raise ValueError("Incorrect data length (num bytes): ID 0x206")
 
-    val = lambda s, e, div: int.from_bytes(raw_bytes[s:e], "little") / div
+    # val = lambda s, e, div: int.from_bytes(raw_bytes[s:e], 'little') / div
     return {
-        volt2_obj.name: val(0, 2, 1000.0),
-        temp1_obj.name: val(2, 4, 100.0),
-        volt3_obj.name: val(4, 6, 1000.0),
-        temp2_obj.name: val(6, 8, 100.0),
-        temp3_obj.name: val(8, 10, 100.0),
-        volt4_obj.name: val(10, 12, 1000.0),
-        volt1_obj.name: val(12, 14, 1000.0),
-        mppt_hp_obj.name: val(14, 16, 1000.0),
-        mppt_hs_obj.name: val(16, 18, 1000.0),
-        mppt_sp_obj.name: val(18, 20, 1000.0),
-        mppt_ss_obj.name: val(20, 22, 1000.0),
+        volt2_obj.name: val(raw_bytes, 0, 2, 1000.0),
+        temp1_obj.name: val(raw_bytes, 2, 4, 100.0),
+        volt3_obj.name: val(raw_bytes, 4, 6, 1000.0),
+        temp2_obj.name: val(raw_bytes, 6, 8, 100.0),
+        temp3_obj.name: val(raw_bytes, 8, 10, 100.0),
+        volt4_obj.name: val(raw_bytes, 10, 12, 1000.0),
+        volt1_obj.name: val(raw_bytes, 12, 14, 1000.0),
+        mppt_hp_obj.name: val(raw_bytes, 14, 16, 1000.0),
+        mppt_hs_obj.name: val(raw_bytes, 16, 18, 1000.0),
+        mppt_sp_obj.name: val(raw_bytes, 18, 20, 1000.0),
+        mppt_ss_obj.name: val(raw_bytes, 20, 22, 1000.0),
     }
 
 
@@ -109,8 +156,8 @@ def parse_0x204_frame(data_hex):
         imu_pitch_obj.name: val(4, 6, 100.0) - 180,
         imu_heading_obj.name: val(6, 8, 100.0),
         set_rudder_obj.name: val(8, 10, 100.0) - 90,
-        integral_obj.name: val(10, 12, 1.0) - 30000,
-        derivative_obj.name: (val(12, 14, 1.0) - 300) / 100.0,
+        integral_obj.name: val(10, 12, 1.0),
+        derivative_obj.name: val(12, 14, 1.0),
         spd_over_gnd_obj.name: val(14, 16, 1000.0),
     }
 
@@ -123,7 +170,7 @@ def set_rudder_parsing_fn(parsed_dict):
     return parsed_dict[set_rudder_obj.name]
 
 
-def parse_0x041_frame(data_hex):
+def parse_wind_sensor_frame(data_hex):
     raw_bytes = bytes.fromhex(data_hex)
     if len(raw_bytes) != 4:
         raise ValueError("Incorrect data length (num bytes): ID 0x041")
@@ -132,6 +179,18 @@ def parse_0x041_frame(data_hex):
     return {
         data_wind_dir_obj.name: val(0, 2, 1.0),
         data_wind_spd_obj.name: val(2, 4, 10.0),
+    }
+
+
+def parse_sail_wind_sensor_frame(data_hex):
+    raw_bytes = bytes.fromhex(data_hex)
+    if len(raw_bytes) != 4:
+        raise ValueError("Incorrect data length (num bytes): ID 0x040")
+
+    val = lambda s, e, div: int.from_bytes(raw_bytes[s:e], "little") / div
+    return {
+        sail_wind_dir_obj.name: val(0, 2, 1.0),
+        sail_wind_spd_obj.name: val(2, 4, 10.0),
     }
 
 
@@ -281,83 +340,109 @@ def parse_0x070_frame(data_hex):
         raise ValueError("Incorrect data length (num bytes): ID 0x070")
 
     # temp is in format of temp * 1000
-    val = lambda s, e, div: int.from_bytes(raw_bytes[s:e], "little") / div
+    # val = lambda s, e, div: int.from_bytes(raw_bytes[s:e], 'little') / div
+    gps_lat_data = val(raw_bytes, 0, 4, 1000000) - 90
+    gps_lon_data = val(raw_bytes, 4, 8, 1000000) - 180
+
+    # Convert Decimal Degrees to offset (or first fix)
+    pid_y_data = 0
+    pid_x_data = 0
+
+    if (pid_obj.lat_ref is None) or (
+        pid_obj.lon_ref is None
+    ):  # If first fix: set ref points
+        pid_obj.set_refs(gps_lat_data, gps_lon_data)
+
+    # if (pid_obj.lat_ref is None) or (pid_obj.lon_ref is None): # If first fix: set ref points
+    #     pid_obj.lat_ref  = gps_lat_data
+    #     pid_obj.lon_ref  = gps_lon_data
+    else:
+        pid_y_data = (
+            (gps_lat_data - pid_obj.lat_ref) * 110562
+        )  # change in lat multiplied by rough arc length (using conversion to km from 68.7 miles)
+        pid_x_data = (
+            (gps_lon_data - pid_obj.lon_ref)
+            * math.cos(math.radians(pid_obj.lat_ref))
+            * 111320
+        )  # constant from google (equatorial distance between longitude lines)
+
+    # if (pid_y_obj.ref is None) or (pid_x_obj.ref is None): # If first fix: set ref points
+    #     pid_y_obj.ref = gps_lat_data
+    #     pid_x_obj.ref = gps_lon_data
+    # else:
+    #     pid_y_data = (gps_lat_data - pid_y_obj.ref) * 110562 # change in lat multiplied by rough arc length (using conversion to km from 68.7 miles)
+    #     pid_x_data = (gps_lon_data - pid_y_obj.ref) * math.cos(math.radians(pid_y_obj.ref)) * 111320 # constant from google (equatorial distance between longitude lines)
 
     parsed = {
         # actual_rudder_obj.name: val(0, 2, 100.0) - 90,
-        gps_lat_obj.name: val(0, 4, 1000000) - 90,
-        gps_lon_obj.name: val(4, 8, 1000000) - 90,
-        spd_over_gnd_obj.name: val(16, 20, 1000),
+        gps_lat_obj.name: gps_lat_data,
+        gps_lon_obj.name: gps_lon_data,
+        pid_obj.y_name: pid_y_data,
+        pid_obj.x_name: pid_x_data,
+        cg.desired_heading_arrow_name: desired_heading_obj.get_current()[
+            1
+        ],  # The angles of the headings are put into here for pid_obj to access
+        cg.actual_heading_arrow_name: imu_heading_obj.get_current()[1],
+        spd_over_gnd_obj.name: val(raw_bytes, 16, 20, 1000),
     }
 
-    range_check(parsed[gps_lat_obj.name], -90, 90)
-    range_check(parsed[gps_lon_obj.name], -180, 180)
-    range_check(parsed[spd_over_gnd_obj.name], 0)
+    range_check(gps_lat_obj.name, parsed[gps_lat_obj.name], -90, 90)
+    range_check(gps_lon_obj.name, parsed[gps_lon_obj.name], -180, 180)
+    range_check(spd_over_gnd_obj.name, parsed[spd_over_gnd_obj.name], 0)
 
     return parsed
 
 
-def parse_0x060_frame(data_hex):
+def parse_0x060_frame(data_hex, current_time):
     raw_bytes = bytes.fromhex(data_hex)
     if len(raw_bytes) < 25:  # candump pads the frame to make it 32 bytes
         print("number of raw_bytes = ", len(raw_bytes))
         raise ValueError("Incorrect data length (num bytes): ID 0x060")
 
-    # temp is in format of temp * 1000
-
     parsed = {
         # actual_rudder_obj.name: val(0, 2, 100.0) - 90,
-        AIS_Attributes.SID: val(raw_bytes, 0, 4, 1),
-        AIS_Attributes.LATITUDE: val(raw_bytes, 4, 8, 1000000) - 90,
-        AIS_Attributes.LONGITUDE: val(raw_bytes, 8, 12, 1000000) - 180,
-        AIS_Attributes.SOG: (
-            val(raw_bytes, 12, 14, 10)
-            if (val(raw_bytes, 12, 14, 10) != AIS_Attributes.SOG_NA)
-            else None
+        AIS_Attributes.SID: int(val(raw_bytes, 0, 4, 1)),
+        AIS_Attributes.LATITUDE: round(val(raw_bytes, 4, 8, 1000000) - 90, ais_obj.dp),
+        AIS_Attributes.LONGITUDE: round(
+            val(raw_bytes, 8, 12, 1000000) - 180, ais_obj.dp
         ),
-        AIS_Attributes.COG: (
-            val(raw_bytes, 14, 16, 10)
-            if (val(raw_bytes, 14, 16, 10) != AIS_Attributes.COG_NA)
-            else None
-        ),
-        AIS_Attributes.HEADING: (
-            val(raw_bytes, 16, 18, 10)
-            if (val(raw_bytes, 16, 18, 10) != AIS_Attributes.HEADING_NA)
-            else None
-        ),
-        AIS_Attributes.ROT: (
-            (val(raw_bytes, 18, 19, 1) - 128)
-            if ((val(raw_bytes, 18, 19, 1) - 128) != AIS_Attributes.ROT_NA)
-            else None
-        ),
-        AIS_Attributes.LENGTH: (
-            val(raw_bytes, 19, 21, 1)
-            if (val(raw_bytes, 19, 21, 1) != AIS_Attributes.LENGTH_NA)
-            else None
-        ),
-        AIS_Attributes.WIDTH: (
-            val(raw_bytes, 21, 23, 1)
-            if (val(raw_bytes, 21, 23, 1) != AIS_Attributes.WIDTH_NA)
-            else None
-        ),
-        AIS_Attributes.IDX: val(raw_bytes, 23, 24, 1),
-        AIS_Attributes.TOTAL: val(raw_bytes, 24, 25, 1),
+        AIS_Attributes.SOG: round(val(raw_bytes, 12, 14, 10))
+        if (val(raw_bytes, 12, 14, 1) != AIS_Attributes.SOG_NA.value)
+        else None,
+        AIS_Attributes.COG: round(val(raw_bytes, 14, 16, 10))
+        if (val(raw_bytes, 14, 16, 1) != AIS_Attributes.COG_NA.value)
+        else None,
+        AIS_Attributes.HEADING: round(val(raw_bytes, 16, 18, 1))
+        if (val(raw_bytes, 16, 18, 1) != AIS_Attributes.HEADING_NA.value)
+        else None,
+        AIS_Attributes.ROT: round((val(raw_bytes, 18, 19, 1) - 128))
+        if ((val(raw_bytes, 18, 19, 1) - 128) != AIS_Attributes.ROT_NA.value)
+        else None,
+        AIS_Attributes.LENGTH: int(val(raw_bytes, 19, 21, 1))
+        if (val(raw_bytes, 19, 21, 1) != AIS_Attributes.LENGTH_NA.value)
+        else None,
+        AIS_Attributes.WIDTH: int(val(raw_bytes, 21, 23, 1))
+        if (val(raw_bytes, 21, 23, 1) != AIS_Attributes.WIDTH_NA.value)
+        else None,
+        AIS_Attributes.IDX: int(val(raw_bytes, 23, 24, 1)),
+        AIS_Attributes.TOTAL: int(val(raw_bytes, 24, 25, 1)),
+        cg.LAST_UPDATED: current_time,
     }
 
-    range_check(parsed[AIS_Attributes.LATITUDE], -90, 90)
-    range_check(parsed[AIS_Attributes.LONGITUDE], -180, 180)
-    range_check(parsed[AIS_Attributes.SOG], 0)
+    range_check(AIS_Attributes.LATITUDE, parsed[AIS_Attributes.LATITUDE], -90, 90)
+    range_check(AIS_Attributes.LONGITUDE, parsed[AIS_Attributes.LONGITUDE], -180, 180)
+    range_check(AIS_Attributes.SOG, parsed[AIS_Attributes.SOG], 0)
 
     return parsed
 
 
-def make_pretty(cmd):
+def make_pretty(cmd: str):
     """
     Helper function for putting cansend commands into the same format as candump received messages\n
     """
     try:
-        frame_id = cmd[12:15]
-        data = cmd[18:]
+        frame_id = cmd[12:16]  # TODO: changed from 12 to 13, see if this is a problem
+        data = cmd[18:]  # TODO: changed from 18 to 19, see if this is a problem
         data_length = int(len(data) / 2)
         padding = "0" if (data_length < 10) else ""
         data_nice = ""
@@ -375,16 +460,35 @@ def make_pretty(cmd):
             + "]  "
             + data_nice
         )
+        # print("pretty_CAN msg = ", msg)
     except Exception as e:
         print(f"ERROR - Command not logged: {str(e)}")
 
     return msg
 
 
+### ---------- Heartbeat Modules ---------- ###
+
+pdb_title_text = "PDB Status: "
+rudr_title_text = "RUDR Status: "
+sail_title_text = "SAIL Status: "
+sense_title_text = "SENSE Status: "
+
+pdb_hb_module = HeartbeatModule(pdb_title_text)
+rudr_hb_module = HeartbeatModule(rudr_title_text)
+sail_hb_module = HeartbeatModule(sail_title_text)
+sense_hb_module = HeartbeatModule(sense_title_text)
+
+heartbeat_modules = [pdb_hb_module, sail_hb_module, rudr_hb_module, sense_hb_module]
+
+# TODO: Add the rest of the modules, one at a time - once done testing all function w/ pdb module
+
 ### ---------- Data Objects ---------- ###
 
 # Battery Temps
-pdb_temp_graph_obj = GraphObject("Temperature", graph_y, "°C", graph_y_units, 0, 127.0)
+pdb_temp_graph_obj = GraphObject(
+    "PDB Temperature", cg.graph_y, "°C", cg.graph_y_units, 0, 127.0
+)
 temp1_obj = DataObject(
     "Temp1", 2, "°C", None, line_colour="r", graph=pdb_temp_graph_obj
 )
@@ -396,7 +500,9 @@ temp3_obj = DataObject(
 )
 
 # Cell voltages
-pdb_volt_graph_obj = GraphObject("Cell Voltages", graph_y, "V", graph_y_units, 0, 5)
+pdb_volt_graph_obj = GraphObject(
+    "Cell Voltages", cg.graph_y, "V", cg.graph_y_units, 0, 5
+)
 volt1_obj = DataObject("Volt1", 2, "V", None, line_colour="b", graph=pdb_volt_graph_obj)
 volt2_obj = DataObject("Volt2", 2, "V", None, line_colour="c", graph=pdb_volt_graph_obj)
 volt3_obj = DataObject("Volt3", 2, "V", None, line_colour="m", graph=pdb_volt_graph_obj)
