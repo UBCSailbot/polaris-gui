@@ -15,6 +15,7 @@ from utils import (
     rudr_hb_module,
     sail_hb_module,
     sail_wind_objs,
+    pdb_objs,
     pH_obj,
     rudder_objs,
     sal_obj,

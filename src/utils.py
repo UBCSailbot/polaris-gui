@@ -371,7 +371,7 @@ def parse_0x070_frame(data_hex):
     #     pid_x_obj.ref = gps_lon_data
     # else:
     #     pid_y_data = (gps_lat_data - pid_y_obj.ref) * 110562 # change in lat multiplied by rough arc length (using conversion to km from 68.7 miles)
-    #     pid_x_data = (gps_lon_data - pid_y_obj.ref) * math.cos(math.radians(pid_y_obj.ref)) * 111320 # constant from google (equatorial distance between longitude lines)
+    #     pid_x_data = (gps_lon_data - pid_x_obj.ref) * math.cos(math.radians(pid_x_obj.ref)) * 111320 # constant from google (equatorial distance between longitude lines)
 
     parsed = {
         # actual_rudder_obj.name: val(0, 2, 100.0) - 90,
@@ -484,6 +484,8 @@ heartbeat_modules = [pdb_hb_module, sail_hb_module, rudr_hb_module, sense_hb_mod
 # TODO: Add the rest of the modules, one at a time - once done testing all function w/ pdb module
 
 ### ---------- Data Objects ---------- ###
+# NOTE: If multiple data objects take data from the same frame, the parsing function function for all of them is None
+#       The parsing function is for the entire frame
 
 # Battery Temps
 pdb_temp_graph_obj = GraphObject(
@@ -511,7 +513,9 @@ volt4_obj = DataObject(
 )
 
 # MPPT currents
-mppt_current_graph_obj = GraphObject("MPPT Current", graph_y, "A", graph_y_units, 0, 5)
+mppt_current_graph_obj = GraphObject(
+    "MPPT Current", cg.graph_y, "A", cg.graph_y_units, 0, 5
+)
 mppt_hp_obj = DataObject(
     "MPPT_curr_hull_port", 2, "A", None, line_colour="c", graph=mppt_current_graph_obj
 )
@@ -531,7 +535,7 @@ mppt_ss_obj = DataObject(
 )
 
 # Rudder angles (set & actual)
-rudder_graph = GraphObject("Rudder Angles", graph_y, "°", graph_y_units, -90, 90)
+rudder_graph = GraphObject("Rudder Angles", cg.graph_y, "°", cg.graph_y_units, -90, 90)
 actual_rudder_obj = DataObject(
     "Actual_rdr_deg", 2, "°", None, line_colour="r", graph=rudder_graph
 )  # NOTE: graph parsing function changed to None here - potential for bug/error
@@ -541,7 +545,7 @@ set_rudder_obj = DataObject(
 
 # Speed over ground (from debug frame 0x204)
 spd_over_gnd_graph_obj = GraphObject(
-    "Speed Over Ground", graph_y, "km/h", graph_y_units, 0, 20
+    "Speed Over Ground", cg.graph_y, "km/h", cg.graph_y_units, 0, 20
 )
 spd_over_gnd_obj = DataObject(
     "Speed_over_gnd", 3, "km/h", None, line_colour="brown", graph=spd_over_gnd_graph_obj
@@ -549,7 +553,7 @@ spd_over_gnd_obj = DataObject(
 
 # Headings (IMU & Desired)
 headings_graph_obj = GraphObject(
-    "IMU & Desired Headings", graph_y, "°", graph_y_units, 0, 360
+    "IMU & Desired Headings", cg.graph_y, "°", cg.graph_y_units, 0, 360
 )
 imu_heading_obj = DataObject(
     "IMU_heading", 3, "°", None, line_colour="r", graph=headings_graph_obj
@@ -566,7 +570,7 @@ desired_heading_obj = DataObject(
 
 # IMU roll & pitch
 imu_roll_pitch_graph_obj = GraphObject(
-    "IMU Roll & Pitch", graph_y, "°", graph_y_units, 0, 360
+    "IMU Roll & Pitch", cg.graph_y, "°", cg.graph_y_units, 0, 360
 )
 imu_roll_obj = DataObject(
     "IMU_roll", 2, "°", None, line_colour="g", graph=imu_roll_pitch_graph_obj
@@ -577,7 +581,7 @@ imu_pitch_obj = DataObject(
 
 # Integral + Derivative
 int_der_graph_obj = GraphObject(
-    "IMU Integral & Derivative", graph_y, None, graph_y_units, 0, 100
+    "IMU Integral & Derivative", cg.graph_y, None, cg.graph_y_units, 0, 100
 )
 integral_obj = DataObject(
     "IMU_integral", 2, None, None, line_colour="m", graph=int_der_graph_obj
@@ -588,18 +592,18 @@ derivative_obj = DataObject(
 
 # Data Wind Sensor
 data_wind_spd_graph_obj = GraphObject(
-    "Data_Wind Speed", graph_y, "knots", graph_y_units, 0, 20
+    "Data_Wind Speed", cg.graph_y, "knots", cg.graph_y_units, 0, 20
 )
 data_wind_spd_obj = DataObject(
     "Data_Wind_spd",
-    0,
+    1,
     "knots",
     None,
     line_colour="turquoise",
     graph=data_wind_spd_graph_obj,
 )
 data_wind_dir_graph_obj = GraphObject(
-    "Data_Wind Direction", graph_y, "°", graph_y_units, 0, 360
+    "Data_Wind Direction", cg.graph_y, "°", cg.graph_y_units, 0, 360
 )
 data_wind_dir_obj = DataObject(
     "Data_Wind_dir", 0, "°", None, line_colour="orange", graph=data_wind_dir_graph_obj
@@ -607,18 +611,60 @@ data_wind_dir_obj = DataObject(
 
 data_wind_objs = [data_wind_spd_obj, data_wind_dir_obj]
 
+# Sail Wind Sensor
+sail_wind_spd_graph_obj = GraphObject(
+    "Sail_Wind Speed", cg.graph_y, "knots", cg.graph_y_units, 0, 20
+)
+sail_wind_spd_obj = DataObject(
+    "Sail_Wind_spd", 1, "knots", None, line_colour="blue", graph=sail_wind_spd_graph_obj
+)
+sail_wind_dir_graph_obj = GraphObject(
+    "Sail_Wind Direction", cg.graph_y, "°", cg.graph_y_units, 0, 360
+)
+sail_wind_dir_obj = DataObject(
+    "Sail_Wind_dir", 0, "°", None, line_colour="green", graph=sail_wind_dir_graph_obj
+)
+
+sail_wind_objs = [sail_wind_spd_obj, sail_wind_dir_obj]
+
 # GPS
-gps_lat_obj = DataObject("gps_lat", 4, "DD", None, graph=None)
-gps_lon_obj = DataObject("gps_lon", 4, "DD", None, graph=None)
+gps_lat_obj = DataObject("gps_lat", 6, "DD", None, graph=None)
+gps_lon_obj = DataObject("gps_lon", 6, "DD", None, graph=None)
+
+# PID Graph
+pid_graph_obj = GraphObject(
+    "North/South Offset",
+    "East/West Offset",
+    "m",
+    "m",
+    -10000,
+    10000,
+    "PLRS Path + Heading",
+    interactable=True,
+)  # maxn, minn set pretty arbitrarily (+-10 km)
+pid_obj = PIDObject(
+    "PLRS_path",
+    "EW_offset",
+    "NS_offset",
+    6,
+    "m",
+    None,
+    cg.plrs_path_data_timeout,
+    symbol_brush="blue",
+    has_label=False,
+    graph=pid_graph_obj,
+)
+# pid_x_obj = PIDObject("EW_offset", 6, "m", None, has_label = False, graph = pid_graph_obj)
+# pid_y_obj = PIDObject("NS_offset", 6, "m", None, has_label = False, graph = pid_graph_obj)
 
 # AIS
-polaris_pen = mkPen(color="r", width=5)  # set point border color (red)
+# polaris_pen = mkPen(color='r', width=5) # set point border color (red)
 polaris_brush = mkBrush(color="r")
-other_pen = mkPen(color="b", width=1)
+# other_pen = mkPen(color='b', width=1)
 other_brush = mkBrush(color="b")
 
 position_graph_obj = GraphObject(
-    "Longitude", "Latitude", "DD", "DD", -90, 90, "Ship Positions"
+    "Latitude", "Longitude", "DD", "DD", -90, 90, "Ship Positions"
 )  # note: this graph's x_range should definitely not be updated with the rest
 ais_obj = AISObject(
     "Ship Positions",
@@ -632,10 +678,12 @@ ais_obj = AISObject(
 )
 
 # General sensors (pH, water temp, salinity)
-pH_graph_obj = GraphObject("pH", graph_y, None, graph_y_units, 0, 14)
+pH_graph_obj = GraphObject("pH", cg.graph_y, None, cg.graph_y_units, 0, 14)
 pH_obj = DataObject("pH", 1, None, pH_parsing_fn, line_colour="r", graph=pH_graph_obj)
 
-temp_sensor_graph_obj = GraphObject("Water Temp", graph_y, "°C", graph_y_units, 0, 1400)
+temp_sensor_graph_obj = GraphObject(
+    "Water Temp", cg.graph_y, "°C", cg.graph_y_units, 0, 1400
+)
 temp_sensor_obj = DataObject(
     "Water_Temp",
     3,
@@ -645,12 +693,14 @@ temp_sensor_obj = DataObject(
     graph=temp_sensor_graph_obj,
 )
 
-sal_graph_obj = GraphObject("Salinity", graph_y, "µS/cm", graph_y_units, 0, 100000)
+sal_graph_obj = GraphObject(
+    "Salinity", cg.graph_y, "µS/cm", cg.graph_y_units, 0, 100000
+)
 sal_obj = DataObject(
     "Salinity", None, "µS/cm", sal_parsing_fn, line_colour="g", graph=sal_graph_obj
 )
 
-# Lists (typically organized by frame)
+# Lists (roughly organized by frame)
 pdb_objs = [
     temp1_obj,
     temp2_obj,
@@ -664,24 +714,56 @@ pdb_objs = [
     mppt_sp_obj,
     mppt_ss_obj,
 ]
-rudder_objs = [
+
+rudder_objs = [  # all objects with data from 0x204 frame (rudder -> mainframe)
     actual_rudder_obj,
     set_rudder_obj,
     spd_over_gnd_obj,
     imu_roll_obj,
     imu_pitch_obj,
+    imu_heading_obj,
     integral_obj,
     derivative_obj,
-    imu_heading_obj,
-]  # all objects with data from 0x204 frame (rudder -> mainframe)
+]
 data_objs = [pH_obj, temp_sensor_obj, sal_obj]
-gps_objs = [gps_lat_obj, gps_lon_obj]
+gps_objs = [gps_lat_obj, gps_lon_obj, pid_obj]  # pid_y_obj, pid_x_obj]
+
 # Only data_objs are logged together in the values csv file; they are all graphed vs. Time and have their values trimmed accordingly over time
-data_objs = gps_objs + data_objs + data_wind_objs + rudder_objs + pdb_objs
+data_objs = (
+    [gps_lat_obj, gps_lon_obj]
+    + data_objs
+    + data_wind_objs
+    + sail_wind_objs
+    + rudder_objs
+    + pdb_objs
+)
+
+# all graph objects
+graph_objs = [
+    pdb_temp_graph_obj,
+    pdb_volt_graph_obj,
+    mppt_current_graph_obj,
+    rudder_graph,
+    spd_over_gnd_graph_obj,
+    headings_graph_obj,
+    imu_roll_pitch_graph_obj,
+    int_der_graph_obj,
+    sail_wind_spd_graph_obj,
+    position_graph_obj,
+    pid_graph_obj,
+    pH_graph_obj,
+    temp_sensor_graph_obj,
+    sal_graph_obj,
+]
+
 all_objs = data_objs.copy()
 all_objs.append(
     ais_obj
 )  # ais is logged and updated differently since it is not a vs. Time graph
+all_objs.append(pid_obj)
+# all_objs.append(pid_y_obj)
+# all_objs.append(pid_x_obj)
+
 
 # Testing val
 # if __name__ == "__main__":
