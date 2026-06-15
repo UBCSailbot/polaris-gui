@@ -1,5 +1,6 @@
-import project.config as cg
 from PyQt5.QtWidgets import QLabel
+
+import config as cg
 
 
 def create_hb_label(text, style_sheet) -> QLabel:
