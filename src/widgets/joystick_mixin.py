@@ -6,12 +6,6 @@ from config import movement_sensitivity, num_axes, LATCHED
 # Handles joystick interaction & function
 # Note: Currently only handles at most one joystick
 class JoystickMixin:
-    def __init__(self) -> None:
-        # TODO: add item for latch
-        self.joystick = None
-        self.js_prev_pos = [0] * num_axes
-        self.js_enabled = False
-
     def initialize_joystick(self):
         """Find and initialize joystick, if one is connected"""
         pygame.init()

@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
 
 import config as cg
 from config import input_label_style
-from utils import all_objs
+from utils import all_objs, graph_objs
 
 from . import styles
 
@@ -262,14 +262,12 @@ def init_right_layout(self):
 
     # show a maximum of three graphs initially
     for i in range(0, 3):
-        if i < len(self.graph_titles):
-            graph_obj = self.getGraphObjFromXName(self.graph_titles[i])
-            if graph_obj not in self.visibleGraphObjs:
-                self.right_graphs_layout.addWidget(graph_obj.graph, i, 0)
-                self.visibleGraphObjs.append(graph_obj)
-                graph_obj.show()
-                dropdowns[i].setCurrentText(self.graph_titles[i])
-                dropdowns[i].setVisible(True)
+        if i < len(graph_objs):
+            self.right_graphs_layout.addWidget(graph_objs[i].graph, i, 0)
+            self.visibleGraphObjs.append(graph_objs[i])
+            graph_objs[i].show()
+            dropdowns[i].setCurrentText(graph_objs[i].dropdown_label)
+            dropdowns[i].setVisible(True)
         else:
             break
 

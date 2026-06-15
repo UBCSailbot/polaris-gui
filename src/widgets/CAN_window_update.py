@@ -38,7 +38,6 @@ from config import (
 )
 from utils import (
     can_line,
-    parse_0x041_frame,
     parse_0x060_frame,
     parse_0x070_frame,
     parse_0x204_frame,
