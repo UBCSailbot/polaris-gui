@@ -1,26 +1,49 @@
 import time
+from datetime import datetime
 
 from utils import (
+    AIS_Attributes,
     ais_obj,
+    all_objs,
     data_objs,
     data_wind_objs,
+    gps_lat_obj,
+    gps_lon_obj,
     gps_objs,
-    pdb_objs,
+    heartbeat_modules,
+    pdb_hb_module,
+    rudr_hb_module,
+    sail_hb_module,
+    sail_wind_objs,
     pH_obj,
     rudder_objs,
     sal_obj,
+    sense_hb_module,
     temp_sensor_obj,
 )
 
-from config import scroll_window
+from config import (
+    gui_update_freq,
+    latitude_range,
+    longitude_range,
+    max_rudder_angle,
+    max_trimtab_angle,
+    min_trimtab_angle,
+    rudder_axis,
+    rudder_latch,
+    scroll_window,
+    trimtab_axis,
+    trimtab_latch,
+)
 from utils import (
-    AIS_Attributes,
     can_line,
     parse_0x041_frame,
     parse_0x060_frame,
     parse_0x070_frame,
     parse_0x204_frame,
     parse_0x206_frame,
+    parse_sail_wind_sensor_frame,
+    parse_wind_sensor_frame,
 )
 
 
@@ -57,10 +80,25 @@ class CANWindowUpdateMixin:
                     # function associated with frame id?
                     # There's definitely some abstraction that can be done here
                     match frame_id:
+                        case "001":  # Sent frame to rudder
+                            pass
+                        case "002":  # Sent frame to trim tab
+                            pass
+                        case "040":  # Sail_Wind frame
+                            try:
+                                raw_data = line.split("]")[-1].strip().split()
+                                parsed = parse_sail_wind_sensor_frame("".join(raw_data))
+                                for obj in sail_wind_objs:
+                                    obj.parse_frame(current_time, None, parsed)
+                                    obj.update_label()
+                            except Exception as e:
+                                self.output_display.append(
+                                    f"[PARSE ERROR 0x040] {str(e)}"
+                                )
                         case "041":  # Data_Wind frame
                             try:
                                 raw_data = line.split("]")[-1].strip().split()
-                                parsed = parse_0x041_frame("".join(raw_data))
+                                parsed = parse_wind_sensor_frame("".join(raw_data))
                                 for obj in data_wind_objs:
                                     obj.parse_frame(current_time, None, parsed)
                                     obj.update_label()
@@ -71,23 +109,24 @@ class CANWindowUpdateMixin:
                         case "060":  # AIS frame
                             try:
                                 raw_data = line.split("]")[-1].strip().split()
-                                parsed = parse_0x060_frame("".join(raw_data))
-                                ais_obj.add_frame(
-                                    parsed[AIS_Attributes.LONGITUDE],
-                                    parsed[AIS_Attributes.LATITUDE],
-                                    parsed,
+                                parsed = parse_0x060_frame(
+                                    "".join(raw_data), current_time
                                 )
-                                # If this is the last frame in the batch
-                                if (
-                                    parsed[AIS_Attributes.IDX]
-                                    == parsed[AIS_Attributes.TOTAL]
-                                ):
-                                    ais_obj.log_data()
-                                    # if graph is visible
-                                    if ais_obj.graph_obj.isVisible():
-                                        ais_obj.update_line_data()
-                                    ais_obj.switch_current()
-
+                                if parsed[AIS_Attributes.TOTAL] != 0:
+                                    ais_obj.add_frame(
+                                        parsed[AIS_Attributes.LONGITUDE],
+                                        parsed[AIS_Attributes.LATITUDE],
+                                        parsed[AIS_Attributes.SID],
+                                        parsed,
+                                        AIS_Attributes.LONGITUDE,
+                                    )
+                                    if parsed[AIS_Attributes.IDX] == (
+                                        parsed[AIS_Attributes.TOTAL] - 1
+                                    ):
+                                        ais_obj.log_data(
+                                            datetime.now().isoformat(),
+                                            time.time() - self.time_start,
+                                        )
                             except Exception as e:
                                 self.output_display.append(
                                     f"[PARSE ERROR 0x060] {str(e)}"
@@ -99,6 +138,17 @@ class CANWindowUpdateMixin:
                                 for obj in gps_objs:
                                     obj.parse_frame(current_time, None, parsed)
                                     obj.update_label()
+
+                                if ais_obj.graph_obj.isVisible():
+                                    lon = gps_lon_obj.get_current()[1]
+                                    lat = gps_lat_obj.get_current()[1]
+                                    ais_obj.update_polaris_pos(lon, lat)
+                                    ais_obj.update_range(
+                                        lon - longitude_range,
+                                        lon + longitude_range,
+                                        lat - latitude_range,
+                                        lat + latitude_range,
+                                    )
                             except Exception as e:
                                 self.output_display.append(
                                     f"[PARSE ERROR 0x070] {str(e)}"
@@ -165,8 +215,12 @@ class CANWindowUpdateMixin:
                     self._log_values()
 
         # trim values no longer being graphed
-        for obj in data_objs:
+        for obj in all_objs:
             obj.update_data(current_time, scroll_window)
+
+        # Update heartbeat displays
+        for mod in heartbeat_modules:
+            mod.update_status(current_time)
 
         # Always update plots every timer cycle (independent of CAN messages)
         # # TODO: Modify this - batch plot updates?
@@ -206,6 +260,20 @@ class CANWindowUpdateMixin:
                 self.output_display.append(f"[ERR] {err.strip()}")
             elif out:
                 self.output_display.append(f"[OUT] {out.strip()}")
+
+        # Handle joystick updates
+        if self.get_joystick_enabled():
+            moved, pos = self.joystick_moved(rudder_axis, rudder_latch)
+            if moved:
+                self.send_rudder(set_angle=max_rudder_angle * pos)
+            moved, pos = self.joystick_moved(trimtab_axis, trimtab_latch)
+            if moved:
+                trimtab_angle = (
+                    max_trimtab_angle * pos
+                    if pos >= 0
+                    else abs(min_trimtab_angle) * pos
+                )
+                self.send_trim_tab(set_angle=trimtab_angle)
 
     def _update_plot_ranges(self, current_time):
         # === Auto-scale and scroll X axis ===

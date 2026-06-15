@@ -8,7 +8,7 @@ from utils import all_objs
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QApplication, QMessageBox, QWidget
 
-from config import gui_update_freq, window_height, window_width
+from config import gui_update_freq, window_height, window_width, min_trimtab_angle, max_trimtab_angle
 from widgets import (
     CANWindowControlsMixin,
     CANWindowLoggingMixin,
@@ -85,10 +85,10 @@ class CANWindow(
             self.rudder_angle = 0
             self.send_rudder(from_keyboard=True)
         elif key == Qt.Key_Q:
-            self.trimtab_angle = max(self.trimtab_angle - 3, -45)
+            self.trimtab_angle = max(self.trimtab_angle - 3, min_trimtab_angle)
             self.send_trim_tab(from_keyboard=True)
         elif key == Qt.Key_E:
-            self.trimtab_angle = min(self.trimtab_angle + 3, 45)
+            self.trimtab_angle = min(self.trimtab_angle + 3, max_trimtab_angle)
             self.send_trim_tab(from_keyboard=True)
         elif key == Qt.Key_W:
             self.trimtab_angle = 0

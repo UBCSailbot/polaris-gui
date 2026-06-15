@@ -1,3 +1,5 @@
+from data_object import DataObject
+
 from . import elements as elemns
 from . import styles as styles
 from PyQt5.QtCore import Qt
@@ -96,6 +98,7 @@ class CANWindowUIMixin:
         self.rudder_button.setDisabled(checked)
         self.trim_input.setDisabled(checked)
         self.trim_button.setDisabled(checked)
+        self.set_joystick_enabled(checked)
 
     def toggle_emergency_buttons(self, state):
         enabled = state == Qt.Checked
@@ -114,13 +117,22 @@ class CANWindowUIMixin:
             if (obj.graph_obj is not None) and (obj.graph_obj.dropdown_label == name):
                 return obj.graph_obj
 
+    def getObjFromLabel(self, dropdown_label) -> DataObject:
+        for obj in all_objs:
+            if (obj.graph_obj is not None) and (
+                obj.graph_obj.dropdown_label == dropdown_label
+            ):
+                return obj
+
     def setGraph(self, name, spot, dropdowns):
         """
         Shows given graph at spot\n
         name = DataObj.graph_obj.dropdown_label\n
         spot = 0, 1, 2 (top, mid, bot)\n
         """
-        newGraphObj = self.getGraphObjFromXName(name)  # get graph to put in spot
+        newObj = self.getObjFromLabel(name)
+        newGraphObj = newObj.graph_obj
+
         if newGraphObj.dropdown_label == self.visibleGraphObjs[spot].dropdown_label:
             return  # do nothing
         if (
@@ -140,6 +152,7 @@ class CANWindowUIMixin:
             self.right_graphs_layout.addWidget(newGraphObj.graph, spot, 0)
             newGraphObj.show()
             self.visibleGraphObjs[spot] = newGraphObj
+            newObj.update_line_data()
 
     # def setGraph(self, name, spot, dropdowns):
     #     '''

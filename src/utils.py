@@ -14,7 +14,7 @@ from pyqtgraph import mkBrush, mkPen
 import math
 
 import config as cg
-from widgets.heartbeat_module import HeartbeatModule
+from heartbeat_module import HeartbeatModule
 
 # SSH Credentials
 hostname = "192.168.0.10"
@@ -625,10 +625,9 @@ ais_obj = AISObject(
     4,
     "DD",
     None,
-    other_pen,
     other_brush,
-    polaris_pen,
-    polaris_brush,
+    [att.value for att in ais_attributes],
+    polaris_brush=polaris_brush,
     graph=position_graph_obj,
 )
 

@@ -2,7 +2,7 @@ import time
 
 from utils import desired_heading_obj, set_rudder_obj
 
-from config import can_line
+from config import can_line, min_trimtab_angle, max_trimtab_angle, max_rudder_angle
 from utils import convert_to_hex, convert_to_little_endian
 
 
@@ -22,14 +22,23 @@ class CANWindowControlsMixin:
         except Exception as e:
             print(f"ERROR - Command not logged: {str(e)}")
 
-    def send_trim_tab(self, from_keyboard=False):
+    def send_trim_tab(self, from_keyboard: bool = False, set_angle: float = None):
         try:
-            angle = self.trimtab_angle if from_keyboard else int(self.trim_inptext())
-            if not from_keyboard:
+            if from_keyboard:
+                angle = self.trimtab_angle
+            else:
+                angle = (
+                    round(set_angle, 3)
+                    if set_angle is not None
+                    else round(float(self.trim_inptext()), 3)
+                )
                 self.trimtab_angle = angle
-            if angle < -90:
-                raise ValueError("Invalid angle input for Trim Tab")
-            value = convert_to_hex((angle + 90) * 1000, 4)
+
+            if angle < min_trimtab_angle or angle > max_trimtab_angle:
+                raise ValueError(
+                    f"Invalid angle input for Trim Tab: must be between {min_trimtab_angle} and {max_trimtab_angle} degrees"
+                )
+            value = convert_to_hex(int((angle + 90) * 1000), 4)
             self.can_send("002", convert_to_little_endian(value), "TRIMTAB SENT")
             self.trimtab_display.setText(
                 f"Current Trim Tab Angle: {self.trimtab_angle} degrees"
@@ -52,14 +61,23 @@ class CANWindowControlsMixin:
             print("Exception thrown from send_desired_heading")
             self.show_error("Exception thrown from send_desired_heading")
 
-    def send_rudder(self, from_keyboard=False):
+    def send_rudder(self, from_keyboard=False, set_angle: float = None):
+        """Send rudder command. set_angle allows programmatic control from joystick/automation."""
         try:
-            angle = self.rudder_angle if from_keyboard else int(self.rudder_inptext())
+            if from_keyboard:
+                angle = self.rudder_angle
+            elif set_angle is not None:
+                angle = round(set_angle, 3)
+            else:
+                angle = int(self.rudder_inptext())
+
             if not from_keyboard:
                 self.rudder_angle = angle
-            if angle < -90:
-                raise ValueError("Invalid angle input for Rudder")
-            data = convert_to_little_endian(convert_to_hex((angle + 90) * 1000, 4))
+
+            if angle < -max_rudder_angle:
+                raise ValueError(f"ERR - Rudder Angle input < -{max_rudder_angle}")
+
+            data = convert_to_little_endian(convert_to_hex(int((angle + 90) * 1000), 4))
             status_byte = "80"  # a = 1, b = 0, c = 0
             self.can_send("001", data + status_byte, "RUDDER SENT")
             self.rudder_display.setText(
