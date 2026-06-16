@@ -716,6 +716,14 @@ class AIS_Attributes(Enum):
     TOTAL = "total_ships"
 
 
+class Docker_Commands(Enum):
+    START = """ros2 launch src/global_launch/main_launch.py record:=true mode:=production \
+            2>&1 | tee src/global_launch/voyage_log/combined_log_$( date +%F_%T).txt"""
+    STOP = ""
+    START_WING = """ros2 param set /can_transceiver manual_mode false"""
+    STOP_WING = "ros2 param set /can_transceiver manual_mode true."
+
+
 # This list is ordered according to 0x060 frame conventions as specified on confluence (don't reorder or else heading order will be incorrect)
 ais_attributes = [
     AIS_Attributes.SID,

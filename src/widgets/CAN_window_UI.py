@@ -1,8 +1,20 @@
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QComboBox, QHBoxLayout, QLabel, QTextEdit
+from PyQt5.QtWidgets import (
+    QApplication,
+    QComboBox,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QTextEdit,
+)
 
-from data_object import DataObject
+from data_object import DataObject, Docker_Commands
 from utils import all_objs
+from workers.docker_send_worker import (
+    DockerWorkerThread,
+    generate_docker_command,
+    kill_software,
+)
 
 from . import elements as elemns
 from . import styles as styles
@@ -34,6 +46,16 @@ class CANWindowUIMixin:
         self.pid_layout = elemns.init_pid_layout(self)
         emergency_controls_layout = elemns.init_emergency_controls(self)
 
+        software_commands = [
+            ("Start Software", Docker_Commands.START),
+            ("Stop Software", Docker_Commands.STOP),
+            ("Enable Wingsail Controller", Docker_Commands.START_WING),
+            ("Disable Wingsail Controller", Docker_Commands.STOP_WING),
+        ]
+        software_controls_layout = elemns.init_software_controls(
+            self, software_commands
+        )
+
         self.output_display = QTextEdit()
         self.output_display.setReadOnly(True)
         self.output_display.setMinimumWidth(350)
@@ -62,7 +84,7 @@ class CANWindowUIMixin:
             ),
             ("Check CAN Status", "ip link show can0"),
             ("View System Logs", "dmesg | tail"),
-            ("System Info", "uname -a"),
+            ("System Info", "un`ame -a"),
         ]
 
         # Create a grid layout for command buttons
@@ -75,6 +97,7 @@ class CANWindowUIMixin:
             checkbox_layout,
             input_layout,
             emergency_controls_layout,
+            software_controls_layout,
         )
 
         # === Right Panel ===
@@ -156,3 +179,42 @@ class CANWindowUIMixin:
             newObj.update_line_data()
 
         dropdowns[spot].clearFocus()
+
+    def run_docker_command(self, action: Docker_Commands):
+        container_name = self.container_text_box.text().strip()
+
+        if not container_name:
+            self.show_error("Enter a Docker container name.")
+            return
+
+        try:
+            command = generate_docker_command(action, container_name)
+        except RuntimeError as e:
+            self.show_error(str(e))
+            return
+
+        self.docker_thread = DockerWorkerThread(command, action)
+        self.docker_thread.success.connect(self._on_docker_success)
+        self.docker_thread.error.connect(self.show_error)
+
+        self.docker_thread.started.connect(lambda: self.enable_software_controls(False))
+        self.docker_thread.finished.connect(lambda: self.enable_software_controls(True))
+
+        self.docker_thread.start()
+
+    # TODO change this from a pop up to some sort of status indicator
+    def _on_docker_success(self, action: str):
+        container_name = self.container_text_box.text().strip()
+        QMessageBox.information(
+            self, "Success", f"Successfully {action}ed container:\n{container_name}"
+        )
+
+    def enable_software_controls(self, enabled: bool):
+        for button in self.software_control_buttons:
+            button.setEnabled(enabled)
+
+    def call_software_emergency_kill(self):
+        try:
+            kill_software()
+        except RuntimeError as e:
+            self.show_error(str(e))

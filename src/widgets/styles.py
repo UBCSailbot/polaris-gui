@@ -48,3 +48,45 @@ command_button = """
             background-color: #003d7a;
         }
 """
+
+start_button = """
+    QPushButton {
+        background-color: #27dd55;
+        border: none;
+        padding: 2px 4px;
+        border-radius: 3px;
+        font-size: 10px;
+        font-weight: bold;
+    }
+    QPushButton:hover {
+        background-color: #1fc447;
+    }
+    QPushButton:pressed {
+        background-color: #179938;
+    }
+    QPushButton:disabled {
+        background-color: #a8e8b8;
+        color: #6aab7a;
+    }
+"""
+
+stop_button = """
+    QPushButton {
+        background-color: #dd2727;
+        border: none;
+        padding: 2px 4px;
+        border-radius: 3px;
+        font-size: 10px;
+        font-weight: bold;
+    }
+    QPushButton:hover {
+        background-color: #c41f1f;
+    }
+    QPushButton:pressed {
+        background-color: #991717;
+    }
+    QPushButton:disabled {
+        background-color: #e8a8a8;
+        color: #ab6a6a;
+    }
+"""

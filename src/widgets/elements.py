@@ -180,6 +180,39 @@ def init_commands_grid(self, commands):
     return self.commands_grid
 
 
+def init_software_controls(self, commands):
+    soft_controls = QVBoxLayout()
+    self.container_text_box = QLineEdit()
+    self.container_text_box.setPlaceholderText(
+        "Enter docker container name (e.g. example-name)"
+    )
+
+    soft_controls.addWidget(QLabel("Software Controls:"))
+    soft_controls.addWidget(self.container_text_box)
+
+    self.software_control_buttons = []
+    soft_buttons = QGridLayout()
+
+    for i, (label, cmd) in enumerate(commands):
+        btn = QPushButton(label)
+        btn.clicked.connect(lambda: self.run_docker_command(cmd))
+        self.software_control_buttons.append(btn)
+
+        # Add to grid layout (2 columns)
+        row = i // 2
+        col = i % 2
+        soft_buttons.addWidget(btn, row, col)
+
+    kill_button = QPushButton("Kill Software")
+    kill_button.clicked.connect(self.call_software_emergency_kill)
+    kill_button.setStyleSheet(styles.red_button)
+
+    soft_controls.addLayout(soft_buttons)
+    soft_controls.addWidget(kill_button)
+
+    return soft_controls
+
+
 def init_input_layout(self):
     input_layout = QGridLayout()
     input_layout.setSpacing(0)
@@ -191,7 +224,12 @@ def init_input_layout(self):
 
 
 def init_left_layout(
-    self, top_bar_layout, checkbox_layout, input_layout, emergency_controls
+    self,
+    top_bar_layout,
+    checkbox_layout,
+    input_layout,
+    emergency_controls,
+    software_controls,
 ):
     left_layout = QVBoxLayout()
     left_layout.addLayout(top_bar_layout)
@@ -220,6 +258,8 @@ def init_left_layout(
     left_layout.addWidget(self.emergency_checkbox)
     left_layout.addSpacing(5)  # Add spacing before emergency buttons
     left_layout.addLayout(emergency_controls)
+    left_layout.addSpacing(5)  # Add spacing before software controls
+    left_layout.addLayout(software_controls)
     left_layout.addSpacing(5)  # Add spacing before SSH instructions
     left_layout.addWidget(self.ssh_instructions_label)
     left_layout.addSpacing(5)  # Small spacing before command buttons
