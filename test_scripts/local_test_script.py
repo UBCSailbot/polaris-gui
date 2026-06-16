@@ -385,16 +385,27 @@ def run_local_test(msg_queue: multiprocessing.Queue, delay, data = None):
 
             if (cycle > 0):
                 if (num_dp > (cycle - 1)):
-                    # rudder_data is pretty random except for the actual heading
-                    rudder_data = generate_rudder_msg(50, 1.1, 1.2, a_heading_sine_path[cycle - 1], 45, 10, 11, 1.5) # TODO: fill in args - most can be just static values
+
+                    # ==== IMUHeadingObject Test ====
+                    # Testing the graph axis modulo while other functionality should remain unchanged
+                    # NOTE: Desired Heading must be tested manually
+                    heading = (cycle * 10) % 360
+                    rudder_data = generate_rudder_msg(50, 12, 13, heading, 0, 30001, 29999, 3)
                     msg = format_as_candump(rudder_data)
                     msg_queue.put(msg)
                     print(f"Message: {msg}")
-                    gps_data = generate_gps_msg(lat_test_sine_path[cycle - 1], lon_test_sine_path[cycle - 1])
-                    msg = format_as_candump(gps_data)
-                    msg_queue.put(msg)  # NOTE: do I need to make this non-blocking or smth?
-                    # print(f"Unformatted: {gps_data}")
-                    print(f"Message: {msg}")
+                    
+                    # ==== PLRS PATH + Heading Test ====
+                    # # rudder_data is pretty random except for the actual heading
+                    # rudder_data = generate_rudder_msg(50, 1.1, 1.2, a_heading_sine_path[cycle - 1], 45, 10, 11, 1.5) # TODO: fill in args - most can be just static values
+                    # msg = format_as_candump(rudder_data)
+                    # msg_queue.put(msg)
+                    # print(f"Message: {msg}")
+                    # gps_data = generate_gps_msg(lat_test_sine_path[cycle - 1], lon_test_sine_path[cycle - 1])
+                    # msg = format_as_candump(gps_data)
+                    # msg_queue.put(msg)  # NOTE: do I need to make this non-blocking or smth?
+                    # # print(f"Unformatted: {gps_data}")
+                    # print(f"Message: {msg}")
 
                 generate_slope_data()
 
