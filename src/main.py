@@ -5,6 +5,32 @@ import sys
 import time
 from datetime import datetime
 
+from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtWidgets import QApplication, QMessageBox, QWidget
+
+from config import (
+    gui_update_freq,
+    max_trimtab_angle,
+    min_trimtab_angle,
+    num_axes,
+    window_height,
+    window_width,
+)
+from utils import all_objs, heartbeat_modules
+from widgets import (
+    CANWindowControlsMixin,
+    CANWindowLoggingMixin,
+    CANWindowUIMixin,
+    CANWindowUpdateMixin,
+    JoystickMixin,
+)
+from workers import (
+    can_logging_process,
+    candump_process,
+    cansend_worker,
+    temperature_reader,
+)
+
 os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
 
 
@@ -36,33 +62,6 @@ def _bootstrap_qt_runtime():
 
 
 _bootstrap_qt_runtime()
-
-from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtWidgets import QApplication, QMessageBox, QWidget
-
-from config import (
-    gui_update_freq,
-    max_trimtab_angle,
-    min_trimtab_angle,
-    num_axes,
-    window_height,
-    window_width,
-)
-from utils import all_objs, heartbeat_modules
-from widgets import (
-    CANWindowControlsMixin,
-    CANWindowLoggingMixin,
-    CANWindowUIMixin,
-    CANWindowUpdateMixin,
-    JoystickMixin,
-)
-from workers import (
-    can_logging_process,
-    candump_process,
-    cansend_worker,
-    temperature_reader,
-)
-
 
 class CANWindow(
     CANWindowLoggingMixin,

@@ -25,40 +25,6 @@ can_line = "can0"
 graph_y = cg.graph_y
 graph_y_units = cg.graph_y_units
 
-# Forward declarations for objects referenced in parsing functions (defined later)
-volt2_obj = None
-temp1_obj = None
-volt3_obj = None
-temp2_obj = None
-temp3_obj = None
-volt4_obj = None
-volt1_obj = None
-mppt_hp_obj = None
-mppt_hs_obj = None
-mppt_sp_obj = None
-mppt_ss_obj = None
-actual_rudder_obj = None
-imu_roll_obj = None
-imu_pitch_obj = None
-imu_heading_obj = None
-set_rudder_obj = None
-integral_obj = None
-derivative_obj = None
-spd_over_gnd_obj = None
-data_wind_dir_obj = None
-data_wind_spd_obj = None
-sail_wind_dir_obj = None
-sail_wind_spd_obj = None
-pid_obj = None
-desired_heading_obj = None
-gps_lat_obj = None
-gps_lon_obj = None
-ais_obj = None
-pH_parsing_fn = None
-temp_sensor_parsing_fn = None
-sal_parsing_fn = None
-
-
 ### ----------  Utility Functions ---------- ###
 # Note that these functions are designed to work with positive numbers
 def convert_to_hex(decimal, num_bytes):
