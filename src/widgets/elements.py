@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
 
 import config as cg
 from config import input_label_style
-from utils import all_objs, graph_objs, heartbeat_modules
+from utils import all_objs, graph_objs, heartbeat_modules, pid_obj
 
 from . import styles
 
@@ -126,10 +126,13 @@ def init_pid_layout(self):
     self.pid_input_layout.addWidget(self.d_input)
     self.pid_input_button = QPushButton("Send PID")
     self.pid_input_button.clicked.connect(self.send_pid)
+    self.pid_clear_button = QPushButton("Clear PID Datapoints")
+    self.pid_clear_button.clicked.connect(pid_obj.clear)
 
     self.pid_layout = QVBoxLayout()
     self.pid_layout.addLayout(self.pid_input_layout)
     self.pid_layout.addWidget(self.pid_input_button)
+    self.pid_layout.addWidget(self.pid_clear_button)
 
     return self.pid_layout
 
