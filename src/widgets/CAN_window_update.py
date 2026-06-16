@@ -24,7 +24,6 @@ from utils import (
 )
 
 from config import (
-    gui_update_freq,
     latitude_range,
     longitude_range,
     max_rudder_angle,

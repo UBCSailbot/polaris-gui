@@ -1,6 +1,6 @@
 import pygame
 
-from config import movement_sensitivity, num_axes, LATCHED
+from config import movement_sensitivity, LATCHED
 
 
 # Handles joystick interaction & function

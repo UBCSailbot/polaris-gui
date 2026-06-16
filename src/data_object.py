@@ -1,12 +1,13 @@
+import csv
+import math
+import os
+from enum import Enum
+
 import pyqtgraph as pg
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QLabel
 
 import config as cg
-import os
-import csv
-import math
-from enum import Enum
 
 graph_margin = 0.2
 

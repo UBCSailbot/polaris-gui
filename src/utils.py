@@ -1,19 +1,16 @@
-from enum import Enum
-
-from data_object import (
-    GraphObject,
-    DataObject,
-    AISObject,
-    PIDObject,
-    AIS_Attributes,
-    ais_attributes,
-    generic_create_line,
-)
-from pyqtgraph import mkBrush, mkPen
-
 import math
 
+from pyqtgraph import mkBrush
+
 import config as cg
+from data_object import (
+    AIS_Attributes,
+    AISObject,
+    DataObject,
+    GraphObject,
+    PIDObject,
+    ais_attributes,
+)
 from heartbeat_module import HeartbeatModule
 
 # SSH Credentials
@@ -60,6 +57,7 @@ ais_obj = None
 pH_parsing_fn = None
 temp_sensor_parsing_fn = None
 sal_parsing_fn = None
+
 
 ### ----------  Utility Functions ---------- ###
 # Note that these functions are designed to work with positive numbers
@@ -415,7 +413,7 @@ def parse_0x060_frame(data_hex, current_time):
         AIS_Attributes.HEADING: round(val(raw_bytes, 16, 18, 1))
         if (val(raw_bytes, 16, 18, 1) != AIS_Attributes.HEADING_NA.value)
         else None,
-        AIS_Attributes.ROT: round((val(raw_bytes, 18, 19, 1) - 128))
+        AIS_Attributes.ROT: round(val(raw_bytes, 18, 19, 1) - 128)
         if ((val(raw_bytes, 18, 19, 1) - 128) != AIS_Attributes.ROT_NA.value)
         else None,
         AIS_Attributes.LENGTH: int(val(raw_bytes, 19, 21, 1))

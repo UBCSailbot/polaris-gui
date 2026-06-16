@@ -2,7 +2,7 @@ import time
 
 from utils import desired_heading_obj, set_rudder_obj
 
-from config import can_line, min_trimtab_angle, max_trimtab_angle, max_rudder_angle
+from config import can_line, min_trimtab_angle, max_trimtab_angle
 from utils import convert_to_hex, convert_to_little_endian
 
 

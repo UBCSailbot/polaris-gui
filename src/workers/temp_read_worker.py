@@ -4,12 +4,14 @@ import paramiko
 
 from config import hostname, password, username
 
+
 def _send_status(pipe, connected, value):
     try:
         pipe.send((connected, value))
         return True
     except (BrokenPipeError, EOFError, OSError):
         return False
+
 
 def temperature_reader(pipe):
     client = paramiko.SSHClient()

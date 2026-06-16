@@ -1,8 +1,8 @@
 import multiprocessing
+import os
 import signal
 import sys
 import time
-import os
 from datetime import datetime
 
 os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
@@ -37,17 +37,24 @@ def _bootstrap_qt_runtime():
 
 _bootstrap_qt_runtime()
 
-from utils import all_objs, heartbeat_modules
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QApplication, QMessageBox, QWidget
 
-from config import gui_update_freq, window_height, window_width, min_trimtab_angle, max_trimtab_angle, num_axes
+from config import (
+    gui_update_freq,
+    max_trimtab_angle,
+    min_trimtab_angle,
+    num_axes,
+    window_height,
+    window_width,
+)
+from utils import all_objs, heartbeat_modules
 from widgets import (
     CANWindowControlsMixin,
     CANWindowLoggingMixin,
     CANWindowUIMixin,
     CANWindowUpdateMixin,
-    JoystickMixin
+    JoystickMixin,
 )
 from workers import (
     can_logging_process,
@@ -55,6 +62,7 @@ from workers import (
     cansend_worker,
     temperature_reader,
 )
+
 
 class CANWindow(
     CANWindowLoggingMixin,
@@ -84,7 +92,7 @@ class CANWindow(
 
         self.time_start = time.time()
         self.time_history = []
-        
+
         # Joystick state variables
         self.joystick = None
         self.js_prev_pos = [0] * num_axes
