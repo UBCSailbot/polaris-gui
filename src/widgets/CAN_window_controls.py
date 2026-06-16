@@ -2,7 +2,7 @@ import time
 
 from utils import desired_heading_obj, set_rudder_obj
 
-from config import can_line
+from config import can_line, min_trimtab_angle, max_trimtab_angle
 from utils import convert_to_hex, convert_to_little_endian
 
 
@@ -20,16 +20,30 @@ class CANWindowControlsMixin:
             self.cansend_queue.put(msg)
             self.output_display.append(f"[{display_msg}] {msg}")
         except Exception as e:
-            print(f"ERROR - Command not logged: {str(e)}")
+            print(f"ERROR - Command not sent: {str(e)}")
 
-    def send_trim_tab(self, from_keyboard=False):
+    def send_trim_tab(self, from_keyboard: bool = False, set_angle: float = None):
         try:
-            angle = self.trimtab_angle if from_keyboard else int(self.trim_inptext())
-            if not from_keyboard:
+            # angle = self.trimtab_angle if from_keyboard else int(self.trim_input.text())
+            # if not from_keyboard:
+            #     self.trimtab_angle = angle
+
+            if from_keyboard:
+                angle = self.trimtab_angle
+            else:
+                angle = (
+                    round(set_angle, 3)
+                    if set_angle is not None
+                    else round(float(self.trim_input.text()), 3)
+                )
                 self.trimtab_angle = angle
-            if angle < -90:
-                raise ValueError("Invalid angle input for Trim Tab")
-            value = convert_to_hex((angle + 90) * 1000, 4)
+
+            if angle < min_trimtab_angle or angle > max_trimtab_angle:
+                raise ValueError(
+                    f"Invalid angle input for Trim Tab: must be between {min_trimtab_angle} and {max_trimtab_angle} degrees"
+                )
+
+            value = convert_to_hex(int((angle + 90) * 1000), 4)
             self.can_send("002", convert_to_little_endian(value), "TRIMTAB SENT")
             self.trimtab_display.setText(
                 f"Current Trim Tab Angle: {self.trimtab_angle} degrees"
@@ -40,34 +54,53 @@ class CANWindowControlsMixin:
 
     def send_desired_heading(self):
         try:
-            heading = float(self.desired_heading_inptext())
+            heading = float(self.desired_heading_input.text())
+            if (heading < 0) or (heading > 360):
+                raise ValueError
+            # Note: We lose precision of decimal places if too many are entered: only keeps 3 dp
             data = convert_to_little_endian(convert_to_hex(int(heading * 1000), 4))
-            status_byte = "00"  # a = 0, b = 0, c = 0
+            status_byte = "00"  # a = 0, b = 0
             self.can_send("001", data + status_byte, "HEADING SENT")
             desired_heading_obj.add_datapoint(time.time() - self.time_start, heading)
-            # desired_heading_obj.update_label()
+            # desired_heading_obj.update_label() # No explicit label with the other objects for this item; already have Heading Set Angle
         except ValueError as e:
             self.show_error(f"Invalid angle input for desired heading: {e}")
-        except Exception:
-            print("Exception thrown from send_desired_heading")
-            self.show_error("Exception thrown from send_desired_heading")
+        except Exception as exp:
+            print(f"Exception thrown from send_desired_heading: {exp}")
+            self.show_error(f"Exception thrown from send_desired_heading: {exp}")
 
-    def send_rudder(self, from_keyboard=False):
+    def send_rudder(self, from_keyboard=False, set_angle: float = None):
+        """set_angle is a given angle"""
         try:
-            angle = self.rudder_angle if from_keyboard else int(self.rudder_inptext())
+            if from_keyboard:
+                angle = self.rudder_angle
+            elif set_angle is not None:
+                angle = round(set_angle, 3)
+            else:
+                angle = int(self.rudder_input.text())
+
             if not from_keyboard:
-                self.rudder_angle = angle
+                self.rudder_angle = (
+                    angle  # TODO: Why is this here? Keep self.rudder_angle up-to-date?
+                )
+
             if angle < -90:
-                raise ValueError("Invalid angle input for Rudder")
-            data = convert_to_little_endian(convert_to_hex((angle + 90) * 1000, 4))
+                raise ValueError("ERR - Rudder Angle input < -90")
+
+            data = convert_to_little_endian(convert_to_hex(int((angle + 90) * 1000), 4))
+
             status_byte = "80"  # a = 1, b = 0, c = 0
             self.can_send("001", data + status_byte, "RUDDER SENT")
             self.rudder_display.setText(
                 f"Current Set Rudder Angle:  {self.rudder_angle} degrees"
             )
 
+            # print("line 709")
+
             set_rudder_obj.add_datapoint(time.time() - self.time_start, angle)
             set_rudder_obj.update_label()
+            # print("Set rudder current = ", set_rudder_obj.get_current()[1])
+            # print(f"at the end w/o error")
 
         except ValueError:
             self.show_error("Invalid angle input for Rudder")
@@ -86,13 +119,13 @@ class CANWindowControlsMixin:
         # check for valid p, i, d inputs
         try:
             p = convert_to_little_endian(
-                convert_to_hex(int(float(self.p_inptext()) * 1000000), 4)
+                convert_to_hex(int(float(self.p_input.text()) * 1000000), 4)
             )
             i = convert_to_little_endian(
-                convert_to_hex(int(float(self.i_inptext()) * 1000000), 4)
+                convert_to_hex(int(float(self.i_input.text()) * 1000000), 4)
             )
             d = convert_to_little_endian(
-                convert_to_hex(int(float(self.d_inptext()) * 1000000), 4)
+                convert_to_hex(int(float(self.d_input.text()) * 1000000), 4)
             )
             can_data = p + i + d
             self.can_send("200", can_data, "SEND PID")

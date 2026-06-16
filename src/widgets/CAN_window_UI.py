@@ -1,9 +1,11 @@
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QApplication, QComboBox, QHBoxLayout, QLabel, QTextEdit
+
+from data_object import DataObject
+from utils import all_objs
+
 from . import elements as elemns
 from . import styles as styles
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QHBoxLayout, QLabel, QTextEdit
-
-from utils import all_objs
 
 
 # UI creation functions
@@ -96,6 +98,7 @@ class CANWindowUIMixin:
         self.rudder_button.setDisabled(checked)
         self.trim_input.setDisabled(checked)
         self.trim_button.setDisabled(checked)
+        self.set_joystick_enabled(checked)
 
     def toggle_emergency_buttons(self, state):
         enabled = state == Qt.Checked
@@ -109,25 +112,35 @@ class CANWindowUIMixin:
         # Show a brief confirmation
         self.output_display.append(f"[COPIED] {text}")
 
-    def getGraphObjFromXName(self, name):
-        for obj in all_objs:
-            if (obj.graph_obj is not None) and (obj.graph_obj.dropdown_label == name):
-                return obj.graph_obj
+    # NOTE: Commented out this function as I don't need it
+    # def getGraphObjFromXName(self, name):
+    #     for obj in all_objs:
+    #         if ((obj.graph_obj is not None) and (obj.graph_obj.dropdown_label == name)):
+    #             return obj.graph_obj
 
-    def setGraph(self, name, spot, dropdowns):
+    def getObjFromLabel(self, dropdown_label) -> DataObject:
+        for obj in all_objs:
+            if (obj.graph_obj is not None) and (
+                obj.graph_obj.dropdown_label == dropdown_label
+            ):
+                return obj
+
+    def setGraph(self, name: str, spot: int, dropdowns: list[QComboBox]) -> None:
         """
         Shows given graph at spot\n
         name = DataObj.graph_obj.dropdown_label\n
         spot = 0, 1, 2 (top, mid, bot)\n
         """
-        newGraphObj = self.getGraphObjFromXName(name)  # get graph to put in spot
+        newObj = self.getObjFromLabel(name)
+        # newGraphObj = self.getGraphObjFromXName(name) # get graph to put in spot
+        newGraphObj = newObj.graph_obj
+
         if newGraphObj.dropdown_label == self.visibleGraphObjs[spot].dropdown_label:
             return  # do nothing
         if (
             newGraphObj in self.visibleGraphObjs
         ):  # if graph to put in spot is already visible
-            # don't allow the switch to happen - set dropdown text back to original and
-            # print error message
+            # don't allow the switch to happen - set dropdown text back to original and print error message
             print("[ERR] Graph is already visible")
             dropdowns[spot].setCurrentText(
                 self.visibleGraphObjs[spot].dropdown_label
@@ -140,27 +153,6 @@ class CANWindowUIMixin:
             self.right_graphs_layout.addWidget(newGraphObj.graph, spot, 0)
             newGraphObj.show()
             self.visibleGraphObjs[spot] = newGraphObj
+            newObj.update_line_data()
 
-    # def setGraph(self, name, spot, dropdowns):
-    #     '''
-    #     Shows given graph at spot\n
-    #     name = DataObj.graph_obj.x_name\n
-    #     spot = 0, 1, 2 (top, mid, bot)\n
-    #     '''
-    #     newGraphObj = self.getGraphObjFromXName(name) # get graph to put in spot
-    #     if (newGraphObj.x_name == self.visibleGraphObjs[spot].x_name):
-    #         return # do nothing
-    #     if newGraphObj in self.visibleGraphObjs: # if graph to put in spot is already
-    # visible
-    #         # don't allow the switch to happen - set dropdown text back to original
-    # and print error message
-    #         print("[ERR] Graph is already visible")
-    #         dropdowns[spot].setCurrentText(self.visibleGraphObjs[spot].x_name)
-    # # switch text back to original
-    #     else:
-    #         self.right_graphs_layout.removeWidget(self.visibleGraphObjs[spot].graph)
-    # # remove graph currently in spot
-    #         self.visibleGraphObjs[spot].hide()
-    #         self.right_graphs_layout.addWidget(newGraphObj.graph, spot, 0)
-    #         newGraphObj.show()
-    #         self.visibleGraphObjs[spot] = newGraphObj
+        dropdowns[spot].clearFocus()

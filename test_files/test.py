@@ -7,7 +7,7 @@ import numpy as np
 import math
 # from pyqtgraph.Qt import QtGui, QtCore
 import pyqtgraph as pg
-from PyQt5 import QtCore, QtWidgets, QtGui
+from PyQt5 import QtWidgets
 
 
 class MyArrowItem(pg.ArrowItem):

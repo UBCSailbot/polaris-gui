@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
 
 import config as cg
 from config import input_label_style
-from utils import all_objs
+from utils import all_objs, graph_objs, heartbeat_modules, pid_obj
 
 from . import styles
 
@@ -126,10 +126,13 @@ def init_pid_layout(self):
     self.pid_input_layout.addWidget(self.d_input)
     self.pid_input_button = QPushButton("Send PID")
     self.pid_input_button.clicked.connect(self.send_pid)
+    self.pid_clear_button = QPushButton("Clear PID Datapoints")
+    self.pid_clear_button.clicked.connect(pid_obj.clear)
 
     self.pid_layout = QVBoxLayout()
     self.pid_layout.addLayout(self.pid_input_layout)
     self.pid_layout.addWidget(self.pid_input_button)
+    self.pid_layout.addWidget(self.pid_clear_button)
 
     return self.pid_layout
 
@@ -174,7 +177,7 @@ def init_commands_grid(self, commands):
         col = i % 2
         self.commands_grid.addWidget(btn, row, col)
 
-        return self.commands_grid
+    return self.commands_grid
 
 
 def init_input_layout(self):
@@ -207,6 +210,12 @@ def init_left_layout(
     left_layout.addSpacing(5)  # Add small spacing
     left_layout.addWidget(QLabel("Candump Output:"))
     left_layout.addWidget(self.output_display)
+    left_layout.addSpacing(5)  # Add small spacing
+
+    for mod in heartbeat_modules:
+        mod.init_label()
+        left_layout.addWidget(mod.label)
+
     left_layout.addSpacing(5)  # Add small spacing
     left_layout.addWidget(self.emergency_checkbox)
     left_layout.addSpacing(5)  # Add spacing before emergency buttons
@@ -245,7 +254,9 @@ def init_right_layout(self):
     )  # create GridLayout for three graphs (0, 0), (1, 0), (2, 0)
     # Note: It is important that each distinct graph canvas is only added as a widget
     #       a single time, or else problems
-    self.visibleGraphObjs = []  # list of GraphObjs with visible graphs, in order of position descending
+
+    # list of GraphObjs with visible graphs, in order of position descending
+    self.visibleGraphObjs = []
 
     self.graph_titles = []
     for obj in all_objs:
@@ -262,14 +273,12 @@ def init_right_layout(self):
 
     # show a maximum of three graphs initially
     for i in range(0, 3):
-        if i < len(self.graph_titles):
-            graph_obj = self.getGraphObjFromXName(self.graph_titles[i])
-            if graph_obj not in self.visibleGraphObjs:
-                self.right_graphs_layout.addWidget(graph_obj.graph, i, 0)
-                self.visibleGraphObjs.append(graph_obj)
-                graph_obj.show()
-                dropdowns[i].setCurrentText(self.graph_titles[i])
-                dropdowns[i].setVisible(True)
+        if i < len(graph_objs):
+            self.right_graphs_layout.addWidget(graph_objs[i].graph, i, 0)
+            self.visibleGraphObjs.append(graph_objs[i])
+            graph_objs[i].show()
+            dropdowns[i].setCurrentText(graph_objs[i].dropdown_label)
+            dropdowns[i].setVisible(True)
         else:
             break
 

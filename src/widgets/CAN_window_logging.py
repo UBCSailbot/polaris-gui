@@ -7,15 +7,15 @@ from utils import data_objs
 
 
 class CANWindowLoggingMixin:
-    def _init_logging(self):
+    def _init_logging(self, timestamp):
         """Initialize CSV logging files with timestamped names"""
-
+        # Create logs directory if it doesn't exist
         if not os.path.exists("logs"):
             os.makedirs("logs")
 
         # Create timestamped filenames
         # Values log file (CAN dump logging is now handled by separate process)
-        self.values_log_file = os.path.join("logs", f"values_{self.timestamp}.csv")
+        self.values_log_file = os.path.join("logs", f"values_{timestamp}.csv")
         self.values_csv_file = open(self.values_log_file, "w", newline="")
         self.values_writer = csv.writer(self.values_csv_file)
 
@@ -29,9 +29,7 @@ class CANWindowLoggingMixin:
 
         print(f"Values logging initialized: {self.values_log_file}")
 
-    # Makes given history the same length as time_history so it is plottable
-    # (note: this function works because lists are mutable and can be referenced
-    # through formal param)
+    # Makes given history the same length as time_history so it is plottable (note: this function works because lists are mutable and can be referenced through formal param)
     def update_history(self, history: list):
         while len(history) > len(self.time_history):
             history.pop(0)
@@ -45,13 +43,18 @@ class CANWindowLoggingMixin:
             timestamp = datetime.now().isoformat()
             elapsed_time = time.time() - self.time_start
             values = [timestamp, f"{elapsed_time:.3f}"]
+            # print("line 222")
             for obj in data_objs:
                 val = obj.get_current()[1]
+                # print("line 225")
                 if val is not None:
                     values.append(str(val))
                 else:
                     values.append("None")
+                # print("line 230")
+            # print("line 231")
             self.values_writer.writerow(values)
+            # print("line 233")
             self.values_csv_file.flush()  # Flush immediately to prevent data loss
         except Exception as e:
             print(f"Error logging values: {e}")
