@@ -252,6 +252,9 @@ class IMUHeadingObject(DataObject):
             self.label = create_label(self.name + ": ---- ") # should automatically create label
         else: self.label = None
 
+class DesiredHeadingObject(IMUHeadingObject):
+    # TODO
+    pass
 
 class PIDObject(DataObject):
     def __init__(self, name, x_name, y_name, dp, units, parsing_fn, timeout_duration: int, line_dashed = False, line_colour = None, symbol_brush = None, has_label = True, graph: GraphObject = None) -> None:
