@@ -8,6 +8,7 @@ import project.config as cg
 import math
 
 graph_margin = 0.2
+MAX_ANGLE_JUMP = 180
 
 def create_label(title, min_width=None, max_height=None):
     if (min_width is None): min_width = cg.value_label_min_width
@@ -162,14 +163,14 @@ class DataObject:
             val = round(self.data.get(self.current), self.dp)
         return self.current, val # returns the time, value of most recently logged datapoint
     
-    def add_datapoint(self, x, y):
+    def add_datapoint(self, x, y, graph_data: dict = None):
         '''
         add a datapoint to self.data
         '''
         self.data[x] = y
         self.current = x
         if (self.graph_obj and self.graph_obj.graph.isVisible()):
-            self.update_line_data()
+            self.update_line_data(graph_data)
         return
     
     def remove_datapoint(self, x):
@@ -187,7 +188,7 @@ class DataObject:
     #         self.line.setData(list(self.data.keys()), values)
     #     return
 
-    def update_line_data(self, graph_data = None):
+    def update_line_data(self, graph_data: dict) -> None:
         if (self.line is not None):
             if graph_data == None: graph_data = self.data
             values = []
@@ -213,7 +214,7 @@ class DataObject:
 
     # if there is a graph associated with this object and there are some data points outside of the graph window,
     # remove those points 
-    def update_data(self, current_time, scroll_window):
+    def update_data(self, current_time, scroll_window, graph_data: dict = None):
         '''
         if there is a graph associated with this object and there are some data points outside of the graph window,
         remove those points 
@@ -222,7 +223,7 @@ class DataObject:
         for key in keys:
             if (key < (current_time - scroll_window - 5)): # if value is outside graph plus some margin of time
                 del self.data[key]
-        self.update_line_data()
+        self.update_line_data(graph_data)
         return
     
     def update_label(self):
@@ -235,6 +236,9 @@ class DataObject:
 # A custom DataObject class for creating a graph object with a custom AxisItem (for y-axis)
 # and calculating wrapping for IMU for smoother graph experiences
 class IMUHeadingObject(DataObject):
+
+    # MAX_ANGLE_JUMP = 180
+    
     def __init__(self, name, dp, units, parsing_fn, line_dashed = False, line_colour = None, symbol_brush = None, has_label = True, graph: GraphObject = None):
         super().__init__(name, dp, units, None, line_colour = line_colour, symbol_brush = symbol_brush, graph = graph)
         # self.name = name
@@ -253,7 +257,7 @@ class IMUHeadingObject(DataObject):
         # self.symbol_brush = symbol_brush
 
         # Tracks how many full rotations the boat has made since initialization for smooth graph readings
-        # positive numbers are CW rotations, negative is CCW rotations
+        # positive numbers are positive rotations (358->359->0->1), negative is the other way (1->0->359->358)
         self.current_rotations = 0 
         self.graph_data = {} # Data used for graphing only (not logging), contains data in self.data plus offset based on the number of rotations at the time
 
@@ -267,21 +271,23 @@ class IMUHeadingObject(DataObject):
             self.label = create_label(self.name + ": ---- ") # should automatically create label
         else: self.label = None
 
-    def update_current_rotations(self, new_angle):
+    def update_current_rotations(self, old_angle: float, new_angle: float) -> None:
         '''
         Compares the new angle to the last recorded angle (using get_current()) and decides 
         if a full rotation CW or CCW has occurred, updating self.current_rotations accordingly
         '''
-        # TODO
+        if (old_angle - new_angle) >= MAX_ANGLE_JUMP: self.current_rotations += 1
+        elif (old_angle - new_angle) <= -(MAX_ANGLE_JUMP): self.current_rotations -= 1
+
         return
 
     def add_datapoint(self, x, y):
         '''
         Updates self.data and self.graph_data
         '''
-        self.update_current_rotations(y)
+        self.update_current_rotations(self.get_current()[1], y)
         self.graph_data[x] = y + (self.current_rotations * 360)
-        super().add_datapoint(x, y)
+        super().add_datapoint(x, y, self.graph_data)
 
 
 class DesiredHeadingObject(IMUHeadingObject):
@@ -322,7 +328,7 @@ class PIDObject(DataObject):
         # NOTE: There definitely should be a parsed_dict when this function is called, error otherwise
         if (parsed_dict is None): raise ValueError("ERROR: No parsed_dict passed to PIDObject.parse_frame()")
         else:
-            print("parsed_dict = ", parsed_dict)
+            # print("parsed_dict = ", parsed_dict)
             x = round(parsed_dict[self.x_name], self.dp)
             y = round(parsed_dict[self.y_name], self.dp)
             # self.add_datapoint(current_time, (x, y)) # key is current time, value is a tuple with x, y values
