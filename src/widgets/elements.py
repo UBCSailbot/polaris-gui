@@ -177,7 +177,7 @@ def init_commands_grid(self, commands):
         col = i % 2
         self.commands_grid.addWidget(btn, row, col)
 
-        return self.commands_grid
+    return self.commands_grid
 
 
 def init_input_layout(self):
