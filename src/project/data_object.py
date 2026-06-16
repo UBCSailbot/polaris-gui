@@ -164,7 +164,7 @@ class DataObject:
     
     def add_datapoint(self, x, y):
         '''
-    # add a datapoint to self.data
+        add a datapoint to self.data
         '''
         self.data[x] = y
         self.current = x
@@ -178,12 +178,22 @@ class DataObject:
         except KeyError:
             print(f"ERR - trying to apply remove_datapoint() on a point which does not exist")
     
-    def update_line_data(self):
+    # NOTE: Old version of update_line_data; delete once the newer version works
+    # def update_line_data(self):
+    #     if (self.line is not None):
+    #         values = []
+    #         for key in self.data.keys():
+    #             values.append(self.data[key])
+    #         self.line.setData(list(self.data.keys()), values)
+    #     return
+
+    def update_line_data(self, graph_data = None):
         if (self.line is not None):
+            if graph_data == None: graph_data = self.data
             values = []
-            for key in self.data.keys():
-                values.append(self.data[key])
-            self.line.setData(list(self.data.keys()), values)
+            for key in graph_data.keys():
+                values.append(graph_data[key])
+            self.line.setData(list(graph_data.keys()), values)
         return
 
     def parse_frame(self, current_time, data_line, parsed_dict=None):
@@ -241,9 +251,14 @@ class IMUHeadingObject(DataObject):
         # self.line = None
         # self.has_label = has_label
         # self.symbol_brush = symbol_brush
+
+        # Tracks how many full rotations the boat has made since initialization for smooth graph readings
+        # positive numbers are CW rotations, negative is CCW rotations
+        self.current_rotations = 0 
+        self.graph_data = {} # Data used for graphing only (not logging), contains data in self.data plus offset based on the number of rotations at the time
+
         return 
         
-
     def initialize(self, timestamp = None):
         if self.graph_obj:
             if not self.graph_obj.initialized: self.graph_obj.initialize(custom_y_AxisItem = IMUHeadingAxisItem("left"))
@@ -251,6 +266,23 @@ class IMUHeadingObject(DataObject):
         if self.has_label:
             self.label = create_label(self.name + ": ---- ") # should automatically create label
         else: self.label = None
+
+    def update_current_rotations(self, new_angle):
+        '''
+        Compares the new angle to the last recorded angle (using get_current()) and decides 
+        if a full rotation CW or CCW has occurred, updating self.current_rotations accordingly
+        '''
+        # TODO
+        return
+
+    def add_datapoint(self, x, y):
+        '''
+        Updates self.data and self.graph_data
+        '''
+        self.update_current_rotations(y)
+        self.graph_data[x] = y + (self.current_rotations * 360)
+        super().add_datapoint(x, y)
+
 
 class DesiredHeadingObject(IMUHeadingObject):
     # TODO
