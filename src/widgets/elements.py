@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
 
 import config as cg
 from config import input_label_style
-from utils import all_objs, graph_objs
+from utils import all_objs, graph_objs, heartbeat_modules
 
 from . import styles
 
@@ -207,6 +207,12 @@ def init_left_layout(
     left_layout.addSpacing(5)  # Add small spacing
     left_layout.addWidget(QLabel("Candump Output:"))
     left_layout.addWidget(self.output_display)
+    left_layout.addSpacing(5)  # Add small spacing
+
+    for mod in heartbeat_modules:
+        mod.init_label()
+        left_layout.addWidget(mod.label)
+    
     left_layout.addSpacing(5)  # Add small spacing
     left_layout.addWidget(self.emergency_checkbox)
     left_layout.addSpacing(5)  # Add spacing before emergency buttons
