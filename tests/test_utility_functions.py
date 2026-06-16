@@ -49,7 +49,7 @@ def test_convert_to_little_endian(hex_str, expected_value, expected_outcome):
 
 @pytest.mark.parametrize(
     "input, expected_output",
-    {
+    [
         (0, "00000000"),
         (123.45, "42f6e666"),
         # (123.45, "66e6f642"),
@@ -59,7 +59,7 @@ def test_convert_to_little_endian(hex_str, expected_value, expected_outcome):
         # (0.123456789, "ead6fc3d"),
         (-911.2819, "c463d20b")
         # (-911.2819, "0bd263c4")
-    }
+    ]
 )
 def test_convert_float_to_binary32hex(input, expected_output):
     try:
