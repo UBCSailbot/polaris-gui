@@ -41,8 +41,8 @@ def generic_create_line(graph_obj, name, x_data, y_data, colour, line_width, lin
     except Exception as e:
         raise ValueError(f"Error creating line: {e}")
     
-def create_graph(title, x_label, y_label, interactable: bool, title_style = cg.graph_title_style, label_style = cg.graph_label_style):
-    graph = pg.PlotWidget()
+def create_graph(title, x_label, y_label, interactable: bool, title_style = cg.graph_title_style, label_style = cg.graph_label_style, y_AxisItem: pg.AxisItem = None):
+    graph = pg.PlotWidget(axisItems={'left': y_AxisItem}) if y_AxisItem is not None else pg.PlotWidget()
     graph.setBackground(cg.graph_bg)
     graph.setMinimumSize(cg.graph_min_width, cg.graph_min_height)
     graph.getPlotItem().getViewBox().setMouseEnabled(interactable, interactable)
@@ -99,9 +99,9 @@ class GraphObject: # struct which keeps together objects needed for a graph
             self.dropdown_label = dropdown_label
         return
     
-    def initialize(self):
+    def initialize(self, custom_y_AxisItem = None):
         self.graph = create_graph(self.dropdown_label if self.dropdown_label != self.x_name else f"{self.x_name} vs. {self.y_name}", f"{self.x_name} ({self.x_units})" if self.x_units else f"{self.x_name}", 
-                                  f"{self.y_name} ({self.y_units})" if self.y_units else f"{self.y_name}", self.interactable)
+                                  f"{self.y_name} ({self.y_units})" if self.y_units else f"{self.y_name}", self.interactable, y_AxisItem = custom_y_AxisItem)
         self.graph.hide()
         self.initialized = True 
 
@@ -145,7 +145,6 @@ class DataObject:
     def initialize(self, timestamp = None):
         if self.graph_obj:
             if not self.graph_obj.initialized: self.graph_obj.initialize()
-            # self.line = self.create_empty_line
             self.init_empty_line()
         if self.has_label:
             self.label = create_label(self.name + ": ---- ") # should automatically create label
@@ -223,8 +222,35 @@ class DataObject:
             )
         return
 
-# class IMUHeadingObject(DataObject):
+# A custom DataObject class for creating a graph object with a custom AxisItem (for y-axis)
+# and calculating wrapping for IMU for smoother graph experiences
+class IMUHeadingObject(DataObject):
+    def __init__(self, name, dp, units, parsing_fn, line_dashed = False, line_colour = None, symbol_brush = None, has_label = True, graph: GraphObject = None):
+        super().__init__(name, dp, units, None, line_colour = line_colour, symbol_brush = symbol_brush, graph = graph)
+        # self.name = name
+        # self.dp = dp # number of dp to round to
+        # self.units = units if units else ""
+        # self.parsing_fn = parsing_fn
+        # self.line_dashed = line_dashed # boolean indicating whether line should be dashed or not
+        # self.line_colour = line_colour # if not graphed, doesn't need line colour
+        # self.graph_obj = graph # if not graphed, doesn't need a graph
+        # # if (line_colour is None and graph is not None):
+        # #     raise ValueError("DataObject __init__: Given a graph, but not a line colour")
+        # self.data = {} # no data when initialized: of form time:value
+        # self.current = None # key of most recent data entry datapoint
+        # self.line = None
+        # self.has_label = has_label
+        # self.symbol_brush = symbol_brush
+        return 
+        
 
+    def initialize(self, timestamp = None):
+        if self.graph_obj:
+            if not self.graph_obj.initialized: self.graph_obj.initialize(custom_y_AxisItem = IMUHeadingAxisItem("left"))
+            self.init_empty_line()
+        if self.has_label:
+            self.label = create_label(self.name + ": ---- ") # should automatically create label
+        else: self.label = None
 
 
 class PIDObject(DataObject):
