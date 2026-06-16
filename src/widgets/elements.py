@@ -215,7 +215,7 @@ def init_left_layout(
     for mod in heartbeat_modules:
         mod.init_label()
         left_layout.addWidget(mod.label)
-    
+
     left_layout.addSpacing(5)  # Add small spacing
     left_layout.addWidget(self.emergency_checkbox)
     left_layout.addSpacing(5)  # Add spacing before emergency buttons
@@ -254,7 +254,9 @@ def init_right_layout(self):
     )  # create GridLayout for three graphs (0, 0), (1, 0), (2, 0)
     # Note: It is important that each distinct graph canvas is only added as a widget
     #       a single time, or else problems
-    self.visibleGraphObjs = []  # list of GraphObjs with visible graphs, in order of position descending
+
+    # list of GraphObjs with visible graphs, in order of position descending
+    self.visibleGraphObjs = []
 
     self.graph_titles = []
     for obj in all_objs:

@@ -25,6 +25,7 @@ can_line = "can0"
 graph_y = cg.graph_y
 graph_y_units = cg.graph_y_units
 
+
 ### ----------  Utility Functions ---------- ###
 # Note that these functions are designed to work with positive numbers
 def convert_to_hex(decimal, num_bytes):
@@ -66,10 +67,13 @@ def val(raw_bytes, s, e, div) -> float:
     return int.from_bytes(raw_bytes[s:e], "little") / div
 
 
-# NOTE: Currently returns True/False, but parsing functions don't do anything with this return value as of yet - it just prints it as a notice
-# NOTE: May add functionality to also log if a given data point is out of range (ie. is sus)
+# NOTE: Currently returns True/False, but parsing functions don't do anything with this
+# return value as of yet - it just prints it as a notice
+# NOTE: May add functionality to also log if a given data point is out of range
+# (ie. is sus)
 def range_check(quantity, num, minn=None, maxn=None):
-    """Prints error and returns False if given num is not within [min, max] (inclusive); if None is given for either max or min, that boundary is not checked."""
+    """Prints error and returns False if given num is not within [min, max] (inclusive);
+    if None is given for either max or min, that boundary is not checked."""
     if num is None:
         print(f"Warning: {quantity} passed to range_check was None")
         return
@@ -111,7 +115,9 @@ def parse_0x204_frame(data_hex):
     if len(raw_bytes) != 16:
         raise ValueError("Incorrect data length (num bytes): ID 0x204")
 
-    val = lambda s, e, div: int.from_bytes(raw_bytes[s:e], "little") / div
+    def val(s, e, div):
+        return int.from_bytes(raw_bytes[s:e], "little") / div
+
     # print(f"derivative_obj: {(val(12, 14, 1.0) - 300) / 100.0}")
     # print(f"spd_over_gnd_obj: {val(14, 16, 100.0)}")
     return {
@@ -139,7 +145,9 @@ def parse_wind_sensor_frame(data_hex):
     if len(raw_bytes) != 4:
         raise ValueError("Incorrect data length (num bytes): ID 0x041")
 
-    val = lambda s, e, div: int.from_bytes(raw_bytes[s:e], "little") / div
+    def val(s, e, div):
+        return int.from_bytes(raw_bytes[s:e], "little") / div
+
     return {
         data_wind_dir_obj.name: val(0, 2, 1.0),
         data_wind_spd_obj.name: val(2, 4, 10.0),
@@ -151,7 +159,9 @@ def parse_sail_wind_sensor_frame(data_hex):
     if len(raw_bytes) != 4:
         raise ValueError("Incorrect data length (num bytes): ID 0x040")
 
-    val = lambda s, e, div: int.from_bytes(raw_bytes[s:e], "little") / div
+    def val(s, e, div):
+        return int.from_bytes(raw_bytes[s:e], "little") / div
+
     return {
         sail_wind_dir_obj.name: val(0, 2, 1.0),
         sail_wind_spd_obj.name: val(2, 4, 10.0),
@@ -223,7 +233,7 @@ def parse_0x110_frame(data_hex):
     raw_bytes = bytes.fromhex(data_hex)
     if len(raw_bytes) != 2:
         raise ValueError(
-            f"Incorrect data length (num bytes): ID 0x110\nExpecting: 2 bytes, Received: {len(raw_bytes)}"
+            f"Incorrect data length (num bytes): ID 0x110\nExpecting: 2 bytes, Received: {len(raw_bytes)}"  # noqa: E501
         )
 
     # pH is in format of pH * 1000
@@ -243,7 +253,7 @@ def pH_parsing_fn(data_hex):
     raw_bytes = bytes.fromhex(data_hex)
     if len(raw_bytes) != 2:
         raise ValueError(
-            f"Incorrect data length (num bytes): ID 0x110\nExpecting: 2 bytes, Received: {len(raw_bytes)}"
+            f"Incorrect data length (num bytes): ID 0x110\nExpecting: 2 bytes, Received: {len(raw_bytes)}"  # noqa: E501
         )
 
     # pH is in format of pH * 1000

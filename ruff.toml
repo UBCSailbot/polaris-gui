@@ -5,4 +5,4 @@ ignore = ["E741", "E722", "E731", "F403", "F405"]
 
 [lint.per-file-ignores]
 "**/__init__.py" = ["F401"]
-"src/project/remote_debugger.py" = ["E402"]
+"src/utils.py" = ["E501"]

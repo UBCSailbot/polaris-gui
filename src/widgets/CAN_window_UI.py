@@ -1,11 +1,11 @@
-from data_object import DataObject
-
-from . import elements as elemns
-from . import styles as styles
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication, QComboBox, QHBoxLayout, QLabel, QTextEdit
 
+from data_object import DataObject
 from utils import all_objs
+
+from . import elements as elemns
+from . import styles as styles
 
 
 # UI creation functions

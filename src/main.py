@@ -63,6 +63,7 @@ def _bootstrap_qt_runtime():
 
 _bootstrap_qt_runtime()
 
+
 class CANWindow(
     CANWindowLoggingMixin,
     CANWindowUpdateMixin,
@@ -124,7 +125,9 @@ class CANWindow(
         if key == Qt.Key_A:
             self.rudder_angle = min(self.rudder_angle + 3, 45)
             self.send_rudder(from_keyboard=True)
-            # NOTE: now that send_rudder() takes a set_angle, can probably use that instead of setting self.rudder_angle and from_keyboard=True
+            # NOTE: now that send_rudder() takes a set_angle,
+            # can probably use that instead of
+            # setting self.rudder_angle and from_keyboard=True
         elif key == Qt.Key_D:
             self.rudder_angle = max(self.rudder_angle - 3, -45)
             self.send_rudder(from_keyboard=True)
@@ -156,7 +159,7 @@ def cleanup():
     # Close window and log files
     try:
         window.closeEvent(None)
-    except:
+    except:  # noqa: E722
         pass
 
     # Clean up processes

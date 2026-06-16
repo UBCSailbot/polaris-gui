@@ -1,28 +1,6 @@
 import time
 from datetime import datetime
 
-from utils import (
-    AIS_Attributes,
-    ais_obj,
-    all_objs,
-    data_objs,
-    data_wind_objs,
-    gps_lat_obj,
-    gps_lon_obj,
-    gps_objs,
-    heartbeat_modules,
-    pdb_hb_module,
-    rudr_hb_module,
-    sail_hb_module,
-    sail_wind_objs,
-    pdb_objs,
-    pH_obj,
-    rudder_objs,
-    sal_obj,
-    sense_hb_module,
-    temp_sensor_obj,
-)
-
 from config import (
     latitude_range,
     longitude_range,
@@ -36,13 +14,32 @@ from config import (
     trimtab_latch,
 )
 from utils import (
+    AIS_Attributes,
+    ais_obj,
+    all_objs,
     can_line,
+    data_objs,
+    data_wind_objs,
+    gps_lat_obj,
+    gps_lon_obj,
+    gps_objs,
+    heartbeat_modules,
     parse_0x060_frame,
     parse_0x070_frame,
     parse_0x204_frame,
     parse_0x206_frame,
     parse_sail_wind_sensor_frame,
     parse_wind_sensor_frame,
+    pdb_hb_module,
+    pdb_objs,
+    pH_obj,
+    rudder_objs,
+    rudr_hb_module,
+    sail_hb_module,
+    sail_wind_objs,
+    sal_obj,
+    sense_hb_module,
+    temp_sensor_obj,
 )
 
 
