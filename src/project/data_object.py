@@ -231,21 +231,6 @@ class IMUHeadingObject(DataObject):
     
     def __init__(self, name, dp, units, parsing_fn, line_dashed = False, line_colour = None, symbol_brush = None, has_label = True, graph: GraphObject = None):
         super().__init__(name, dp, units, None, line_colour = line_colour, symbol_brush = symbol_brush, graph = graph)
-        # self.name = name
-        # self.dp = dp # number of dp to round to
-        # self.units = units if units else ""
-        # self.parsing_fn = parsing_fn
-        # self.line_dashed = line_dashed # boolean indicating whether line should be dashed or not
-        # self.line_colour = line_colour # if not graphed, doesn't need line colour
-        # self.graph_obj = graph # if not graphed, doesn't need a graph
-        # # if (line_colour is None and graph is not None):
-        # #     raise ValueError("DataObject __init__: Given a graph, but not a line colour")
-        # self.data = {} # no data when initialized: of form time:value
-        # self.current = None # key of most recent data entry datapoint
-        # self.line = None
-        # self.has_label = has_label
-        # self.symbol_brush = symbol_brush
-
         # Tracks how many full rotations the boat has made since initialization for smooth graph readings
         # positive numbers are positive rotations (358->359->0->1), negative is the other way (1->0->359->358)
         self.current_rotations = 0 
@@ -296,8 +281,25 @@ class IMUHeadingObject(DataObject):
 
 
 class DesiredHeadingObject(IMUHeadingObject):
-    # TODO
-    pass
+    def __init__(self, name, dp, units, parsing_fn, line_dashed = False, line_colour = None, symbol_brush = None, has_label = True, graph: GraphObject = None, imu_heading_ref_obj: IMUHeadingObject = None):
+        super().__init__(name, dp, units, None, line_colour = line_colour, symbol_brush = symbol_brush, graph = graph)
+
+        if imu_heading_ref_obj is None: raise ValueError("A DesiredHeadingObject requires a reference to a imu_heading_ref_obj")
+        self.imu_heading_ref_obj = imu_heading_ref_obj # Uses .current_rotations from this obj as a reference to correctly graph data
+
+        return
+
+    def add_datapoint(self, x, y):
+        '''
+        Updates self.data and self.graph_data
+        '''
+        # self.update_current_rotations(self.get_current()[1], y)
+        # print("current_rotations = ", self.current_rotations)
+        self.graph_data[x] = y + (self.imu_heading_ref_obj.current_rotations * 360)
+        super().add_datapoint(x, y)
+        # print("graph_data = ", self.graph_data)
+        # print("self.line data = ", self.line.getData()) 
+
 
 class PIDObject(DataObject):
     def __init__(self, name, x_name, y_name, dp, units, parsing_fn, timeout_duration: int, line_dashed = False, line_colour = None, symbol_brush = None, has_label = True, graph: GraphObject = None) -> None:

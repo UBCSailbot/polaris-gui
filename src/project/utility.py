@@ -413,7 +413,7 @@ headings_graph_obj = GraphObject("IMU & Desired Headings", cg.graph_y, "°", cg.
 desired_heading_obj = DataObject("Desired_heading", 3, "°", None, line_dashed=True, line_colour="b", graph=headings_graph_obj)
 # TODO: uncomment below - need to change from DataObject to IMUHeadingObjects
 imu_heading_obj = IMUHeadingObject("IMU_heading", 3, "°", None, line_colour="r", graph=headings_graph_obj)
-# desired_heading_obj = IMUDesiredHeadingObject("Desired_heading", 3, "°", None, line_dashed=True, line_colour="b", graph=headings_graph_obj)
+# desired_heading_obj = DesiredHeadingObject("Desired_heading", 3, "°", None, line_dashed=True, line_colour="b", graph=headings_graph_obj, imu_heading_ref_obj = imu_heading_obj)
 
 # IMU roll & pitch
 imu_roll_pitch_graph_obj = GraphObject("IMU Roll & Pitch", cg.graph_y, "°", cg.graph_y_units, 0, 360)
