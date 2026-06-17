@@ -717,7 +717,7 @@ class AIS_Attributes(Enum):
 
 
 class Docker_Commands(Enum):
-    START = """ros2 launch src/global_launch/main_launch.py record:=true mode:=production \
+    START = """ros2 launch src/global_launch/main_launch.py record:=true mode:=production-owt \
             2>&1 | tee src/global_launch/voyage_log/combined_log_$( date +%F_%T).txt"""
     STOP = ""
     START_WING = """ros2 param set /can_transceiver manual_mode false"""
