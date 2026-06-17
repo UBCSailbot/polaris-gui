@@ -163,14 +163,14 @@ class DataObject:
             val = round(self.data.get(self.current), self.dp)
         return self.current, val # returns the time, value of most recently logged datapoint
     
-    def add_datapoint(self, x, y, graph_data: dict = None):
+    def add_datapoint(self, x, y):
         '''
         add a datapoint to self.data
         '''
         self.data[x] = y
         self.current = x
         if (self.graph_obj and self.graph_obj.graph.isVisible()):
-            self.update_line_data(graph_data)
+            self.update_line_data()
         return
     
     def remove_datapoint(self, x):
@@ -179,22 +179,12 @@ class DataObject:
         except KeyError:
             print(f"ERR - trying to apply remove_datapoint() on a point which does not exist")
     
-    # NOTE: Old version of update_line_data; delete once the newer version works
-    # def update_line_data(self):
-    #     if (self.line is not None):
-    #         values = []
-    #         for key in self.data.keys():
-    #             values.append(self.data[key])
-    #         self.line.setData(list(self.data.keys()), values)
-    #     return
-
-    def update_line_data(self, graph_data: dict) -> None:
+    def update_line_data(self):
         if (self.line is not None):
-            if graph_data == None: graph_data = self.data
             values = []
-            for key in graph_data.keys():
-                values.append(graph_data[key])
-            self.line.setData(list(graph_data.keys()), values)
+            for key in self.data.keys():
+                values.append(self.data[key])
+            self.line.setData(list(self.data.keys()), values)
         return
 
     def parse_frame(self, current_time, data_line, parsed_dict=None):
@@ -208,13 +198,13 @@ class DataObject:
             data = self.parsing_fn(''.join(raw_data))
             if self.dp is not None: # for values which do not have variable dp (ie. not salinity)
                 data = round(data, self.dp)
-        
+        # print("current_time = ", current_time, "  | data = ", data)
         self.add_datapoint(current_time, data)
         return
 
     # if there is a graph associated with this object and there are some data points outside of the graph window,
     # remove those points 
-    def update_data(self, current_time, scroll_window, graph_data: dict = None):
+    def update_data(self, current_time, scroll_window):
         '''
         if there is a graph associated with this object and there are some data points outside of the graph window,
         remove those points 
@@ -223,7 +213,7 @@ class DataObject:
         for key in keys:
             if (key < (current_time - scroll_window - 5)): # if value is outside graph plus some margin of time
                 del self.data[key]
-        self.update_line_data(graph_data)
+        self.update_line_data()
         return
     
     def update_label(self):
@@ -266,6 +256,7 @@ class IMUHeadingObject(DataObject):
     def initialize(self, timestamp = None):
         if self.graph_obj:
             if not self.graph_obj.initialized: self.graph_obj.initialize(custom_y_AxisItem = IMUHeadingAxisItem("left"))
+            # if not self.graph_obj.initialized: self.graph_obj.initialize()
             self.init_empty_line()
         if self.has_label:
             self.label = create_label(self.name + ": ---- ") # should automatically create label
@@ -276,6 +267,8 @@ class IMUHeadingObject(DataObject):
         Compares the new angle to the last recorded angle (using get_current()) and decides 
         if a full rotation CW or CCW has occurred, updating self.current_rotations accordingly
         '''
+        if old_angle is None or new_angle is None: return
+
         if (old_angle - new_angle) >= MAX_ANGLE_JUMP: self.current_rotations += 1
         elif (old_angle - new_angle) <= -(MAX_ANGLE_JUMP): self.current_rotations -= 1
 
@@ -286,8 +279,20 @@ class IMUHeadingObject(DataObject):
         Updates self.data and self.graph_data
         '''
         self.update_current_rotations(self.get_current()[1], y)
+        # print("current_rotations = ", self.current_rotations)
         self.graph_data[x] = y + (self.current_rotations * 360)
-        super().add_datapoint(x, y, self.graph_data)
+        super().add_datapoint(x, y)
+        # print("graph_data = ", self.graph_data)
+        # print("self.line data = ", self.line.getData())
+
+    def update_line_data(self) -> None:
+        if (self.line is not None):
+            # if graph_data is None: graph_data = self.data
+            values = []
+            for key in self.graph_data.keys():
+                values.append(self.graph_data[key])
+            self.line.setData(list(self.graph_data.keys()), values)
+        return
 
 
 class DesiredHeadingObject(IMUHeadingObject):
