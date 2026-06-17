@@ -84,7 +84,7 @@ class CANWindowUIMixin:
             ),
             ("Check CAN Status", "ip link show can0"),
             ("View System Logs", "dmesg | tail"),
-            ("System Info", "un`ame -a"),
+            ("System Info", "uname -a"),
         ]
 
         # Create a grid layout for command buttons
