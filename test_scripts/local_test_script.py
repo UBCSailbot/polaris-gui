@@ -389,7 +389,7 @@ def run_local_test(msg_queue: multiprocessing.Queue, delay, data = None):
                     # ==== IMUHeadingObject Test ====
                     # Testing the graph axis modulo while other functionality should remain unchanged
                     # NOTE: Desired Heading must be tested manually
-                    heading = (cycle * 10) % 360
+                    heading = (cycle * -10) % 360
                     rudder_data = generate_rudder_msg(50, 12, 13, heading, 0, 30001, 29999, 3)
                     msg = format_as_candump(rudder_data)
                     msg_queue.put(msg)
