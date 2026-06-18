@@ -70,7 +70,7 @@ def create_heading_arrow(angle, brush) -> HeadingArrow:
 # NOTE: This class only overrides the AxisItem.tickStrings() method
 class IMUHeadingAxisItem(pg.AxisItem):
     def tickStrings(self, values: list[float], scale: float, spacing: float) -> list[str]:
-        return [str(val % 360) for val in values]
+        return [str(round(val % 360, 5)) for val in values] # NOTE: the number of dp to round to is fairly arbitrary; it's just there to prevent small floating point errors from becoming visible in the GUI
 
 # data is a dictionary with values = data logged, keys = time logged
 class GraphObject: # struct which keeps together objects needed for a graph
