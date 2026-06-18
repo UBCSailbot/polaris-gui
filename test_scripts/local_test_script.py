@@ -231,7 +231,7 @@ def generate_ais_msgs(num_msgs, id: int = None, lon: float = None, lat: float = 
                 print(f"ERROR - send_ais_command threw error {e}")
 
 
-def generate_rudder_msg(actual_angle, imu_roll, imu_pitch, imu_heading, set_angle, integral, derivative, spd_over_gnd):
+def generate_rudder_msg(actual_angle, imu_roll, imu_pitch, imu_heading, set_angle, integral, derivative, spd_over_gnd) -> str:
     """Send rudder CAN message via SSH"""
     try:
         # print(f"actual_angle = {convert_to_hex(round((slope_data) * 90.0 * 100), 2)}")
@@ -254,8 +254,27 @@ def generate_rudder_msg(actual_angle, imu_roll, imu_pitch, imu_heading, set_angl
         return can_message
 
     except Exception as e:
-        print(f"Exception creating gps command: {e}")
+        print(f"Exception creating rudder command: {e}")
         return None
+    
+def format_data(data: int | float, num_bytes: int) -> str:
+    return convert_to_little_endian(convert_to_hex(round(data), num_bytes))
+
+def format_as_can_frame(frame_id: str, data: str) -> str:
+    return "cansend " + can_line + " " + frame_id + "##1" + data
+
+
+def generate_main_heading_msg(heading: int, steering_select_bit: bool, steering_enable_bit: bool) -> str:
+    heading_data = ""
+    if steering_select_bit:
+        heading_data = format_data((heading + 90) * 1000, 4) # Rudder angle
+    else: 
+        heading_data = format_data(heading * 1000, 4) # Desired heading angle
+
+    status_bit_data = format_data((0x80 & steering_select_bit) | (0x40 & steering_enable_bit), 1)
+
+    return format_as_can_frame("001", heading_data + status_bit_data)
+
     
 def send_message(client, can_message):
     try:
@@ -389,9 +408,15 @@ def run_local_test(msg_queue: multiprocessing.Queue, delay, data = None):
                     # ==== IMUHeadingObject Test ====
                     # Testing the graph axis modulo while other functionality should remain unchanged
                     # NOTE: Desired Heading must be tested manually
-                    heading = (cycle * -10) % 360
+                    heading = (math.sin(cycle) * 100) + 300 # % 360
                     rudder_data = generate_rudder_msg(50, 12, 13, heading, 0, 30001, 29999, 3)
                     msg = format_as_candump(rudder_data)
+                    msg_queue.put(msg)
+                    print(f"Message: {msg}")
+
+                    # heading = (cycle * -10) % 360
+                    heading_data = generate_main_heading_msg(heading + 10, 0, 0)
+                    msg = format_as_candump(heading_data)
                     msg_queue.put(msg)
                     print(f"Message: {msg}")
                     
