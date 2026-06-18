@@ -730,9 +730,21 @@ class CANWindow(QWidget, JoystickMixin):
                     
                     # TODO: Use a dictionary with frame id:function - just runs the function associated with frame id?
                     # There's definitely some abstraction that can be done here
+                    # TODO: Also probably raw_data can be taken outside of the cases for deduplication
                     match frame_id:
                         case "001": # Sent frame to rudder
-                            pass
+                            # print("main_heading 001 frame received!")
+                            raw_data = line.split(']')[-1].strip().split()
+                            parsed = parse_0x001_frame(''.join(raw_data))
+                            if parsed['steering_selection_bit']:
+                                set_rudder_obj.parse_frame(current_time, None, parsed)
+                            else: 
+                                desired_heading_obj.parse_frame(current_time, None, parsed)
+                                print("desired_heading_angle received!")
+                                print("desired_heading.data = ", desired_heading_obj.data)
+                                # print("desired_heading.graph_data = ", desired_heading_obj.graph_data)
+                                print("desired_heading.line_data = ", desired_heading_obj.line.getData())
+
                         case "002": # Sent frame to trim tab
                             pass
                         case "040": # Sail_Wind frame
