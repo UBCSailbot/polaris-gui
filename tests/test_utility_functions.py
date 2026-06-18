@@ -68,6 +68,29 @@ def test_convert_float_to_binary32hex(input, expected_output):
     except Exception as e:
         assert False
 
+class TestParsingFunctions:
+
+    def test_parse_0x001_frame_basic(self):
+        # Setup
+        expected_output = {"steering_selection_bit": False, "steering_enable_bit": True, desired_heading_obj.name: 100.19, set_rudder_obj.name: 10.19}
+        data = "5e87010040"
+
+        # Test
+        actual_output = parse_0x001_frame(data)
+
+        # Check
+        # assert actual_output == expected_output
+        assert len(actual_output) == len(expected_output)
+        assert actual_output['steering_selection_bit'] == expected_output['steering_selection_bit'] 
+        assert actual_output['steering_enable_bit'] == expected_output['steering_enable_bit'] 
+        assert actual_output[desired_heading_obj.name] == expected_output[desired_heading_obj.name] 
+        assert actual_output[set_rudder_obj.name] == pytest.approx(expected_output[set_rudder_obj.name])
+
+    def test_parse_0x001_frame_wrong_data_length(self):
+        with pytest.raises(ValueError):
+            parse_0x001_frame("001122334")
+        with pytest.raises(ValueError):
+            parse_0x001_frame("00112233445")
 
 
 # TODO: first test a function to convert data to hex

@@ -71,6 +71,20 @@ def range_check(quantity, num, minn = None, maxn = None):
 
 
 ### ----------  Parsing Data Frames  ---------- ###
+# TODO: put type hinting for params and return type for all data parsing functions
+
+def parse_0x001_frame(data_hex: str) -> dict:
+    # TODO: this first bytes length check can DEFINITELY be factored out of like all parsing functions
+    raw_bytes = bytes.fromhex(data_hex)
+    if len(raw_bytes) != 5:
+        raise ValueError("Incorrect data length (num bytes): ID 0x001")
+
+    return { # NOTE: specific bit masking and calculations based on confluence documentation
+        "steering_selection_bit": bool(int.from_bytes(raw_bytes[4:], 'little') & 0x80), 
+        "steering_enable_bit": bool(int.from_bytes(raw_bytes[4:], 'little') & 0x40), 
+        desired_heading_obj.name: val(raw_bytes, 0, 4, 1000), 
+        set_rudder_obj.name: val(raw_bytes, 0, 4, 1000) - 90 
+    }
 
 def parse_0x206_frame(data_hex):
     raw_bytes = bytes.fromhex(data_hex)
