@@ -695,12 +695,16 @@ class CANWindow(QWidget, JoystickMixin):
         return 
 
 
+    # TODO: these send can messages don't need to be part of the class at all really - refactor them out into their own class (like a SendCanFrameObject?)
+
     def send_pid_param(self):
         try:
             status_byte = "00"
-            param_index = None
+            param_index = convert_to_hex(cg.pid_params.index(self.pid_param_dropdown.currentText()), 1)
             value = convert_to_little_endian(convert_float_to_binary32hex(float(self.pid_param_input.text())))
             # TODO: create CAN message, send message
+            can_data = status_byte + param_index + value
+            self.can_send("210", can_data, "SEND PID PARAM")
         except ValueError as v:
             self.show_error(f"Invalid input for PID parameter value: {v}")
 
