@@ -734,16 +734,17 @@ class CANWindow(QWidget, JoystickMixin):
                     match frame_id:
                         case "001": # Sent frame to rudder
                             # print("main_heading 001 frame received!")
-                            raw_data = line.split(']')[-1].strip().split()
-                            parsed = parse_0x001_frame(''.join(raw_data))
-                            if parsed['steering_selection_bit']:
-                                set_rudder_obj.parse_frame(current_time, None, parsed)
-                            else: 
-                                desired_heading_obj.parse_frame(current_time, None, parsed)
-                                print("desired_heading_angle received!")
-                                print("desired_heading.data = ", desired_heading_obj.data)
-                                # print("desired_heading.graph_data = ", desired_heading_obj.graph_data)
-                                print("desired_heading.line_data = ", desired_heading_obj.line.getData())
+                            # raw_data = line.split(']')[-1].strip().split()
+                            # parsed = parse_0x001_frame(''.join(raw_data))
+                            # if parsed['steering_selection_bit']:
+                            #     set_rudder_obj.parse_frame(current_time, None, parsed)
+                            # else: 
+                            #     desired_heading_obj.parse_frame(current_time, None, parsed)
+                            #     print("desired_heading_angle received!")
+                            #     print("desired_heading.data = ", desired_heading_obj.data)
+                            #     # print("desired_heading.graph_data = ", desired_heading_obj.graph_data)
+                            #     print("desired_heading.line_data = ", desired_heading_obj.line.getData())
+                            pass
 
                         case "002": # Sent frame to trim tab
                             pass
