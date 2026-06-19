@@ -249,19 +249,23 @@ class CANWindow(QWidget, JoystickMixin):
         self.pid_layout.addWidget(self.pid_clear_button)
 
         # TODO: add PID unknowns as actual dropdown items
-        # TODO: Add two dropdowns - options for second dropdowns should be based on the value of the first
         # TODO: will likely have to change the font size/layout of the dropdowns + input field - the names could be longggg
         # self.pid_param_dropdown.addItems(cg.pid_unknowns)
         
         # Category dropdown for PID params
         self.pid_param_category_dropdown = QComboBox()
-        self.pid_param_category_dropdown.setFont(QFont(cg.d_font_type, cg.d_font_size))
-        self.pid_param_category_dropdown.addItems(["Test Item 1", "Test Item 2", "Test Item 3"])
+        self.pid_param_category_dropdown.setFont(QFont(cg.pid_dropdown_font_type, cg.pid_dropdown_font_size))
+        self.pid_param_category_dropdown.addItems(list(cg.pid_param_categories.keys()))
+        self.pid_param_category_dropdown.currentTextChanged.connect(self.update_pid_param_dropdown)
 
         # Secondary (detailed) dropdown for PID params
         self.pid_param_dropdown = QComboBox()
-        self.pid_param_dropdown.setFont(QFont(cg.d_font_type, cg.d_font_size))
-        self.pid_param_dropdown.addItems(["a", "b", "c"])
+        self.pid_param_dropdown.setFont(QFont(cg.pid_dropdown_font_type, cg.pid_dropdown_font_size))
+        # TODO: options for second dropdowns should be based on the value of the first
+        self.update_pid_param_dropdown(self.pid_param_category_dropdown.currentText())
+        
+        # first, last = cg.pid_param_categories[self.pid_param_category_dropdown.currentText()]
+        # self.pid_param_dropdown.addItems(cg.pid_params[first:last])
 
         # Input field for PID params
         self.pid_param_input = QLineEdit(placeholderText = "Value")
@@ -510,6 +514,14 @@ class CANWindow(QWidget, JoystickMixin):
         clipboard.setText(text)
         # Show a brief confirmation
         self.output_display.append(f"[COPIED] {text}")
+
+    def update_pid_param_dropdown(self, text: str) -> None:
+        '''Updates the PID param dropdown based on the category selected'''
+        first, last = cg.pid_param_categories[text]
+        self.pid_param_dropdown.clear()
+        self.pid_param_dropdown.addItems(cg.pid_params[first:last])
+        return
+
             
     # NOTE: Commented out this function as I don't need it
     # def getGraphObjFromXName(self, name):

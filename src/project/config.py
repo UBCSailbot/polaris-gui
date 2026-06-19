@@ -107,10 +107,87 @@ desired_heading_arrow_name = "desired_heading_arrow"
 actual_heading_arrow_name = "actual_heading_arrow"
 
 # PID Tunable Parameters
-# NOTE: 
-pid_unknowns = {
+pid_dropdown_font_type = "Sans serif"
+pid_dropdown_font_size = 9
 
-}
+pid_params = [
+    "STANDARD_KP",
+    "STANDARD_KI",
+    "STANDARD_KD",
+    "STANDARD_INTEGRAL_MAX",
+    "STANDARD_INTEGRAL_DECAY",
+    "STANDARD_DERIVATIVE_FILTER",
+    "STANDARD_ERROR_THRESHOLD",
+    "STANDARD_HEADING_TOLERANCE",
+    "STANDARD_ANG_VEL_TOLERANCE", # 9th element (index = 8)
+
+    "TACKING_KP",
+    "TACKING_KI",
+    "TACKING_KD",
+    "TACKING_INTEGRAL_MAX",
+    "TACKING_INTEGRAL_DECAY",
+    "TACKING_DERIVATIVE_FILTER",
+    "TACKING_ERROR_THRESHOLD",
+    "TACKING_HEADING_TOLERANCE",
+    "TACKING_ANG_VEL_TOLERANCE", # 18th element
+
+    "GYBING_KP",
+    "GYBING_KI",
+    "GYBING_KD",
+    "GYBING_INTEGRAL_MAX",
+    "GYBING_INTEGRAL_DECAY",
+    "GYBING_DERIVATIVE_FILTER",
+    "GYBING_ERROR_THRESHOLD",
+    "GYBING_HEADING_TOLERANCE",
+    "GYBING_ANG_VEL_TOLERANCE", # 27th element
+
+    "LOW_WIND_KP",
+    "LOW_WIND_KI",
+    "LOW_WIND_KD",
+    "LOW_WIND_INTEGRAL_MAX",
+    "LOW_WIND_INTEGRAL_DECAY",
+    "LOW_WIND_DERIVATIVE_FILTER",
+    "LOW_WIND_ERROR_THRESHOLD",
+    "LOW_WIND_HEADING_TOLERANCE",
+    "LOW_WIND_ANG_VEL_TOLERANCE", # 36th element
+
+    "VELOCITY_FACTOR",
+    "HEEL_FACTOR",
+    "TACK_TIME",
+    "GYBE_TIME",
+    "TACK_HEADING_PADDING",
+    "GYBE_HEADING_PADDING",
+    "AVERAGE_WINDOW_SIZE",
+
+    "OUTPUT_MAX",
+    "OUTPUT_MIN",
+    "UPWIND_IRONS_ANGLE",
+    "DOWNWIND_IRONS_ANGLE",
+    "LOW_WIND_THRESHOLD",
+
+    "STATE_LOW_WIND_THRESHOLD",
+    "TACKING_LIN_THRESHOLD",
+    "TACKING_ROT_THRESHOLD",
+    "GYBING_LIN_THRESHOLD",
+    "GYBING_ROT_THRESHOLD",
+    "IRONS_SPEED",
+    "STATE_IRONS_ROT",
+
+    "PARAM_COUNT"
+ ]
+
+# NOTE: The tuples in the dict represent the starting (inclusive) and ending (exclusive) indexes
+# of the params corresponding to that category
+# NOTE: This method is used so that I can use the names in the dropdown, 
+# assign them to a category, and use their index to pass to the CAN frame
+pid_param_categories = {
+    "STANDARD_COEFFS": (0, 9),
+    "TACKING_COEFFS": (9, 18),
+    "GYBING_COEFFS": (18, 27), 
+    "LOW_WIND_COEFFS": (27, 36),
+    "OTHER_COEFFS": (36, len(pid_params))
+} 
+
 
 # ==== CAN Frame offset parameters ====
 integral_offset = 30000
