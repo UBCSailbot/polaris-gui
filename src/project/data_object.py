@@ -223,12 +223,16 @@ class DataObject:
             )
         return
 
+# A class for DataObjects which take manual input from the GUI and hold their value after a period of time
+# So these should be graphed regularly over time after taking manual input, holding their value until changed - not once and stop
+class InputDataObject(DataObject):
+    # TODO: implementation
+    pass
+
 # A custom DataObject class for creating a graph object with a custom AxisItem (for y-axis)
 # and calculating wrapping for IMU for smoother graph experiences
 class IMUHeadingObject(DataObject):
 
-    # MAX_ANGLE_JUMP = 180
-    
     def __init__(self, name, dp, units, parsing_fn, line_dashed = False, line_colour = None, symbol_brush = None, has_label = True, graph: GraphObject = None):
         super().__init__(name, dp, units, None, line_colour = line_colour, symbol_brush = symbol_brush, graph = graph)
         # Tracks how many full rotations the boat has made since initialization for smooth graph readings
