@@ -877,8 +877,11 @@ class CANWindow(QWidget, JoystickMixin):
         for mod in heartbeat_modules:
             mod.update_status(current_time)
                         
-        # Always update plots every timer cycle (independent of CAN messages) # TODO: Modify this - batch plot updates?
+        # Always update plots and continuously graphed objs (those allowing manual input) every timer cycle (independent of CAN messages) # TODO: Modify this - batch plot updates?
         if len(self.time_history) > 0:
+            for obj in manual_input_objs:
+                if obj.needs_update(current_time): 
+                    obj.add_datapoint(current_time, obj.get_current()[1])
             self._update_plot_ranges(current_time)
 
         # Handle temperature updates with connection status tracking

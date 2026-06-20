@@ -78,6 +78,8 @@ graph_min_width = 250
 graph_min_height = 300
 scroll_window = 60 # in seconds
 
+manual_input_obj_update_interval = 1 # Amount of time before graph is updated with current value for manually inputted values
+
 LAST_UPDATED = "time_since_last_update" # tracks amount of time since a datapoint was updated 
 data_timeout = 5 * 60 # amt of time (in seconds) before data gets removed
 plrs_path_data_timeout = 30 # 2 * 60 # amt of time (in seconds) before POLARIS path data is deleted (for PID tuning)

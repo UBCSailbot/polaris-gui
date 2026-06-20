@@ -427,7 +427,7 @@ headings_graph_obj = GraphObject("IMU & Desired Headings", cg.graph_y, "°", cg.
 # desired_heading_obj = DataObject("Desired_heading", 3, "°", None, line_dashed=True, line_colour="b", graph=headings_graph_obj)
 # TODO: uncomment below - need to change from DataObject to IMUHeadingObjects
 imu_heading_obj = IMUHeadingObject("IMU_heading", 3, "°", None, line_colour="r", graph=headings_graph_obj)
-desired_heading_obj = DesiredHeadingObject("Desired_heading", 3, "°", None, line_dashed=True, line_colour="b", graph=headings_graph_obj, imu_heading_ref_obj = imu_heading_obj)
+desired_heading_obj = DesiredHeadingObject("Desired_heading", 3, "°", None, line_dashed=True, line_colour="b", graph=headings_graph_obj, imu_heading_ref_obj = imu_heading_obj, interval = cg.manual_input_obj_update_interval)
 
 # IMU roll & pitch
 imu_roll_pitch_graph_obj = GraphObject("IMU Roll & Pitch", cg.graph_y, "°", cg.graph_y_units, 0, 360)
@@ -500,8 +500,16 @@ rudder_objs = [ # all objects with data from 0x204 frame (rudder -> mainframe)
 data_objs = [pH_obj, temp_sensor_obj, sal_obj]
 gps_objs = [gps_lat_obj, gps_lon_obj, pid_obj] # pid_y_obj, pid_x_obj]
 
+manual_input_objs = [desired_heading_obj]
+
 # Only data_objs are logged together in the values csv file; they are all graphed vs. Time and have their values trimmed accordingly over time
 data_objs = [gps_lat_obj, gps_lon_obj] + data_objs + data_wind_objs + sail_wind_objs + rudder_objs + [desired_heading_obj] + pdb_objs 
+
+all_objs = data_objs.copy()
+all_objs.append(ais_obj) # ais is logged and updated differently since it is not a vs. Time graph
+all_objs.append(pid_obj)
+# all_objs.append(pid_y_obj)
+# all_objs.append(pid_x_obj)
 
 # all graph objects
 graph_objs = [
@@ -521,11 +529,6 @@ graph_objs = [
     sal_graph_obj
 ]
 
-all_objs = data_objs.copy()
-all_objs.append(ais_obj) # ais is logged and updated differently since it is not a vs. Time graph
-all_objs.append(pid_obj)
-# all_objs.append(pid_y_obj)
-# all_objs.append(pid_x_obj)
 
 
 # Testing val
