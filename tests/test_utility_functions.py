@@ -45,3 +45,53 @@ def test_convert_to_little_endian(hex_str, expected_value, expected_outcome):
         assert expected_outcome == Outcome.VALUE_ERROR
     except Exception:
         assert False
+
+
+@pytest.mark.parametrize(
+    "input, expected_output",
+    [
+        (0, "00000000"),
+        (123.45, "42f6e666"),
+        # (123.45, "66e6f642"),
+        (34.2356, "4208f141"), 
+        # (34.2356, "41f10842"), 
+        (0.123456789, "3dfcd6ea"),
+        # (0.123456789, "ead6fc3d"),
+        (-911.2819, "c463d20b")
+        # (-911.2819, "0bd263c4")
+    ]
+)
+def test_convert_float_to_binary32hex(input, expected_output):
+    try:
+        actual_output = convert_float_to_binary32hex(input)
+        assert actual_output == expected_output
+    except Exception as e:
+        assert False
+
+class TestParsingFunctions:
+
+    def test_parse_0x001_frame_basic(self):
+        # Setup
+        expected_output = {"steering_selection_bit": False, "steering_enable_bit": True, desired_heading_obj.name: 100.19, set_rudder_obj.name: 10.19}
+        data = "5e87010040"
+
+        # Test
+        actual_output = parse_0x001_frame(data)
+
+        # Check
+        # assert actual_output == expected_output
+        assert len(actual_output) == len(expected_output)
+        assert actual_output['steering_selection_bit'] == expected_output['steering_selection_bit'] 
+        assert actual_output['steering_enable_bit'] == expected_output['steering_enable_bit'] 
+        assert actual_output[desired_heading_obj.name] == expected_output[desired_heading_obj.name] 
+        assert actual_output[set_rudder_obj.name] == pytest.approx(expected_output[set_rudder_obj.name])
+
+    def test_parse_0x001_frame_wrong_data_length(self):
+        with pytest.raises(ValueError):
+            parse_0x001_frame("001122334")
+        with pytest.raises(ValueError):
+            parse_0x001_frame("00112233445")
+
+
+# TODO: first test a function to convert data to hex
+# TODO: test the parse_0x204 frame issue
