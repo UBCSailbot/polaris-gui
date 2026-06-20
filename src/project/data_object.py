@@ -283,10 +283,35 @@ class IMUHeadingObject(DataObject):
             self.line.setData(list(self.graph_data.keys()), values)
         return
 
-
-class DesiredHeadingObject(IMUHeadingObject):
-    def __init__(self, name, dp, units, parsing_fn, line_dashed = False, line_colour = None, symbol_brush = None, has_label = True, graph: GraphObject = None, imu_heading_ref_obj: IMUHeadingObject = None):
+# This Mixin class is for DataObjects which have manual input functionality and do not get regular CAN updates
+# Their graphs must be updated continuously 
+# contains a method which return true if time to update
+# TODO: refactor so the init doesn't need all this stuff - modify to use args/kwargs
+class ContinuousUpdateMixin():
+    def __init__(self, name, dp, units, parsing_function, line_colour, symbol_brush, graph, interval):
+        if interval is None: raise ValueError("ContinuousUpdateMixin must be initiated with a valid interval!")
         super().__init__(name, dp, units, None, line_colour = line_colour, symbol_brush = symbol_brush, graph = graph)
+        self.interval_time = interval
+        self.last_updated_time = None
+
+    def needs_update(self, current_time):
+        '''
+        Returns true if the graph has been updated at least once and if it hasn't been updated since the self.interval_time
+        '''
+        if self.last_updated_time is None: return False
+        else: return (current_time - self.last_updated_time > self.interval_time)
+
+
+    def set_last_updated_time(self, time):
+        self.last_updated_time = time
+    
+    
+
+class DesiredHeadingObject(ContinuousUpdateMixin, IMUHeadingObject):
+    def __init__(self, name, dp, units, parsing_fn, line_dashed = False, line_colour = None, symbol_brush = None, has_label = True, graph: GraphObject = None, imu_heading_ref_obj: IMUHeadingObject = None, interval = None):
+        super().__init__(name, dp, units, None, line_colour = line_colour, symbol_brush = symbol_brush, graph = graph, interval = interval)
+        # super(IMUHeadingObject, self).__init__(name, dp, units, None, line_colour = line_colour, symbol_brush = symbol_brush, graph = graph)
+        # super(ContinuousUpdateMixin, self).__init__(interval)
 
         if imu_heading_ref_obj is None: raise ValueError("A DesiredHeadingObject requires a reference to a imu_heading_ref_obj")
         self.imu_heading_ref_obj = imu_heading_ref_obj # Uses .current_rotations from this obj as a reference to correctly graph data
@@ -299,13 +324,18 @@ class DesiredHeadingObject(IMUHeadingObject):
         '''
         # self.update_current_rotations(self.get_current()[1], y)
         # print("current_rotations = ", self.current_rotations)
-        print("current_rotations = ", self.imu_heading_ref_obj.current_rotations)
+        # print("current_rotations = ", self.imu_heading_ref_obj.current_rotations)
+        self.set_last_updated_time(x)
         self.current_rotations = self.imu_heading_ref_obj.current_rotations
         self.graph_data[x] = y + (self.current_rotations * 360)
         # super().add_datapoint(x, y)
-        super(DataObject, self).add_datapoint(x, y)
+        # super(DataObject, self).add_datapoint(x, y)
+        DataObject.add_datapoint(self, x, y)
         # print("graph_data = ", self.graph_data)
-        print("self.line data = ", self.line.getData()) 
+        # print("self.line data = ", self.line.getData()) 
+
+    # TODO: could be refactored into something separate for objects in general that get manual input and no regular CAN frame sent to update them
+    # def 
 
 
 class PIDObject(DataObject):
