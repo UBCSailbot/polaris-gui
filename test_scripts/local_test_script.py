@@ -310,6 +310,21 @@ def send_message(client, can_message):
 #         js = None
 #         print(f"Joystick Connection Error: {e}")
 
+def get_can_sent_msgs(from_queue: multiprocessing.Queue, to_queue: multiprocessing.Queue): 
+    '''Puts messages from the from_queue into the to_queue'''
+    print("get_can_sent_msgs() process started!")
+    while True:
+        try:
+            msg = format_as_candump(from_queue.get())
+            to_queue.put(msg)
+            sleep(delay)
+        except KeyboardInterrupt:
+            print("get_can_sent_msgs() process closed!")
+            return
+        except Exception as e:
+            print(f"ERROR - get_can_sent_msgs() threw exception {e}")
+
+
 def simple_consumer(queue: multiprocessing.Queue, delay):
     while True:
         try:
@@ -450,6 +465,7 @@ def main():
 
     # Queue initialization
     msg_queue = multiprocessing.Queue()
+    send_queue = multiprocessing.Queue() # queue for sent can msgs
     dump_queue = multiprocessing.Queue() # here goes all the stuff I don't want to deal with
     empty_queue = multiprocessing.Queue() # here is an empty queue for functions that take input from a queue
     parent_conn, child_conn = multiprocessing.Pipe() # TODO: do I need a simple_pipe_consumer() ? Will there be a problem if I don't connect the child end?
@@ -468,11 +484,13 @@ def main():
     # 
 
     dump_proc = multiprocessing.Process(target=simple_consumer, args=(dump_queue, delay / 2))
-    # TODO 1: I would like to implement a keyboard-press thing that can pause and unpause sending data
+    # TODO: I would like to implement a keyboard-press thing that can pause and unpause sending data
     data_proc = multiprocessing.Process(target=run_local_test, args=(msg_queue, delay))
+    post_sent_msgs_proc = multiprocessing.Process(target=get_can_sent_msgs, args=(send_queue, msg_queue))
 
     dump_proc.start()
     data_proc.start()
+    post_sent_msgs_proc.start()
 
     # Cleanup (CTRL + C) initialization # TODO: implement later? 
     # signal.signal(signal.SIGINT, key_interrupt_cleanup)
@@ -481,7 +499,7 @@ def main():
     print("Local test script - Sets up and passes sample data into an instance of a CANWindow application")
     print("=" * 60)
 
-    start_remote_debugger(current_time, timestamp, msg_queue, parent_conn, dump_queue, empty_queue, dump_queue)
+    start_remote_debugger(current_time, timestamp, msg_queue, parent_conn, send_queue, empty_queue, dump_queue)
 
     # Clean up all processes etc. here
     print("Cleaning up...")
