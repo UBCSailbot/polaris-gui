@@ -299,10 +299,12 @@ class DesiredHeadingObject(IMUHeadingObject):
         '''
         # self.update_current_rotations(self.get_current()[1], y)
         # print("current_rotations = ", self.current_rotations)
-        self.graph_data[x] = y + (self.imu_heading_ref_obj.current_rotations * 360)
+        print("current_rotations = ", self.imu_heading_ref_obj.current_rotations)
+        self.current_rotations = self.imu_heading_ref_obj.current_rotations
+        self.graph_data[x] = y + (self.current_rotations * 360)
         super().add_datapoint(x, y)
         # print("graph_data = ", self.graph_data)
-        # print("self.line data = ", self.line.getData()) 
+        print("self.line data = ", self.line.getData()) 
 
 
 class PIDObject(DataObject):
