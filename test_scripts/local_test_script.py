@@ -431,10 +431,10 @@ def run_local_test(msg_queue: multiprocessing.Queue, delay, data = None):
                     print(f"Message: {msg}")
 
                     # heading = (cycle * -10) % 360
-                    # heading_data = generate_main_heading_msg(heading + 10, 0, 0)
-                    # msg = format_as_candump(heading_data)
-                    # msg_queue.put(msg)
-                    # print(f"Message: {msg}")
+                    heading_data = generate_main_heading_msg(heading + 10, 0, 0)
+                    msg = format_as_candump(heading_data)
+                    msg_queue.put(msg)
+                    print(f"Message: {msg}")
                     
                     # ==== PLRS PATH + Heading Test ====
                     # # rudder_data is pretty random except for the actual heading
