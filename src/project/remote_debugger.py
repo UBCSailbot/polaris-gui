@@ -590,6 +590,7 @@ class CANWindow(QWidget, JoystickMixin):
         display_msg: Message to be outputted on GUI CAN_DUMP display
         '''
         try:
+            # TODO: is it "##0" or "##1"?
             msg = "cansend " + can_line + " " + frame_id + "##0" + data
             self.cansend_queue.put(msg)
             self.output_display.append(f"[{display_msg}] {msg}")
@@ -626,7 +627,8 @@ class CANWindow(QWidget, JoystickMixin):
             data = convert_to_little_endian(convert_to_hex(int(heading * 1000), 4))
             status_byte = "00" # a = 0, b = 0 
             self.can_send("001", data + status_byte, "HEADING SENT")
-            desired_heading_obj.add_datapoint(time.time() - self.time_start, heading)
+            # TODO: Note that the below should only be necessary if no CAN frames are sent
+            # desired_heading_obj.add_datapoint(time.time() - self.time_start, heading)
             # desired_heading_obj.update_label() # No explicit label with the other objects for this item; already have Heading Set Angle
         except ValueError as e:
             self.show_error(f"Invalid angle input for desired heading: {e}")
