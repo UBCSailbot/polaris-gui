@@ -408,17 +408,18 @@ def run_local_test(msg_queue: multiprocessing.Queue, delay, data = None):
                     # ==== IMUHeadingObject Test ====
                     # Testing the graph axis modulo while other functionality should remain unchanged
                     # NOTE: Desired Heading must be tested manually
-                    heading = (math.sin(cycle) * 100) + 300 # % 360
+                    # heading = ((math.sin(cycle) * 100) + 100 - (15 * cycle)) % 360
+                    heading = ((math.sin(0.1 * cycle) * 100) + 270) % 360
                     rudder_data = generate_rudder_msg(50, 12, 13, heading, 0, 30001, 29999, 3)
                     msg = format_as_candump(rudder_data)
                     msg_queue.put(msg)
                     print(f"Message: {msg}")
 
                     # heading = (cycle * -10) % 360
-                    heading_data = generate_main_heading_msg(heading + 10, 0, 0)
-                    msg = format_as_candump(heading_data)
-                    msg_queue.put(msg)
-                    print(f"Message: {msg}")
+                    # heading_data = generate_main_heading_msg(heading + 10, 0, 0)
+                    # msg = format_as_candump(heading_data)
+                    # msg_queue.put(msg)
+                    # print(f"Message: {msg}")
                     
                     # ==== PLRS PATH + Heading Test ====
                     # # rudder_data is pretty random except for the actual heading
