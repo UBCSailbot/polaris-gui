@@ -223,8 +223,6 @@ class DataObject:
             )
         return
 
-# A class for DataObjects which take manual input from the GUI and hold their value after a period of time
-# So these should be graphed regularly over time after taking manual input, holding their value until changed - not once and stop
 class InputDataObject(DataObject):
     # TODO: implementation
     pass
@@ -283,10 +281,10 @@ class IMUHeadingObject(DataObject):
             self.line.setData(list(self.graph_data.keys()), values)
         return
 
-# This Mixin class is for DataObjects which have manual input functionality and do not get regular CAN updates
-# Their graphs must be updated continuously 
+# A Mixin class for DataObjects which take manual input from the GUI and hold their value after a period of time - do not get regular CAN updates
+# So these should be graphed regularly over time after taking manual input, holding their value until changed - not once and stop
 # contains a method which return true if time to update
-# TODO: refactor so the init doesn't need all this stuff - modify to use args/kwargs
+# TODO: refactor (also probably want to refactor the other __init__ functions in general) so the init doesn't need all this stuff - modify to use args/kwargs
 class ContinuousUpdateMixin():
     def __init__(self, name, dp, units, parsing_function, line_colour, symbol_brush, graph, interval):
         if interval is None: raise ValueError("ContinuousUpdateMixin must be initiated with a valid interval!")
@@ -301,12 +299,11 @@ class ContinuousUpdateMixin():
         if self.last_updated_time is None: return False
         else: return (current_time - self.last_updated_time > self.interval_time)
 
-
     def set_last_updated_time(self, time):
         self.last_updated_time = time
     
-    
 
+# Class for desired heading data, which pulls self.current_rotations from IMUHeading obj
 class DesiredHeadingObject(ContinuousUpdateMixin, IMUHeadingObject):
     def __init__(self, name, dp, units, parsing_fn, line_dashed = False, line_colour = None, symbol_brush = None, has_label = True, graph: GraphObject = None, imu_heading_ref_obj: IMUHeadingObject = None, interval = None):
         super().__init__(name, dp, units, None, line_colour = line_colour, symbol_brush = symbol_brush, graph = graph, interval = interval)
@@ -322,22 +319,13 @@ class DesiredHeadingObject(ContinuousUpdateMixin, IMUHeadingObject):
         '''
         Updates self.data and self.graph_data
         '''
-        # self.update_current_rotations(self.get_current()[1], y)
-        # print("current_rotations = ", self.current_rotations)
-        # print("current_rotations = ", self.imu_heading_ref_obj.current_rotations)
         self.set_last_updated_time(x)
         self.current_rotations = self.imu_heading_ref_obj.current_rotations
         self.graph_data[x] = y + (self.current_rotations * 360)
-        # super().add_datapoint(x, y)
-        # super(DataObject, self).add_datapoint(x, y)
         DataObject.add_datapoint(self, x, y)
-        # print("graph_data = ", self.graph_data)
-        # print("self.line data = ", self.line.getData()) 
-
-    # TODO: could be refactored into something separate for objects in general that get manual input and no regular CAN frame sent to update them
-    # def 
 
 
+# Class for object holding heading data for PID tuning - needs custom functionality for adding heading arrows to its graph
 class PIDObject(DataObject):
     def __init__(self, name, x_name, y_name, dp, units, parsing_fn, timeout_duration: int, line_dashed = False, line_colour = None, symbol_brush = None, has_label = True, graph: GraphObject = None) -> None:
         '''
@@ -375,17 +363,13 @@ class PIDObject(DataObject):
             # print("parsed_dict = ", parsed_dict)
             x = round(parsed_dict[self.x_name], self.dp)
             y = round(parsed_dict[self.y_name], self.dp)
-            # self.add_datapoint(current_time, (x, y)) # key is current time, value is a tuple with x, y values
-            # NOTE: this replaces the above line to add reference to heading arrows
-            # TODO: update with actual heading arrows, change update_line_data to also add the arrowItems, change update_data to also remove the arrowItems
             desired_arrow = None
             actual_arrow = None
             should_create_arrow = self.should_create_arrow(current_time, parsed_dict[self.x_name], parsed_dict[self.y_name])
-            # print("after should_create_arrow()")
             if parsed_dict[cg.desired_heading_arrow_name] is not None and should_create_arrow:
                 desired_arrow = create_heading_arrow(parsed_dict[cg.desired_heading_arrow_name], cg.h_arrow_desired_brush)
             if parsed_dict[cg.actual_heading_arrow_name] is not None and should_create_arrow:
-                print("actual_heading_arrow being created!")
+                # print("actual_heading_arrow being created!")
                 actual_arrow = create_heading_arrow(parsed_dict[cg.actual_heading_arrow_name], cg.h_arrow_actual_brush)
 
             self.add_datapoint(current_time, 
@@ -410,10 +394,6 @@ class PIDObject(DataObject):
             last_x = self.data[self.last_arrow_time][self.x_name]
             last_y = self.data[self.last_arrow_time][self.y_name]
             dist_between_pts = math.sqrt(((x - last_x) ** 2) + ((y - last_y) ** 2))
-            # print("self.last_arrow_time = ", self.last_arrow_time)
-            # print("last_x = ", last_x, "; last_y = ", last_y)
-            # print("     x = ", x, "     y = ", y)
-            # print("dist = ", dist_between_pts)
 
             if dist_between_pts >= cg.min_dist_between_arrows:
                 self.last_arrow_time = current_time
@@ -423,12 +403,9 @@ class PIDObject(DataObject):
 
 
     def add_datapoint(self, x, y):
-        # TODO: ArrowItems should be added to the graph only if the graph is visible - do this in update_line_data?
+        # NOTE: ArrowItems should be added to the graph only if the graph is visible - do this in update_line_data?
             # Actually, I don't think I want to keep updating; I'll set once here
         # y = {self.x_name: x_coord, self.y_name: y_coord, cg.desired...: desiredHeadingArrow, cg.actual...: actualHeadingArrow}
-
-        # print("add_datapoint called")
-        # print(y)
 
         desiredHeadingArrow = y[cg.desired_heading_arrow_name]
         actualHeadingArrow = y[cg.actual_heading_arrow_name]
@@ -480,8 +457,6 @@ class PIDObject(DataObject):
         else:
             x = [value[self.x_name] for value in self.data.values()]
             y = [value[self.y_name]  for value in self.data.values()]
-            # print("x = ", x)
-            # print("y == ", y)
             self.line.setData(x, y)
         return
 
