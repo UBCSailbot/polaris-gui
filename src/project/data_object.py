@@ -302,7 +302,8 @@ class DesiredHeadingObject(IMUHeadingObject):
         print("current_rotations = ", self.imu_heading_ref_obj.current_rotations)
         self.current_rotations = self.imu_heading_ref_obj.current_rotations
         self.graph_data[x] = y + (self.current_rotations * 360)
-        super().add_datapoint(x, y)
+        # super().add_datapoint(x, y)
+        super(DataObject, self).add_datapoint(x, y)
         # print("graph_data = ", self.graph_data)
         print("self.line data = ", self.line.getData()) 
 
