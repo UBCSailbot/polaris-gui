@@ -574,37 +574,39 @@ class CANWindow(
     #     for obj in all_objs:
     #         if ((obj.graph_obj is not None) and (obj.graph_obj.dropdown_label == name)):
     #             return obj.graph_obj
-            
-    def getObjFromLabel(self, dropdown_label) -> DataObject:
-        for obj in all_objs:
-            if ((obj.graph_obj is not None) and (obj.graph_obj.dropdown_label == dropdown_label)):
-                return obj
-        
-    def setGraph(self, name: str, spot: int, dropdowns: list[QComboBox]) -> None:
-        '''
-        Shows given graph at spot\n
-        name = DataObj.graph_obj.dropdown_label\n
-        spot = 0, 1, 2 (top, mid, bot)\n
-        '''
-        newObj = self.getObjFromLabel(name) 
-        # newGraphObj = self.getGraphObjFromXName(name) # get graph to put in spot
-        newGraphObj = newObj.graph_obj
 
-        if (newGraphObj.dropdown_label == self.visibleGraphObjs[spot].dropdown_label):
-            return # do nothing
-        if newGraphObj in self.visibleGraphObjs: # if graph to put in spot is already visible
-            # don't allow the switch to happen - set dropdown text back to original and print error message
-            print("[ERR] Graph is already visible")
-            dropdowns[spot].setCurrentText(self.visibleGraphObjs[spot].dropdown_label) # switch text back to original
-        else: 
-            self.right_graphs_layout.removeWidget(self.visibleGraphObjs[spot].graph) # remove graph currently in spot
-            self.visibleGraphObjs[spot].hide()
-            self.right_graphs_layout.addWidget(newGraphObj.graph, spot, 0)
-            newGraphObj.show()
-            self.visibleGraphObjs[spot] = newGraphObj  
-            newObj.update_line_data() 
+    # NOTE: In CAN_window_UI.py 
+    # def getObjFromLabel(self, dropdown_label) -> DataObject:
+    #     for obj in all_objs:
+    #         if ((obj.graph_obj is not None) and (obj.graph_obj.dropdown_label == dropdown_label)):
+    #             return obj
         
-        dropdowns[spot].clearFocus()
+    # NOTE: In CAN_window_UI.py
+    # def setGraph(self, name: str, spot: int, dropdowns: list[QComboBox]) -> None:
+    #     '''
+    #     Shows given graph at spot\n
+    #     name = DataObj.graph_obj.dropdown_label\n
+    #     spot = 0, 1, 2 (top, mid, bot)\n
+    #     '''
+    #     newObj = self.getObjFromLabel(name) 
+    #     # newGraphObj = self.getGraphObjFromXName(name) # get graph to put in spot
+    #     newGraphObj = newObj.graph_obj
+
+    #     if (newGraphObj.dropdown_label == self.visibleGraphObjs[spot].dropdown_label):
+    #         return # do nothing
+    #     if newGraphObj in self.visibleGraphObjs: # if graph to put in spot is already visible
+    #         # don't allow the switch to happen - set dropdown text back to original and print error message
+    #         print("[ERR] Graph is already visible")
+    #         dropdowns[spot].setCurrentText(self.visibleGraphObjs[spot].dropdown_label) # switch text back to original
+    #     else: 
+    #         self.right_graphs_layout.removeWidget(self.visibleGraphObjs[spot].graph) # remove graph currently in spot
+    #         self.visibleGraphObjs[spot].hide()
+    #         self.right_graphs_layout.addWidget(newGraphObj.graph, spot, 0)
+    #         newGraphObj.show()
+    #         self.visibleGraphObjs[spot] = newGraphObj  
+    #         newObj.update_line_data() 
+        
+    #     dropdowns[spot].clearFocus()
 
     def keyPressEvent(self, event):
         if not self.keyboard_checkbox.isChecked():
