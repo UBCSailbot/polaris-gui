@@ -2,14 +2,8 @@ import time
 
 from utils import desired_heading_obj, set_rudder_obj
 
-from config import (
-    can_line, min_trimtab_angle, max_trimtab_angle, 
-    pid_param_categories, pid_params
-)
-from utils import (
-    convert_to_hex, convert_to_little_endian,
-    convert_float_to_binary32hex
-)
+from config import can_line, min_trimtab_angle, max_trimtab_angle
+from utils import convert_to_hex, convert_to_little_endian
 
 
 # CAN send functions
@@ -22,7 +16,6 @@ class CANWindowControlsMixin:
         display_msg: Message to be outputted on GUI CAN_DUMP display
         """
         try:
-            # TODO: is it "##0" or "##1"?
             msg = "cansend " + can_line + " " + frame_id + "##0" + data
             self.cansend_queue.put(msg)
             self.output_display.append(f"[{display_msg}] {msg}")
@@ -68,8 +61,7 @@ class CANWindowControlsMixin:
             data = convert_to_little_endian(convert_to_hex(int(heading * 1000), 4))
             status_byte = "00"  # a = 0, b = 0
             self.can_send("001", data + status_byte, "HEADING SENT")
-            # TODO: Note that the below should only be necessary if no CAN frames are sent
-            # desired_heading_obj.add_datapoint(time.time() - self.time_start, heading)
+            desired_heading_obj.add_datapoint(time.time() - self.time_start, heading)
             # desired_heading_obj.update_label() # No explicit label with the other objects for this item; already have Heading Set Angle
         except ValueError as e:
             self.show_error(f"Invalid angle input for desired heading: {e}")
@@ -105,8 +97,6 @@ class CANWindowControlsMixin:
 
             # print("line 709")
 
-            # TODO: similar to desired_heading, the below should only be necessary if we're not parsing the corresponding sent CAN frame
-            #       which I think I'm not doing right now and should definitely do at some point
             set_rudder_obj.add_datapoint(time.time() - self.time_start, angle)
             set_rudder_obj.update_label()
             # print("Set rudder current = ", set_rudder_obj.get_current()[1])
@@ -146,21 +136,3 @@ class CANWindowControlsMixin:
         except Exception as e:
             print(f"Exception thrown from send_pid: {e}")
             self.show_error(f"Exception thrown from send_pid: {e}")
-
-    def send_pid_param(self):
-        try:
-            status_byte = "00"
-            param_index = convert_to_hex(pid_params.index(self.pid_param_dropdown.currentText()), 1)
-            value = convert_to_little_endian(convert_float_to_binary32hex(float(self.pid_param_input.text())))
-            # TODO: create CAN message, send message
-            can_data = status_byte + param_index + value
-            self.can_send("210", can_data, "SEND PID PARAM")
-        except ValueError as v:
-            self.show_error(f"Invalid input for PID parameter value: {v}")
-
-        except Exception as e:
-            self.show_error(f"Exception thrown from send_pid_param: {e}")
-
-        return
-    
-# TODO: these send can messages don't need to be part of the class at all really - refactor them out into their own class (like a SendCanFrameObject?)
