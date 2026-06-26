@@ -1,5 +1,6 @@
 import pytest
-from project.utility import *
+# from project.utility import *
+from src.utils import *
 from tests.helpers import Outcome
 
 @pytest.mark.parametrize(

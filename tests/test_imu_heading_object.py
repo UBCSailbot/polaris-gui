@@ -1,7 +1,11 @@
 import pytest
 
-import project.config as cg
-from project.data_object import (
+# import project.config as cg
+# from project.data_object import (
+#     GraphObject, IMUHeadingObject
+# )
+import src.config as cg
+from src.data_object import (
     GraphObject, IMUHeadingObject
 )
 

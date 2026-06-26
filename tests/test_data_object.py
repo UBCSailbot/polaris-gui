@@ -4,9 +4,14 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 
 from tests.helpers import Outcome
-import project.config as cg
+# import project.config as cg
+import src.config as cg
 
-from project.data_object import (
+# from project.data_object import (
+#     create_label, generic_create_line, create_graph, 
+#     IMUHeadingAxisItem, GraphObject, DataObject
+# )
+from src.data_object import (
     create_label, generic_create_line, create_graph, 
     IMUHeadingAxisItem, GraphObject, DataObject
 )

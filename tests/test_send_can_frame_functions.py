@@ -4,7 +4,8 @@ from PyQt5.QtWidgets import (
     QApplication # , QMainWindow
 )
 
-from project.remote_debugger import CANWindow
+# from project.remote_debugger import CANWindow
+from src.main import CANWindow
 
 pytestmark = pytest.mark.skip(reason="These tests do not work yet")
 

@@ -4,10 +4,15 @@ from PyQt5.QtWidgets import (
     QApplication, QMainWindow
 )
 
-import project.config as cg
-from project.data_object import (
+# import project.config as cg
+import src.config as cg
+# from project.data_object import (
+#     GraphObject, PIDObject, create_heading_arrow
+# )
+from src.data_object import (
     GraphObject, PIDObject, create_heading_arrow
 )
+
 
 # NOTE: I comment out the other data items in the dict, because they shouldn't be accessed by this function
 parsed_dict_example =  {
