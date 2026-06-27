@@ -17,7 +17,7 @@ class DockerWorkerThread(QThread):
     def run(self):
         try:
             send_docker_command(self.command)
-            self.success.emit(f" {self.action.value.lower()} ")
+            self.success.emit(self.action)
         except Exception as e:
             self.error.emit(str(e))
 

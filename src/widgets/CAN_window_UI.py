@@ -526,7 +526,7 @@ class CANWindowUIMixin:
     def _on_docker_success(self, action):
         container_name = self.container_text_box.text().strip()
         QMessageBox.information(
-            self, "Success", f"Successfully {action.name}ed container:\n{container_name}"
+            self, "Success", f"Successfully {action.name.lower()}ed container:\n{container_name}"
         )
 
     def enable_software_controls(self, enabled: bool):
