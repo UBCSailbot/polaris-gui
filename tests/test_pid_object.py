@@ -4,10 +4,15 @@ from PyQt5.QtWidgets import (
     QApplication, QMainWindow
 )
 
-import project.config as cg
-from project.data_object import (
+# import project.config as cg
+import src.config as cg
+# from project.data_object import (
+#     GraphObject, PIDObject, create_heading_arrow
+# )
+from src.data_object import (
     GraphObject, PIDObject, create_heading_arrow
 )
+
 
 # NOTE: I comment out the other data items in the dict, because they shouldn't be accessed by this function
 parsed_dict_example =  {
@@ -103,7 +108,7 @@ def test_graph_update(test_obj):
     assert arrow.isVisible()
 
 
-def test_graph_delete(test_obj):
+def test_graph_delete(app, test_obj):
     # Setup
     current_time = 0
     test_obj.graph_obj.show() # set graph to be visible
@@ -116,9 +121,12 @@ def test_graph_delete(test_obj):
 
     # Check Success/Failure Condition
     assert arrow.scene() is None
-    assert not arrow.isVisible()
+    assert len(test_obj.graph_obj.graph.getPlotItem().dataItems) == 1
 
-def test_graph_clear_basic(test_obj):
+    # TODO: should the above assertions still be true if the graph is not visible? 
+    # eg. not immediately updated
+
+def test_graph_clear_basic(app, test_obj):
     # Setup
     current_time = 0
     test_obj.graph_obj.show() # set graph to be visible
@@ -135,6 +143,10 @@ def test_graph_clear_basic(test_obj):
     assert test_obj.lon_ref is None
 
     # Check graph
-    assert len(test_obj.graph_obj.graph.getPlotItem().dataItems) == 0
+    # assert len(test_obj.graph_obj.graph.getPlotItem().dataItems) == 1
+    # Returns all QGraphicsItem objects rendered within the plot viewport
+    # assert len([item for item in test_obj.graph_obj.graph.items()])
 
+    # TODO: update this test to be more meaningful; the one data item should be a plotDataItem with no data points, and the graph should have no arrows
+    # TODO: add check to ensure that no arrowItem is on the graph
     

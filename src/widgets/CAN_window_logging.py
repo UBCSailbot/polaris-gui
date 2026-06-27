@@ -7,6 +7,9 @@ from utils import data_objs
 
 
 class CANWindowLoggingMixin:
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def _init_logging(self, timestamp):
         """Initialize CSV logging files with timestamped names"""
         # Create logs directory if it doesn't exist
