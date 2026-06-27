@@ -49,6 +49,8 @@ from utils import (
 
 # Window update functions
 class CANWindowUpdateMixin:
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
     
     def update_status(self):
         # Update time independently of CAN messages

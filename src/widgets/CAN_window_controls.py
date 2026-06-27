@@ -14,6 +14,9 @@ from utils import (
 
 # CAN send functions
 class CANWindowControlsMixin:
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def can_send(self, frame_id, data, display_msg):
         """
         Helper function for sending CAN messages\n

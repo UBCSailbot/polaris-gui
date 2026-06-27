@@ -12,8 +12,10 @@ from config import pid_param_categories, pid_params
 
 # UI creation functions
 class CANWindowUIMixin:
+    def __init__(self, **kwargs):
+       super().__init__(**kwargs)   
+    
     def init_ui(self):
-
         top_bar_layout = elemns.init_top_bar(self)
         checkbox_layout = elemns.init_checkbox(self)
 
