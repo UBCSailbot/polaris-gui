@@ -6,7 +6,7 @@ import time
 from datetime import datetime
 # import paramiko
 
-import csv # remove?
+# import csv # TODO: remove?
 
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import ( # TODO: update import
@@ -22,10 +22,10 @@ from PyQt5.QtGui import QPixmap, QFont # TODO: update import
 # )
 
 # TODO: update below imports - modify to use main branch classes, not old project folder classes
-import project.pyqt_widgets
-from project.joystick_mixin import JoystickMixin
-from project.data_object import *
-from project.utility import *
+# import project.pyqt_widgets
+# from project.joystick_mixin import JoystickMixin
+# from project.data_object import *
+# from project.utility import *
 # NOTE: All of the imports between these comments shouldn't be used anymore once finished with refactor
 # NOTE: Currently: I just added all imports from main_old.py, 
 # time to start factoring out all the functionality that has 
@@ -108,16 +108,11 @@ class CANWindow(
         self.last_temp_update = time.time()  # Track last temperature update
 
         self.setWindowTitle("Remote Node GUI - POLARIS")
-        self.setGeometry(50, 30, cg.window_width, cg.window_height)
+        self.setGeometry(50, 30, window_width, window_height)
         self.setFocusPolicy(Qt.StrongFocus)
 
         self.time_start = time.time()
         self.time_history = []
-
-        # TODO: Init Joystick state variables?
-        # self.joystick = None
-        # self.js_prev_pos = [0] * num_axes
-        # self.js_enabled = False
 
         # Initialize logging
         self._init_logging(timestamp)
@@ -626,10 +621,10 @@ class CANWindow(
             self.rudder_angle = 0
             self.send_rudder(from_keyboard=True)
         elif key == Qt.Key_Q:
-            self.trimtab_angle = max(self.trimtab_angle - 3, cg.min_trimtab_angle)
+            self.trimtab_angle = max(self.trimtab_angle - 3, min_trimtab_angle)
             self.send_trim_tab(from_keyboard=True)
         elif key == Qt.Key_E:
-            self.trimtab_angle = min(self.trimtab_angle + 3, cg.max_trimtab_angle)
+            self.trimtab_angle = min(self.trimtab_angle + 3, max_trimtab_angle)
             self.send_trim_tab(from_keyboard=True)
         elif key == Qt.Key_W:
             self.trimtab_angle = 0
