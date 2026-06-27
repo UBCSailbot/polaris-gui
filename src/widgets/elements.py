@@ -230,7 +230,7 @@ def init_software_controls(self, commands):
 
     for i, (label, cmd) in enumerate(commands):
         btn = QPushButton(label)
-        btn.clicked.connect(lambda: self.run_docker_command(cmd))
+        btn.clicked.connect(lambda checked=False, cmd=cmd: self.run_docker_command(cmd))
         self.software_control_buttons.append(btn)
 
         # Add to grid layout (2 columns)

@@ -17,7 +17,7 @@ class DockerWorkerThread(QThread):
     def run(self):
         try:
             send_docker_command(self.command)
-            self.success.emit(self.action)
+            self.success.emit(f" {self.action.value.lower()} ")
         except Exception as e:
             self.error.emit(str(e))
 
@@ -27,10 +27,12 @@ def generate_docker_command(action: Docker_Commands, container_name: str):
 
     match action:
         case Docker_Commands.STOP:
+            print(f"Stopping container: {container_name}")
             command_text += f"stop {container_name}"
         case _:
             run_text = f'docker exec -d {container_name} bash -ic "'
             command_text += f'start {container_name} && {run_text} {action.value}"'
+            print(f"Running {action.name} on docker container {container_name}")
 
     return command_text
 
