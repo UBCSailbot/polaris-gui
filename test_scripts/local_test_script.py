@@ -4,6 +4,8 @@ Automatically SSHes into rpi and sends a CAN Frame simulating external system/da
 Outputs support messages through terminal
 
 Use Ctrl+C or Space to stop sending
+
+NOTE: (CURRENTLY) THIS SCRIPT MUST BE RUN AS A MODULE USING `python -m test_scripts.local_test_script` from the ROOT directory (polaris-gui)
 """
 
 import sys
@@ -15,10 +17,25 @@ from PyQt5.QtWidgets import (
     QApplication
 )
 
-import project.utility as util
-from project.remote_debugger import (
+# import project.utility as util
+# from project.remote_debugger import (
+#     CANWindow
+# )
+
+# sys.path.append("../src")
+
+# import src.utils as util
+import utils as util
+from main import (
     CANWindow
 )
+from widgets import *
+# from ..src.utils import all_objs, heartbeat_modules
+# from polaris-gui import utils as util
+# from src.main import (
+#     CANWindow
+# )
+
 import math
 
 
