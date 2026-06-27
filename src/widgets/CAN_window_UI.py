@@ -508,12 +508,12 @@ class CANWindowUIMixin:
             return
 
         try:
-            command = generate_docker_command(action.value, container_name)
+            command = generate_docker_command(action, container_name)
         except RuntimeError as e:
             self.show_error(str(e))
             return
 
-        self.docker_thread = DockerWorkerThread(command, action.value)
+        self.docker_thread = DockerWorkerThread(command, action)
         self.docker_thread.success.connect(self._on_docker_success)
         self.docker_thread.error.connect(self.show_error)
 

@@ -6,10 +6,10 @@ from data_object import Docker_Commands
 
 
 class DockerWorkerThread(QThread):
-    success = pyqtSignal(str)  # action name
+    success = pyqtSignal(Docker_Commands)  # action name
     error = pyqtSignal(str)  # error message
 
-    def __init__(self, command: str, action: str):
+    def __init__(self, command: str, action: Docker_Commands):
         super().__init__()
         self.command = command
         self.action = action
