@@ -8,8 +8,6 @@ from project.config import (
 # Note: Currently only handles at most one joystick
 class JoystickMixin():
     def __init__(self, **kwargs):
-        # TODO: add item for latch
-        print("JoystickMixin.__init__() ran!")
         super().__init__(**kwargs)
         self.joystick = None
         self.js_prev_pos = [0] * num_axes

@@ -55,7 +55,6 @@ class CANWindowUpdateMixin:
     def update_status(self):
         # Update time independently of CAN messages
         current_time = time.time() - self.time_start
-        # print(f"current position data = {pid_obj.data}")
         
         # Process any new CAN messages
         while not self.queue.empty():
@@ -92,10 +91,6 @@ class CANWindowUpdateMixin:
                                 set_rudder_obj.parse_frame(current_time, None, parsed)
                             else: 
                                 desired_heading_obj.parse_frame(current_time, None, parsed)
-                                # print("desired_heading_angle received!")
-                                # print("desired_heading.data = ", desired_heading_obj.data)
-                                # print("desired_heading.graph_data = ", desired_heading_obj.graph_data)
-                                # print("desired_heading.line_data = ", desired_heading_obj.line.getData())
                             pass
 
                         case "002": # Sent frame to trim tab

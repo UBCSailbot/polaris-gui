@@ -155,7 +155,6 @@ class CANWindowControlsMixin:
             status_byte = "00"
             param_index = convert_to_hex(pid_params.index(self.pid_param_dropdown.currentText()), 1)
             value = convert_to_little_endian(convert_float_to_binary32hex(float(self.pid_param_input.text())))
-            # TODO: create CAN message, send message
             can_data = status_byte + param_index + value
             self.can_send("210", can_data, "SEND PID PARAM")
         except ValueError as v:

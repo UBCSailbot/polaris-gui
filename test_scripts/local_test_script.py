@@ -11,33 +11,18 @@ NOTE: (CURRENTLY) THIS SCRIPT MUST BE RUN AS A MODULE USING `python -m test_scri
 import sys
 from time import sleep
 from datetime import datetime
+import math
 import random
 import multiprocessing
 from PyQt5.QtWidgets import (
     QApplication
 )
 
-# import project.utility as util
-# from project.remote_debugger import (
-#     CANWindow
-# )
-
-# sys.path.append("../src")
-
-# import src.utils as util
 import utils as util
 from main import (
     CANWindow
 )
 from widgets import *
-# from ..src.utils import all_objs, heartbeat_modules
-# from polaris-gui import utils as util
-# from src.main import (
-#     CANWindow
-# )
-
-import math
-
 
 
 can_line = "can0"
