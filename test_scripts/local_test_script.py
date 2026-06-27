@@ -4,29 +4,31 @@ Automatically SSHes into rpi and sends a CAN Frame simulating external system/da
 Outputs support messages through terminal
 
 Use Ctrl+C or Space to stop sending
+
+NOTE: (CURRENTLY) THIS SCRIPT MUST BE RUN AS A MODULE USING `python -m test_scripts.local_test_script` from the ROOT directory (polaris-gui)
 """
 
 import sys
 from time import sleep
 from datetime import datetime
+import math
 import random
 import multiprocessing
 from PyQt5.QtWidgets import (
     QApplication
 )
 
-import project.utility as util
-from project.remote_debugger import (
+import utils as util
+from main import (
     CANWindow
 )
-import math
-
+from widgets import *
 
 
 can_line = "can0"
 
 # Time before starting tests to allow remote debugger to initialize (in secs)
-start_delay = 5
+start_delay = 0
 
 # Time between sent frames (in secs)
 delay = 0.20
@@ -231,7 +233,7 @@ def generate_ais_msgs(num_msgs, id: int = None, lon: float = None, lat: float = 
                 print(f"ERROR - send_ais_command threw error {e}")
 
 
-def generate_rudder_msg(actual_angle, imu_roll, imu_pitch, imu_heading, set_angle, integral, derivative, spd_over_gnd):
+def generate_rudder_msg(actual_angle, imu_roll, imu_pitch, imu_heading, set_angle, integral, derivative, spd_over_gnd) -> str:
     """Send rudder CAN message via SSH"""
     try:
         # print(f"actual_angle = {convert_to_hex(round((slope_data) * 90.0 * 100), 2)}")
@@ -254,8 +256,27 @@ def generate_rudder_msg(actual_angle, imu_roll, imu_pitch, imu_heading, set_angl
         return can_message
 
     except Exception as e:
-        print(f"Exception creating gps command: {e}")
+        print(f"Exception creating rudder command: {e}")
         return None
+    
+def format_data(data: int | float, num_bytes: int) -> str:
+    return convert_to_little_endian(convert_to_hex(round(data), num_bytes))
+
+def format_as_can_frame(frame_id: str, data: str) -> str:
+    return "cansend " + can_line + " " + frame_id + "##1" + data
+
+
+def generate_main_heading_msg(heading: int, steering_select_bit: bool, steering_enable_bit: bool) -> str:
+    heading_data = ""
+    if steering_select_bit:
+        heading_data = format_data((heading + 90) * 1000, 4) # Rudder angle
+    else: 
+        heading_data = format_data(heading * 1000, 4) # Desired heading angle
+
+    status_bit_data = format_data((0x80 & steering_select_bit) | (0x40 & steering_enable_bit), 1)
+
+    return format_as_can_frame("001", heading_data + status_bit_data)
+
     
 def send_message(client, can_message):
     try:
@@ -290,6 +311,21 @@ def send_message(client, can_message):
 #     except Exception as e:
 #         js = None
 #         print(f"Joystick Connection Error: {e}")
+
+def get_can_sent_msgs(from_queue: multiprocessing.Queue, to_queue: multiprocessing.Queue): 
+    '''Puts messages from the from_queue into the to_queue'''
+    print("get_can_sent_msgs() process started!")
+    while True:
+        try:
+            msg = format_as_candump(from_queue.get())
+            to_queue.put(msg)
+            sleep(delay)
+        except KeyboardInterrupt:
+            print("get_can_sent_msgs() process closed!")
+            return
+        except Exception as e:
+            print(f"ERROR - get_can_sent_msgs() threw exception {e}")
+
 
 def simple_consumer(queue: multiprocessing.Queue, delay):
     while True:
@@ -345,7 +381,7 @@ def run_local_test(msg_queue: multiprocessing.Queue, delay, data = None):
         # NOTE: BE CAREFUL!! Using standard libraries, will likely need to do conversion
     # NOTE: these values will be put into the local_test_script, and visually checked manually
     # lat_test_straight_line = [49.2722, 49.272201, 49.272202, 49.272203, 49.272204, 49.272205, 49.272206, 49.272207, 49.272208, 49.272209]
-    num_dp = 100
+    num_dp = 300
     lat_ref = 49.2722 
     lon_ref = -123.1985
     lat_test_straight_line = [49.2722 + (i * 0.000001) for i in range(0, num_dp)]
@@ -385,16 +421,34 @@ def run_local_test(msg_queue: multiprocessing.Queue, delay, data = None):
 
             if (cycle > 0):
                 if (num_dp > (cycle - 1)):
-                    # rudder_data is pretty random except for the actual heading
-                    rudder_data = generate_rudder_msg(50, 1.1, 1.2, a_heading_sine_path[cycle - 1], 45, 10, 11, 1.5) # TODO: fill in args - most can be just static values
+
+                    # ==== IMUHeadingObject Test ====
+                    # Testing the graph axis modulo while other functionality should remain unchanged
+                    # NOTE: Desired Heading must be tested manually
+                    # heading = ((math.sin(cycle) * 100) + 100 - (15 * cycle)) % 360
+                    heading = ((math.sin(0.1 * cycle) * 100) + 270) % 360
+                    rudder_data = generate_rudder_msg(50, 12, 13, heading, 0, 30001, 29999, 3)
                     msg = format_as_candump(rudder_data)
                     msg_queue.put(msg)
                     print(f"Message: {msg}")
-                    gps_data = generate_gps_msg(lat_test_sine_path[cycle - 1], lon_test_sine_path[cycle - 1])
-                    msg = format_as_candump(gps_data)
-                    msg_queue.put(msg)  # NOTE: do I need to make this non-blocking or smth?
-                    # print(f"Unformatted: {gps_data}")
+
+                    # heading = (cycle * -10) % 360
+                    heading_data = generate_main_heading_msg(heading + 10, 0, 0)
+                    msg = format_as_candump(heading_data)
+                    msg_queue.put(msg)
                     print(f"Message: {msg}")
+                    
+                    # ==== PLRS PATH + Heading Test ====
+                    # # rudder_data is pretty random except for the actual heading
+                    # rudder_data = generate_rudder_msg(50, 1.1, 1.2, a_heading_sine_path[cycle - 1], 45, 10, 11, 1.5) # TODO: fill in args - most can be just static values
+                    # msg = format_as_candump(rudder_data)
+                    # msg_queue.put(msg)
+                    # print(f"Message: {msg}")
+                    # gps_data = generate_gps_msg(lat_test_sine_path[cycle - 1], lon_test_sine_path[cycle - 1])
+                    # msg = format_as_candump(gps_data)
+                    # msg_queue.put(msg)  # NOTE: do I need to make this non-blocking or smth?
+                    # # print(f"Unformatted: {gps_data}")
+                    # print(f"Message: {msg}")
 
                 generate_slope_data()
 
@@ -413,6 +467,7 @@ def main():
 
     # Queue initialization
     msg_queue = multiprocessing.Queue()
+    send_queue = multiprocessing.Queue() # queue for sent can msgs
     dump_queue = multiprocessing.Queue() # here goes all the stuff I don't want to deal with
     empty_queue = multiprocessing.Queue() # here is an empty queue for functions that take input from a queue
     parent_conn, child_conn = multiprocessing.Pipe() # TODO: do I need a simple_pipe_consumer() ? Will there be a problem if I don't connect the child end?
@@ -431,11 +486,13 @@ def main():
     # 
 
     dump_proc = multiprocessing.Process(target=simple_consumer, args=(dump_queue, delay / 2))
-    # TODO 1: I would like to implement a keyboard-press thing that can pause and unpause sending data
+    # TODO: I would like to implement a keyboard-press thing that can pause and unpause sending data
     data_proc = multiprocessing.Process(target=run_local_test, args=(msg_queue, delay))
+    post_sent_msgs_proc = multiprocessing.Process(target=get_can_sent_msgs, args=(send_queue, msg_queue))
 
     dump_proc.start()
     data_proc.start()
+    post_sent_msgs_proc.start()
 
     # Cleanup (CTRL + C) initialization # TODO: implement later? 
     # signal.signal(signal.SIGINT, key_interrupt_cleanup)
@@ -444,7 +501,7 @@ def main():
     print("Local test script - Sets up and passes sample data into an instance of a CANWindow application")
     print("=" * 60)
 
-    start_remote_debugger(current_time, timestamp, msg_queue, parent_conn, dump_queue, empty_queue, dump_queue)
+    start_remote_debugger(current_time, timestamp, msg_queue, parent_conn, send_queue, empty_queue, dump_queue)
 
     # Clean up all processes etc. here
     print("Cleaning up...")

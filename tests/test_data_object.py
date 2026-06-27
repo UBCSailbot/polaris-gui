@@ -4,10 +4,16 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 
 from tests.helpers import Outcome
-import project.config as cg
+# import project.config as cg
+import src.config as cg
 
-from project.data_object import (
-    create_label, generic_create_line, create_graph, GraphObject, DataObject
+# from project.data_object import (
+#     create_label, generic_create_line, create_graph, 
+#     IMUHeadingAxisItem, GraphObject, DataObject
+# )
+from src.data_object import (
+    create_label, generic_create_line, create_graph, 
+    IMUHeadingAxisItem, GraphObject, DataObject
 )
 
 @pytest.mark.parametrize(
@@ -41,6 +47,24 @@ def test_create_label(arguments, expected_result, qtbot):
     assert expected_result == Outcome.SUCCESS
 
 # TODO: test create_line, create_graph
+
+class TestIMUHeadingAxisItem:
+    @pytest.fixture(scope="class")
+    def test_obj(self) -> IMUHeadingAxisItem:
+        # Initially set the axis item to be attached to a left-hand side plot, since that is what I intend for this object
+        return IMUHeadingAxisItem("left")
+
+    def test_tickStrings(self, test_obj):
+        values =          [-731, -350, -1, 0, 85, 290, 359, 360, 543]
+        expected_output = [ 349,  10, 359, 0, 85, 290, 359,   0, 183]
+        expected_output_str = [str(val) for val in expected_output]
+        ss_list = [(1, 1), (10, 1.5), (1.3, 20.3)]
+        for val in ss_list:
+            scale = val[0]
+            spacing = val[1]
+            actual_output = test_obj.tickStrings(values, scale, spacing)
+            assert actual_output == expected_output_str
+
 
 # TODO: create more sample graph objects for testing
 # TODO: test GraphObject class - test all functions
@@ -129,7 +153,7 @@ data_object_params = [
       "graph": GraphObject("Y data", "X data", None, "secs", 0, 100)})
 ]
 
-@pytest.fixture()
+@pytest.fixture(scope="function")
 def init_data_object(params, qtbot):
     d_obj = DataObject(params["name"], params["dp"], params["units"], params["parsing_fn"], params["line_dashed"], params["line_colour"], params["symbol_brush"], params["has_label"], params["graph"])
     d_obj.initialize()
