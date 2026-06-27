@@ -1,6 +1,6 @@
 import pygame
 
-from project.config import (
+from config import (
     movement_sensitivity, num_axes, LATCHED #, UNLATCHED
 )
 

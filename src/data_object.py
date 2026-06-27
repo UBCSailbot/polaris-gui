@@ -7,7 +7,8 @@ import pyqtgraph as pg
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QLabel
 
-import project.config as cg
+# import project.config as cg
+import config as cg
 
 graph_margin = 0.2
 MAX_ANGLE_JUMP = 180

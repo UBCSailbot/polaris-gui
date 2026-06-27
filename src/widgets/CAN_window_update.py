@@ -2,6 +2,7 @@ import time
 from datetime import datetime
 
 from config import (
+    can_line,
     latitude_range,
     longitude_range,
     max_rudder_angle,
@@ -17,7 +18,6 @@ from utils import (
     AIS_Attributes,
     ais_obj,
     all_objs,
-    can_line,
     data_objs,
     data_wind_objs,
     desired_heading_obj,

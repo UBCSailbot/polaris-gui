@@ -2,23 +2,25 @@ import math
 import struct
 
 # TODO: improve imports - per utils_old.py
-'''
+# '''
 from pyqtgraph import mkBrush
 import config as cg
 from data_object import (
     AIS_Attributes,
     AISObject,
     DataObject,
+    DesiredHeadingObject,
     GraphObject,
+    IMUHeadingObject,
     PIDObject,
     ais_attributes,
 )
 from heartbeat_module import HeartbeatModule
-'''
+# '''
 
-from project.data_object import *
-from project.pyqt_widgets.heartbeat_module import HeartbeatModule
-from project.config import *
+# from project.data_object import *
+# from project.pyqt_widgets.heartbeat_module import HeartbeatModule
+# from project.config import *
 
 
 # NOTE: Commented out as these values should live in config.py
@@ -140,8 +142,8 @@ def parse_0x204_frame(data_hex):
         imu_pitch_obj.name: val(4, 6, 100.0) - 180,
         imu_heading_obj.name: val(6, 8, 100.0),
         set_rudder_obj.name: val(8, 10, 100.0) - 90,
-        integral_obj.name: val(10, 12, 1.0) - integral_offset,
-        derivative_obj.name: val(12, 14, 1.0) - derivative_offset,
+        integral_obj.name: val(10, 12, 1.0) - cg.integral_offset,
+        derivative_obj.name: val(12, 14, 1.0) - cg.derivative_offset,
         spd_over_gnd_obj.name: val(14, 16, 1000.0)
     }
     
@@ -400,7 +402,7 @@ def make_pretty(cmd: str):
             data_nice += data[i]
             if ((i % 2) == 1):
                 data_nice += " "
-        msg = can_line + "  " + frame_id + "  [" + padding + str(data_length) + "]  " + data_nice
+        msg = cg.can_line + "  " + frame_id + "  [" + padding + str(data_length) + "]  " + data_nice
         # print("pretty_CAN msg = ", msg)
     except Exception as e:
         print(f"ERROR - Command not logged: {str(e)}")
@@ -500,9 +502,9 @@ pid_obj = PIDObject("PLRS_path", "EW_offset", "NS_offset", 6, "m", None, cg.plrs
 
 # AIS
 # polaris_pen = pg.mkPen(color='r', width=5) # set point border color (red)
-polaris_brush = pg.mkBrush(color='r')
+polaris_brush = mkBrush(color='r')
 # other_pen = pg.mkPen(color='b', width=1)
-other_brush = pg.mkBrush(color='b')
+other_brush = mkBrush(color='b')
 
 position_graph_obj = GraphObject("Latitude", "Longitude", "DD", "DD", -90, 90, "Ship Positions") # note: this graph's x_range should definitely not be updated with the rest
 ais_obj = AISObject("Ship Positions", 4, "DD", None, other_brush, [att.value for att in ais_attributes], polaris_brush = polaris_brush, graph = position_graph_obj)
