@@ -1,29 +1,35 @@
 import math
+import struct
 
+# TODO: improve imports - per utils_old.py
+# '''
 from pyqtgraph import mkBrush
-
 import config as cg
 from data_object import (
     AIS_Attributes,
     AISObject,
     DataObject,
+    DesiredHeadingObject,
     GraphObject,
+    IMUHeadingObject,
     PIDObject,
     ais_attributes,
 )
 from heartbeat_module import HeartbeatModule
+# '''
 
+# from project.data_object import *
+# from project.pyqt_widgets.heartbeat_module import HeartbeatModule
+# from project.config import *
+
+
+# NOTE: Commented out as these values should live in config.py
 # SSH Credentials
-hostname = "192.168.0.10"
-username = "sailbot"
-password = "sailbot"
+# hostname = "192.168.0.10"
+# username = "sailbot"
+# password = "sailbot"
 
-can_line = "can0"
-
-
-# Aliases for config values (used by legacy code)
-graph_y = cg.graph_y
-graph_y_units = cg.graph_y_units
+# can_line = "can0"
 
 
 ### ----------  Utility Functions ---------- ###
@@ -67,13 +73,18 @@ def val(raw_bytes, s, e, div) -> float:
     return int.from_bytes(raw_bytes[s:e], "little") / div
 
 
-# NOTE: Currently returns True/False, but parsing functions don't do anything with this
-# return value as of yet - it just prints it as a notice
-# NOTE: May add functionality to also log if a given data point is out of range
-# (ie. is sus)
+def convert_float_to_binary32hex(val: float) -> str:
+    """
+    Return a 8-character lowercase hex string in big endian byte order
+    representing the given float in IEEE-754 binary32 format"""
+    # return f"{struct.unpack('<I', struct.pack('<f', val))[0]:08x}"
+    return f"{struct.unpack('!I', struct.pack('!f', val))[0]:08x}"
+
+
+# NOTE: Currently returns True/False, but parsing functions don't do anything with this return value as of yet - it just prints it as a notice
+# NOTE: May add functionality to also log if a given data point is out of range (ie. is sus)
 def range_check(quantity, num, minn=None, maxn=None):
-    """Prints error and returns False if given num is not within [min, max] (inclusive);
-    if None is given for either max or min, that boundary is not checked."""
+    """Prints error and returns False if given num is not within [min, max] (inclusive); if None is given for either max or min, that boundary is not checked."""
     if num is None:
         print(f"Warning: {quantity} passed to range_check was None")
         return
@@ -87,6 +98,21 @@ def range_check(quantity, num, minn=None, maxn=None):
 
 
 ### ----------  Parsing Data Frames  ---------- ###
+# TODO: put type hinting for params and return type for all data parsing functions
+
+
+def parse_0x001_frame(data_hex: str) -> dict:
+    # TODO: this first bytes length check can DEFINITELY be factored out of like all parsing functions
+    raw_bytes = bytes.fromhex(data_hex)
+    if len(raw_bytes) != 5:
+        raise ValueError("Incorrect data length (num bytes): ID 0x001")
+
+    return {  # NOTE: specific bit masking and calculations based on confluence documentation
+        "steering_selection_bit": bool(int.from_bytes(raw_bytes[4:], "little") & 0x80),
+        "steering_enable_bit": bool(int.from_bytes(raw_bytes[4:], "little") & 0x40),
+        desired_heading_obj.name: val(raw_bytes, 0, 4, 1000),
+        set_rudder_obj.name: val(raw_bytes, 0, 4, 1000) - 90,
+    }
 
 
 def parse_0x206_frame(data_hex):
@@ -115,19 +141,18 @@ def parse_0x204_frame(data_hex):
     if len(raw_bytes) != 16:
         raise ValueError("Incorrect data length (num bytes): ID 0x204")
 
-    def val(s, e, div):
-        return int.from_bytes(raw_bytes[s:e], "little") / div
-
+    val = lambda s, e, div: int.from_bytes(raw_bytes[s:e], "little") / div
     # print(f"derivative_obj: {(val(12, 14, 1.0) - 300) / 100.0}")
     # print(f"spd_over_gnd_obj: {val(14, 16, 100.0)}")
+    # TODO: update the code below to remove the lambda function, use the regular val() function
     return {
         actual_rudder_obj.name: val(0, 2, 100.0) - 90,
         imu_roll_obj.name: val(2, 4, 100.0) - 180,
         imu_pitch_obj.name: val(4, 6, 100.0) - 180,
         imu_heading_obj.name: val(6, 8, 100.0),
         set_rudder_obj.name: val(8, 10, 100.0) - 90,
-        integral_obj.name: val(10, 12, 1.0),
-        derivative_obj.name: val(12, 14, 1.0),
+        integral_obj.name: val(10, 12, 1.0) - cg.integral_offset,
+        derivative_obj.name: val(12, 14, 1.0) - cg.derivative_offset,
         spd_over_gnd_obj.name: val(14, 16, 1000.0),
     }
 
@@ -145,9 +170,7 @@ def parse_wind_sensor_frame(data_hex):
     if len(raw_bytes) != 4:
         raise ValueError("Incorrect data length (num bytes): ID 0x041")
 
-    def val(s, e, div):
-        return int.from_bytes(raw_bytes[s:e], "little") / div
-
+    val = lambda s, e, div: int.from_bytes(raw_bytes[s:e], "little") / div
     return {
         data_wind_dir_obj.name: val(0, 2, 1.0),
         data_wind_spd_obj.name: val(2, 4, 10.0),
@@ -159,9 +182,7 @@ def parse_sail_wind_sensor_frame(data_hex):
     if len(raw_bytes) != 4:
         raise ValueError("Incorrect data length (num bytes): ID 0x040")
 
-    def val(s, e, div):
-        return int.from_bytes(raw_bytes[s:e], "little") / div
-
+    val = lambda s, e, div: int.from_bytes(raw_bytes[s:e], "little") / div
     return {
         sail_wind_dir_obj.name: val(0, 2, 1.0),
         sail_wind_spd_obj.name: val(2, 4, 10.0),
@@ -233,7 +254,7 @@ def parse_0x110_frame(data_hex):
     raw_bytes = bytes.fromhex(data_hex)
     if len(raw_bytes) != 2:
         raise ValueError(
-            f"Incorrect data length (num bytes): ID 0x110\nExpecting: 2 bytes, Received: {len(raw_bytes)}"  # noqa: E501
+            f"Incorrect data length (num bytes): ID 0x110\nExpecting: 2 bytes, Received: {len(raw_bytes)}"
         )
 
     # pH is in format of pH * 1000
@@ -253,7 +274,7 @@ def pH_parsing_fn(data_hex):
     raw_bytes = bytes.fromhex(data_hex)
     if len(raw_bytes) != 2:
         raise ValueError(
-            f"Incorrect data length (num bytes): ID 0x110\nExpecting: 2 bytes, Received: {len(raw_bytes)}"  # noqa: E501
+            f"Incorrect data length (num bytes): ID 0x110\nExpecting: 2 bytes, Received: {len(raw_bytes)}"
         )
 
     # pH is in format of pH * 1000
@@ -334,11 +355,12 @@ def parse_0x070_frame(data_hex):
         pid_y_data = (
             (gps_lat_data - pid_obj.lat_ref) * 110562
         )  # change in lat multiplied by rough arc length (using conversion to km from 68.7 miles)
+        # pid_x_data = (gps_lon_data - pid_obj.lon_ref) * math.cos(math.radians(pid_obj.lat_ref)) * 111320 # constant from google (equatorial distance between longitude lines)
         pid_x_data = (
             (gps_lon_data - pid_obj.lon_ref)
             * math.cos(math.radians(pid_obj.lat_ref))
-            * 111320
-        )  # constant from google (equatorial distance between longitude lines)
+            * 111320  # constant from google (equatorial distance between longitude lines)
+        )
 
     # if (pid_y_obj.ref is None) or (pid_x_obj.ref is None): # If first fix: set ref points
     #     pid_y_obj.ref = gps_lat_data
@@ -389,7 +411,7 @@ def parse_0x060_frame(data_hex, current_time):
         AIS_Attributes.HEADING: round(val(raw_bytes, 16, 18, 1))
         if (val(raw_bytes, 16, 18, 1) != AIS_Attributes.HEADING_NA.value)
         else None,
-        AIS_Attributes.ROT: round(val(raw_bytes, 18, 19, 1) - 128)
+        AIS_Attributes.ROT: round((val(raw_bytes, 18, 19, 1) - 128))
         if ((val(raw_bytes, 18, 19, 1) - 128) != AIS_Attributes.ROT_NA.value)
         else None,
         AIS_Attributes.LENGTH: int(val(raw_bytes, 19, 21, 1))
@@ -425,7 +447,7 @@ def make_pretty(cmd: str):
             if (i % 2) == 1:
                 data_nice += " "
         msg = (
-            can_line
+            cg.can_line
             + "  "
             + frame_id
             + "  ["
@@ -454,8 +476,6 @@ sail_hb_module = HeartbeatModule(sail_title_text)
 sense_hb_module = HeartbeatModule(sense_title_text)
 
 heartbeat_modules = [pdb_hb_module, sail_hb_module, rudr_hb_module, sense_hb_module]
-
-# TODO: Add the rest of the modules, one at a time - once done testing all function w/ pdb module
 
 ### ---------- Data Objects ---------- ###
 # NOTE: If multiple data objects take data from the same frame, the parsing function function for all of them is None
@@ -529,10 +549,13 @@ spd_over_gnd_obj = DataObject(
 headings_graph_obj = GraphObject(
     "IMU & Desired Headings", cg.graph_y, "°", cg.graph_y_units, 0, 360
 )
-imu_heading_obj = DataObject(
+# imu_heading_obj = DataObject("IMU_heading", 3, "°", None, line_colour="r", graph=headings_graph_obj)
+# desired_heading_obj = DataObject("Desired_heading", 3, "°", None, line_dashed=True, line_colour="b", graph=headings_graph_obj)
+# TODO: uncomment below - need to change from DataObject to IMUHeadingObjects
+imu_heading_obj = IMUHeadingObject(
     "IMU_heading", 3, "°", None, line_colour="r", graph=headings_graph_obj
 )
-desired_heading_obj = DataObject(
+desired_heading_obj = DesiredHeadingObject(
     "Desired_heading",
     3,
     "°",
@@ -540,6 +563,8 @@ desired_heading_obj = DataObject(
     line_dashed=True,
     line_colour="b",
     graph=headings_graph_obj,
+    imu_heading_ref_obj=imu_heading_obj,
+    interval=cg.manual_input_obj_update_interval,
 )
 
 # IMU roll & pitch
@@ -632,9 +657,9 @@ pid_obj = PIDObject(
 # pid_y_obj = PIDObject("NS_offset", 6, "m", None, has_label = False, graph = pid_graph_obj)
 
 # AIS
-# polaris_pen = mkPen(color='r', width=5) # set point border color (red)
+# polaris_pen = pg.mkPen(color='r', width=5) # set point border color (red)
 polaris_brush = mkBrush(color="r")
-# other_pen = mkPen(color='b', width=1)
+# other_pen = pg.mkPen(color='b', width=1)
 other_brush = mkBrush(color="b")
 
 position_graph_obj = GraphObject(
@@ -699,8 +724,11 @@ rudder_objs = [  # all objects with data from 0x204 frame (rudder -> mainframe)
     integral_obj,
     derivative_obj,
 ]
+
 data_objs = [pH_obj, temp_sensor_obj, sal_obj]
 gps_objs = [gps_lat_obj, gps_lon_obj, pid_obj]  # pid_y_obj, pid_x_obj]
+
+manual_input_objs = [desired_heading_obj]
 
 # Only data_objs are logged together in the values csv file; they are all graphed vs. Time and have their values trimmed accordingly over time
 data_objs = (
@@ -709,8 +737,17 @@ data_objs = (
     + data_wind_objs
     + sail_wind_objs
     + rudder_objs
+    + [desired_heading_obj]
     + pdb_objs
 )
+
+all_objs = data_objs.copy()
+all_objs.append(
+    ais_obj
+)  # ais is logged and updated differently since it is not a vs. Time graph
+all_objs.append(pid_obj)
+# all_objs.append(pid_y_obj)
+# all_objs.append(pid_x_obj)
 
 # all graph objects
 graph_objs = [
@@ -729,14 +766,6 @@ graph_objs = [
     temp_sensor_graph_obj,
     sal_graph_obj,
 ]
-
-all_objs = data_objs.copy()
-all_objs.append(
-    ais_obj
-)  # ais is logged and updated differently since it is not a vs. Time graph
-all_objs.append(pid_obj)
-# all_objs.append(pid_y_obj)
-# all_objs.append(pid_x_obj)
 
 
 # Testing val

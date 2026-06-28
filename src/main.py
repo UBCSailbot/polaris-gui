@@ -6,13 +6,12 @@ import time
 from datetime import datetime
 
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtWidgets import QApplication, QMessageBox, QWidget
+from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox
 
 from config import (
     gui_update_freq,
     max_trimtab_angle,
     min_trimtab_angle,
-    num_axes,
     window_height,
     window_width,
 )
@@ -64,6 +63,7 @@ def _bootstrap_qt_runtime():
 _bootstrap_qt_runtime()
 
 
+### ----------  PyQt5 GUI ---------- ###
 class CANWindow(
     CANWindowLoggingMixin,
     CANWindowUpdateMixin,
@@ -93,11 +93,6 @@ class CANWindow(
         self.time_start = time.time()
         self.time_history = []
 
-        # Joystick state variables
-        self.joystick = None
-        self.js_prev_pos = [0] * num_axes
-        self.js_enabled = False
-
         # Initialize logging
         self._init_logging(timestamp)
 
@@ -106,6 +101,10 @@ class CANWindow(
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_status)
         self.timer.start(gui_update_freq)  # Updates every update_freq milliseconds
+
+    # NOTE: Below functions are all in CANWindowLoggingMixin
+    # def _init_logging(self, timestamp):
+    # def _log_values(self):
 
     def closeEvent(self, event):
         """Handle window close event to ensure files are properly closed"""
@@ -116,6 +115,16 @@ class CANWindow(
         except Exception as e:
             print(f"Error closing log files: {e}")
         event.accept()
+
+    # NOTE: Functions moved to CAN_window_UI.py:
+    # def init_ui()
+    # def set_manual_steer(self, checked):
+    # def toggle_keyboard_mode(self, checked):
+    # def toggle_emergency_buttons(self, state):
+    # def copy_to_clipboard(self, text):
+    # def update_pid_param_dropdown(self, text: str) -> None: # NOTE: This is new
+    # def getObjFromLabel(self, dropdown_label) -> DataObject:
+    # def setGraph(self, name: str, spot: int, dropdowns: list[QComboBox]) -> None:
 
     def keyPressEvent(self, event):
         if not self.keyboard_checkbox.isChecked():
@@ -144,8 +153,23 @@ class CANWindow(
             self.trimtab_angle = 0
             self.send_trim_tab(from_keyboard=True)
 
+    # NOTE: Functions moved to CAN_window_controls.py
+    # def can_send(self, frame_id, data, display_msg):
+    # def send_trim_tab(self, from_keyboard: bool = False, set_angle: float = None):
+    # def send_desired_heading(self):
+    # def send_rudder(self, from_keyboard=False, set_angle: float = None):
+    # def send_power_off_indefinitely(self):
+    # def send_restart_power(self):
+    # def send_pid(self):
+    # def send_pid_param(self):
+
+    # NOTE: moved to CAN_window_update.py
+    # def update_status(self):
+    # def _update_plot_ranges(self, current_time):
+
     def show_error(self, msg):
         QMessageBox.critical(self, "Error", msg)
+        print(f"Error: {msg}")
 
 
 def key_interrupt_cleanup(a, b):
@@ -159,7 +183,7 @@ def cleanup():
     # Close window and log files
     try:
         window.closeEvent(None)
-    except:  # noqa: E722
+    except:
         pass
 
     # Clean up processes

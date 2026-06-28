@@ -6,10 +6,10 @@ from data_object import Docker_Commands
 
 
 class DockerWorkerThread(QThread):
-    success = pyqtSignal(str)  # action name
+    success = pyqtSignal(Docker_Commands)  # action name
     error = pyqtSignal(str)  # error message
 
-    def __init__(self, command: str, action: str):
+    def __init__(self, command: str, action: Docker_Commands):
         super().__init__()
         self.command = command
         self.action = action
@@ -27,10 +27,12 @@ def generate_docker_command(action: Docker_Commands, container_name: str):
 
     match action:
         case Docker_Commands.STOP:
+            print(f"Stopping container: {container_name}")
             command_text += f"stop {container_name}"
         case _:
             run_text = f'docker exec -d {container_name} bash -ic "'
             command_text += f'start {container_name} && {run_text} {action.value}"'
+            print(f"Running {action.name} on docker container {container_name}")
 
     return command_text
 
@@ -50,7 +52,13 @@ def send_docker_command(command: str):
 
         # Wait for the command to finish and get the exit status
         exit_status = stdout.channel.recv_exit_status()
+        out = stdout.read().decode().strip()
         err = stderr.read().decode().strip()
+
+        print(f"[SSH] command: {command}")
+        print(f"[SSH] exit_status: {exit_status}")
+        print(f"[SSH] stdout: {out}")
+        print(f"[SSH] stderr: {err}")
 
         if exit_status != 0:
             raise RuntimeError(err)

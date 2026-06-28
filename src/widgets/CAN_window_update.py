@@ -2,6 +2,7 @@ import time
 from datetime import datetime
 
 from config import (
+    can_line,
     latitude_range,
     longitude_range,
     max_rudder_angle,
@@ -17,13 +18,15 @@ from utils import (
     AIS_Attributes,
     ais_obj,
     all_objs,
-    can_line,
     data_objs,
     data_wind_objs,
+    desired_heading_obj,
     gps_lat_obj,
     gps_lon_obj,
     gps_objs,
     heartbeat_modules,
+    manual_input_objs,
+    parse_0x001_frame,
     parse_0x060_frame,
     parse_0x070_frame,
     parse_0x204_frame,
@@ -39,16 +42,19 @@ from utils import (
     sail_wind_objs,
     sal_obj,
     sense_hb_module,
+    set_rudder_obj,
     temp_sensor_obj,
 )
 
 
 # Window update functions
 class CANWindowUpdateMixin:
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def update_status(self):
         # Update time independently of CAN messages
         current_time = time.time() - self.time_start
-        # print(f"current position data = {pid_obj.data}")
 
         # Process any new CAN messages
         while not self.queue.empty():
@@ -75,9 +81,20 @@ class CANWindowUpdateMixin:
 
                     # TODO: Use a dictionary with frame id:function - just runs the function associated with frame id?
                     # There's definitely some abstraction that can be done here
+                    # TODO: Also probably raw_data can be taken outside of the cases for deduplication
                     match frame_id:
                         case "001":  # Sent frame to rudder
+                            # print("main_heading 001 frame received!")
+                            raw_data = line.split("]")[-1].strip().split()
+                            parsed = parse_0x001_frame("".join(raw_data))
+                            if parsed["steering_selection_bit"]:
+                                set_rudder_obj.parse_frame(current_time, None, parsed)
+                            else:
+                                desired_heading_obj.parse_frame(
+                                    current_time, None, parsed
+                                )
                             pass
+
                         case "002":  # Sent frame to trim tab
                             pass
                         case "040":  # Sail_Wind frame
@@ -230,8 +247,11 @@ class CANWindowUpdateMixin:
         for mod in heartbeat_modules:
             mod.update_status(current_time)
 
-        # Always update plots every timer cycle (independent of CAN messages) # TODO: Modify this - batch plot updates?
+        # Always update plots and continuously graphed objs (those allowing manual input) every timer cycle (independent of CAN messages) # TODO: Modify this - batch plot updates?
         if len(self.time_history) > 0:
+            for obj in manual_input_objs:
+                if obj.needs_update(current_time):
+                    obj.add_datapoint(current_time, obj.get_current()[1])
             self._update_plot_ranges(current_time)
 
         # Handle temperature updates with connection status tracking

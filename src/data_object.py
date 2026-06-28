@@ -7,9 +7,11 @@ import pyqtgraph as pg
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QLabel
 
+# import project.config as cg
 import config as cg
 
 graph_margin = 0.2
+MAX_ANGLE_JUMP = 180
 
 
 def create_label(title, min_width=None, max_height=None):
@@ -70,8 +72,13 @@ def create_graph(
     interactable: bool,
     title_style=cg.graph_title_style,
     label_style=cg.graph_label_style,
+    y_AxisItem: pg.AxisItem = None,
 ):
-    graph = pg.PlotWidget()
+    graph = (
+        pg.PlotWidget(axisItems={"left": y_AxisItem})
+        if y_AxisItem is not None
+        else pg.PlotWidget()
+    )
     graph.setBackground(cg.graph_bg)
     graph.setMinimumSize(cg.graph_min_width, cg.graph_min_height)
     graph.getPlotItem().getViewBox().setMouseEnabled(interactable, interactable)
@@ -102,6 +109,18 @@ def create_heading_arrow(angle, brush) -> HeadingArrow:
         pen=cg.h_arrow_pen,
         brush=brush,
     )
+
+
+# A custom class which is used for modifying axis labels on the IMU Headings graph
+# such that it appears like 0 -> 359 -> 0 -> 359 -> ...
+# NOTE: This class only overrides the AxisItem.tickStrings() method
+class IMUHeadingAxisItem(pg.AxisItem):
+    def tickStrings(
+        self, values: list[float], scale: float, spacing: float
+    ) -> list[str]:
+        return [
+            str(round(val % 360, 5)) for val in values
+        ]  # NOTE: the number of dp to round to is fairly arbitrary; it's just there to prevent small floating point errors from becoming visible in the GUI
 
 
 # data is a dictionary with values = data logged, keys = time logged
@@ -142,7 +161,7 @@ class GraphObject:  # struct which keeps together objects needed for a graph
             self.dropdown_label = dropdown_label
         return
 
-    def initialize(self):
+    def initialize(self, custom_y_AxisItem=None):
         self.graph = create_graph(
             self.dropdown_label
             if self.dropdown_label != self.x_name
@@ -150,6 +169,7 @@ class GraphObject:  # struct which keeps together objects needed for a graph
             f"{self.x_name} ({self.x_units})" if self.x_units else f"{self.x_name}",
             f"{self.y_name} ({self.y_units})" if self.y_units else f"{self.y_name}",
             self.interactable,
+            y_AxisItem=custom_y_AxisItem,
         )
         self.graph.hide()
         self.initialized = True
@@ -209,7 +229,6 @@ class DataObject:
         if self.graph_obj:
             if not self.graph_obj.initialized:
                 self.graph_obj.initialize()
-            # self.line = self.create_empty_line
             self.init_empty_line()
         if self.has_label:
             self.label = create_label(
@@ -245,7 +264,7 @@ class DataObject:
 
     def add_datapoint(self, x, y):
         """
-        # add a datapoint to self.data
+        add a datapoint to self.data
         """
         self.data[x] = y
         self.current = x
@@ -282,7 +301,7 @@ class DataObject:
                 self.dp is not None
             ):  # for values which do not have variable dp (ie. not salinity)
                 data = round(data, self.dp)
-
+        # print("current_time = ", current_time, "  | data = ", data)
         self.add_datapoint(current_time, data)
         return
 
@@ -308,6 +327,184 @@ class DataObject:
         return
 
 
+# class InputDataObject(DataObject):
+#     # TODO: implementation? Or perhaps not
+#     pass
+
+
+# A custom DataObject class for creating a graph object with a custom AxisItem (for y-axis)
+# and calculating wrapping for IMU for smoother graph experiences
+class IMUHeadingObject(DataObject):
+    def __init__(
+        self,
+        name,
+        dp,
+        units,
+        parsing_fn,
+        line_dashed=False,
+        line_colour=None,
+        symbol_brush=None,
+        has_label=True,
+        graph: GraphObject = None,
+    ):
+        super().__init__(
+            name,
+            dp,
+            units,
+            None,
+            line_colour=line_colour,
+            symbol_brush=symbol_brush,
+            graph=graph,
+        )
+        # Tracks how many full rotations the boat has made since initialization for smooth graph readings
+        # positive numbers are positive rotations (358->359->0->1), negative is the other way (1->0->359->358)
+        self.current_rotations = 0
+        self.graph_data = {}  # Data used for graphing only (not logging), contains data in self.data plus offset based on the number of rotations at the time
+
+        return
+
+    def initialize(self, timestamp=None):
+        if self.graph_obj:
+            if not self.graph_obj.initialized:
+                self.graph_obj.initialize(custom_y_AxisItem=IMUHeadingAxisItem("left"))
+            # if not self.graph_obj.initialized: self.graph_obj.initialize()
+            self.init_empty_line()
+        if self.has_label:
+            self.label = create_label(
+                self.name + ": ---- "
+            )  # should automatically create label
+        else:
+            self.label = None
+
+    def update_current_rotations(self, old_angle: float, new_angle: float) -> None:
+        """
+        Compares the new angle to the last recorded angle (using get_current()) and decides
+        if a full rotation CW or CCW has occurred, updating self.current_rotations accordingly
+        """
+        if old_angle is None or new_angle is None:
+            return
+
+        if (old_angle - new_angle) >= MAX_ANGLE_JUMP:
+            self.current_rotations += 1
+        elif (old_angle - new_angle) <= -(MAX_ANGLE_JUMP):
+            self.current_rotations -= 1
+
+        return
+
+    def add_datapoint(self, x, y):
+        """
+        Updates self.data and self.graph_data
+        """
+        self.update_current_rotations(self.get_current()[1], y)
+        # print("current_rotations = ", self.current_rotations)
+        self.graph_data[x] = y + (self.current_rotations * 360)
+        super().add_datapoint(x, y)
+        # print("graph_data = ", self.graph_data)
+        # print("self.line data = ", self.line.getData())
+
+    def update_line_data(self) -> None:
+        if self.line is not None:
+            # if graph_data is None: graph_data = self.data
+            values = []
+            for key in self.graph_data.keys():
+                values.append(self.graph_data[key])
+            self.line.setData(list(self.graph_data.keys()), values)
+        return
+
+
+# A Mixin class for DataObjects which take manual input from the GUI and hold their value after a period of time - do not get regular CAN updates
+# So these should be graphed regularly over time after taking manual input, holding their value until changed - not once and stop
+# contains a method which return true if time to update
+# TODO: refactor (also probably want to refactor the other __init__ functions in general) so the init doesn't need all this stuff - modify to use args/kwargs
+class ContinuousUpdateMixin:
+    def __init__(
+        self,
+        name,
+        dp,
+        units,
+        parsing_function,
+        line_colour,
+        symbol_brush,
+        graph,
+        interval,
+    ):
+        if interval is None:
+            raise ValueError(
+                "ContinuousUpdateMixin must be initiated with a valid interval!"
+            )
+        super().__init__(
+            name,
+            dp,
+            units,
+            None,
+            line_colour=line_colour,
+            symbol_brush=symbol_brush,
+            graph=graph,
+        )
+        self.interval_time = interval
+        self.last_updated_time = None
+
+    def needs_update(self, current_time):
+        """
+        Returns true if the graph has been updated at least once and if it hasn't been updated since the self.interval_time
+        """
+        if self.last_updated_time is None:
+            return False
+        else:
+            return current_time - self.last_updated_time > self.interval_time
+
+    def set_last_updated_time(self, time):
+        self.last_updated_time = time
+
+
+# Class for desired heading data, which pulls self.current_rotations from IMUHeading obj
+class DesiredHeadingObject(ContinuousUpdateMixin, IMUHeadingObject):
+    def __init__(
+        self,
+        name,
+        dp,
+        units,
+        parsing_fn,
+        line_dashed=False,
+        line_colour=None,
+        symbol_brush=None,
+        has_label=True,
+        graph: GraphObject = None,
+        imu_heading_ref_obj: IMUHeadingObject = None,
+        interval=None,
+    ):
+        super().__init__(
+            name,
+            dp,
+            units,
+            None,
+            line_colour=line_colour,
+            symbol_brush=symbol_brush,
+            graph=graph,
+            interval=interval,
+        )
+        # super(IMUHeadingObject, self).__init__(name, dp, units, None, line_colour = line_colour, symbol_brush = symbol_brush, graph = graph)
+        # super(ContinuousUpdateMixin, self).__init__(interval)
+
+        if imu_heading_ref_obj is None:
+            raise ValueError(
+                "A DesiredHeadingObject requires a reference to a imu_heading_ref_obj"
+            )
+        self.imu_heading_ref_obj = imu_heading_ref_obj  # Uses .current_rotations from this obj as a reference to correctly graph data
+
+        return
+
+    def add_datapoint(self, x, y):
+        """
+        Updates self.data and self.graph_data
+        """
+        self.set_last_updated_time(x)
+        self.current_rotations = self.imu_heading_ref_obj.current_rotations
+        self.graph_data[x] = y + (self.current_rotations * 360)
+        DataObject.add_datapoint(self, x, y)
+
+
+# Class for object holding heading data for PID tuning - needs custom functionality for adding heading arrows to its graph
 class PIDObject(DataObject):
     def __init__(
         self,
@@ -365,18 +562,14 @@ class PIDObject(DataObject):
         if parsed_dict is None:
             raise ValueError("ERROR: No parsed_dict passed to PIDObject.parse_frame()")
         else:
-            print("parsed_dict = ", parsed_dict)
+            # print("parsed_dict = ", parsed_dict)
             x = round(parsed_dict[self.x_name], self.dp)
             y = round(parsed_dict[self.y_name], self.dp)
-            # self.add_datapoint(current_time, (x, y)) # key is current time, value is a tuple with x, y values
-            # NOTE: this replaces the above line to add reference to heading arrows
-            # TODO: update with actual heading arrows, change update_line_data to also add the arrowItems, change update_data to also remove the arrowItems
             desired_arrow = None
             actual_arrow = None
             should_create_arrow = self.should_create_arrow(
                 current_time, parsed_dict[self.x_name], parsed_dict[self.y_name]
             )
-            # print("after should_create_arrow()")
             if (
                 parsed_dict[cg.desired_heading_arrow_name] is not None
                 and should_create_arrow
@@ -388,7 +581,7 @@ class PIDObject(DataObject):
                 parsed_dict[cg.actual_heading_arrow_name] is not None
                 and should_create_arrow
             ):
-                print("actual_heading_arrow being created!")
+                # print("actual_heading_arrow being created!")
                 actual_arrow = create_heading_arrow(
                     parsed_dict[cg.actual_heading_arrow_name], cg.h_arrow_actual_brush
                 )
@@ -421,10 +614,6 @@ class PIDObject(DataObject):
             last_x = self.data[self.last_arrow_time][self.x_name]
             last_y = self.data[self.last_arrow_time][self.y_name]
             dist_between_pts = math.sqrt(((x - last_x) ** 2) + ((y - last_y) ** 2))
-            # print("self.last_arrow_time = ", self.last_arrow_time)
-            # print("last_x = ", last_x, "; last_y = ", last_y)
-            # print("     x = ", x, "     y = ", y)
-            # print("dist = ", dist_between_pts)
 
             if dist_between_pts >= cg.min_dist_between_arrows:
                 self.last_arrow_time = current_time
@@ -433,12 +622,9 @@ class PIDObject(DataObject):
                 return False
 
     def add_datapoint(self, x, y):
-        # TODO: ArrowItems should be added to the graph only if the graph is visible - do this in update_line_data?
+        # NOTE: ArrowItems should be added to the graph only if the graph is visible - do this in update_line_data?
         # Actually, I don't think I want to keep updating; I'll set once here
         # y = {self.x_name: x_coord, self.y_name: y_coord, cg.desired...: desiredHeadingArrow, cg.actual...: actualHeadingArrow}
-
-        # print("add_datapoint called")
-        # print(y)
 
         desiredHeadingArrow = y[cg.desired_heading_arrow_name]
         actualHeadingArrow = y[cg.actual_heading_arrow_name]
@@ -496,8 +682,6 @@ class PIDObject(DataObject):
         else:
             x = [value[self.x_name] for value in self.data.values()]
             y = [value[self.y_name] for value in self.data.values()]
-            # print("x = ", x)
-            # print("y == ", y)
             self.line.setData(x, y)
         return
 
@@ -724,8 +908,8 @@ class Docker_Commands(Enum):
             log_level:=debug visualizer_mode:=true config:=on_water_globals.yaml \
             2>&1 | tee src/global_launch/voyage_log/combined_log_$( date +%F_%T).txt"""
     STOP = ""
-    START_WING = """ros2 param set /can_transceiver manual_mode false"""
-    STOP_WING = "ros2 param set /can_transceiver manual_mode true."
+    START_WING = "ros2 param set /can_transceiver_node manual_mode false"
+    STOP_WING = "ros2 param set /can_transceiver_node manual_mode true"
 
 
 # This list is ordered according to 0x060 frame conventions as specified on confluence (don't reorder or else heading order will be incorrect)
