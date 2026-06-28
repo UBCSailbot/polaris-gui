@@ -74,10 +74,10 @@ def make_forward_server(
 
     class SubHandler(ForwardHandler):
         ssh_transport = transport
-        remote_host = remote_host
-        remote_port = remote_port
+        remote_host = target_host
+        remote_port = target_port
 
-    return ForwardServer(("", local_port), SubHandler)
+    return ForwardServer(("127.0.0.1", local_port), SubHandler)
 
 
 class VisualizerTunnelThread(QThread):
@@ -114,13 +114,6 @@ class VisualizerTunnelThread(QThread):
         self._ssh = ssh
 
         try:
-            if not self._is_visualizer_listening(ssh):
-                self.error.emit(
-                    f"Visualizer is not listening on port {self.remote_port} on the Pi yet. "
-                    "Please press Stop Container and then press Start w/ visualizer again."
-                )
-                return
-
             self.status.emit(
                 f"Visualizer is live on the Pi on port {self.remote_port}."
             )
@@ -178,33 +171,6 @@ class VisualizerTunnelThread(QThread):
         except Exception as exc:
             self.error.emit(f"Could not connect to the Pi: {exc}")
             return None
-
-    def _is_visualizer_listening(self, ssh: paramiko.SSHClient) -> bool:
-        """Checks whether the Dash visualizer is listening on the Pi."""
-        command = f"ss -tlnH 'sport = :{self.remote_port}'"
-
-        try:
-            _, stdout, stderr = ssh.exec_command(command)
-
-            exit_status = stdout.channel.recv_exit_status()
-            output = stdout.read().decode(errors="replace").strip()
-            error_output = stderr.read().decode(errors="replace").strip()
-
-            if exit_status == 0 and output:
-                return True
-
-            self.status.emit(
-                f"Visualizer port check returned no listener. "
-                f"exit_status={exit_status}, stdout={output!r}, stderr={error_output!r}"
-            )
-            return False
-        except Exception as exc:
-            self.error.emit(
-                "Could not check the visualizer port on the Pi. "
-                "Please press Stop Container and then press Start w/ visualizer again. "
-                f"Details: {exc}"
-            )
-            return False
 
     def _cleanup(self) -> None:
         if self._server is not None:
