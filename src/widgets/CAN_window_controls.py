@@ -2,14 +2,8 @@ import time
 
 from utils import set_rudder_obj
 
-from config import (
-    can_line, min_trimtab_angle, max_trimtab_angle, 
-    pid_params
-)
-from utils import (
-    convert_to_hex, convert_to_little_endian,
-    convert_float_to_binary32hex
-)
+from config import can_line, min_trimtab_angle, max_trimtab_angle, pid_params
+from utils import convert_to_hex, convert_to_little_endian, convert_float_to_binary32hex
 
 
 # CAN send functions
@@ -153,8 +147,12 @@ class CANWindowControlsMixin:
     def send_pid_param(self):
         try:
             status_byte = "00"
-            param_index = convert_to_hex(pid_params.index(self.pid_param_dropdown.currentText()), 1)
-            value = convert_to_little_endian(convert_float_to_binary32hex(float(self.pid_param_input.text())))
+            param_index = convert_to_hex(
+                pid_params.index(self.pid_param_dropdown.currentText()), 1
+            )
+            value = convert_to_little_endian(
+                convert_float_to_binary32hex(float(self.pid_param_input.text()))
+            )
             can_data = status_byte + param_index + value
             self.can_send("210", can_data, "SEND PID PARAM")
         except ValueError as v:
@@ -164,5 +162,6 @@ class CANWindowControlsMixin:
             self.show_error(f"Exception thrown from send_pid_param: {e}")
 
         return
-    
+
+
 # TODO: these send can messages don't need to be part of the class at all really - refactor them out into their own class (like a SendCanFrameObject?)

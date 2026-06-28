@@ -136,18 +136,25 @@ def init_pid_layout(self):
 
     return self.pid_layout
 
+
 def init_pid_dropdown_layout(self):
     # Category dropdown for PID params
     self.pid_param_category_dropdown = QComboBox()
-    self.pid_param_category_dropdown.setFont(QFont(cg.pid_dropdown_font_type, cg.pid_dropdown_font_size))
+    self.pid_param_category_dropdown.setFont(
+        QFont(cg.pid_dropdown_font_type, cg.pid_dropdown_font_size)
+    )
     self.pid_param_category_dropdown.addItems(list(cg.pid_param_categories.keys()))
-    self.pid_param_category_dropdown.currentTextChanged.connect(self.update_pid_param_dropdown)
+    self.pid_param_category_dropdown.currentTextChanged.connect(
+        self.update_pid_param_dropdown
+    )
 
     # Secondary (detailed) dropdown for PID params
     self.pid_param_dropdown = QComboBox()
-    self.pid_param_dropdown.setFont(QFont(cg.pid_dropdown_font_type, cg.pid_dropdown_font_size))
+    self.pid_param_dropdown.setFont(
+        QFont(cg.pid_dropdown_font_type, cg.pid_dropdown_font_size)
+    )
     self.update_pid_param_dropdown(self.pid_param_category_dropdown.currentText())
-    
+
     # Layout setup for PID params
     self.pid_param_dropdown_layout = QHBoxLayout()
     self.pid_param_dropdown_layout.addWidget(self.pid_param_category_dropdown)
@@ -155,15 +162,20 @@ def init_pid_dropdown_layout(self):
 
     return self.pid_param_dropdown_layout
 
+
 def init_pid_input_layout(self):
     # Input field for PID params
-    self.pid_param_input = QLineEdit(placeholderText = "Value")
-    self.pid_param_input.setFont(QFont(cg.pid_dropdown_font_type, cg.pid_dropdown_font_size))
+    self.pid_param_input = QLineEdit(placeholderText="Value")
+    self.pid_param_input.setFont(
+        QFont(cg.pid_dropdown_font_type, cg.pid_dropdown_font_size)
+    )
 
     # Send button for PID param
     self.pid_param_button = QPushButton("Set PID Parameter")
-    self.pid_param_button.clicked.connect(self.send_pid_param) # TODO: Do something (send CAN frame) on button click
-    
+    self.pid_param_button.clicked.connect(
+        self.send_pid_param
+    )  # TODO: Do something (send CAN frame) on button click
+
     # Layout setup
     self.pid_param_input_layout = QHBoxLayout()
     self.pid_param_input_layout.addWidget(self.pid_param_input)
@@ -280,7 +292,7 @@ def init_left_layout(
     # Add UI elements for PID tuning
     left_layout.addLayout(input_layout)
     left_layout.addLayout(self.pid_layout)
-    
+
     # Add UI elements for PID parameter tuning
     left_layout.addLayout(self.pid_param_dropdown_layout)
     # left_layout.addWidget(self.pid_param_button)
