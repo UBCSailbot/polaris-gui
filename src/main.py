@@ -114,7 +114,19 @@ class CANWindow(
             print("Log files closed successfully")
         except Exception as e:
             print(f"Error closing log files: {e}")
-        event.accept()
+
+        # Tear down the visualizer SSH tunnel if it is running
+        try:
+            visualizer_thread = getattr(self, "visualizer_thread", None)
+            if visualizer_thread is not None and visualizer_thread.isRunning():
+                visualizer_thread.stop()
+                visualizer_thread.wait(2000)
+                print("Visualizer tunnel closed successfully")
+        except Exception as e:
+            print(f"Error closing visualizer tunnel: {e}")
+
+        if event is not None:
+            event.accept()
 
     # NOTE: Functions moved to CAN_window_UI.py:
     # def init_ui()

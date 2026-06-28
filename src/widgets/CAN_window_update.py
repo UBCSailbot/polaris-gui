@@ -231,7 +231,7 @@ class CANWindowUpdateMixin:
                                     f"[PARSE ERROR 0x206] {str(e)}"
                                 )
 
-                        case "214": 
+                        case "214":
                             # NOTE: This frame sends accel/gyro data that is useful to have logged, GUI doesn't do anything with this data currently
                             pass
 
