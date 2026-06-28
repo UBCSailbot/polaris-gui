@@ -181,14 +181,23 @@ class VisualizerTunnelThread(QThread):
 
     def _is_visualizer_listening(self, ssh: paramiko.SSHClient) -> bool:
         """Checks whether the Dash visualizer is listening on the Pi."""
-        command = f"sudo ss -tln | grep ':{self.remote_port}'"
+        command = f"ss -tlnH 'sport = :{self.remote_port}'"
 
         try:
-            _, stdout, _ = ssh.exec_command(command)
-            stdout.channel.recv_exit_status()
-            output = stdout.read().decode().strip()
-            return bool(output)
+            _, stdout, stderr = ssh.exec_command(command)
 
+            exit_status = stdout.channel.recv_exit_status()
+            output = stdout.read().decode(errors="replace").strip()
+            error_output = stderr.read().decode(errors="replace").strip()
+
+            if exit_status == 0 and output:
+                return True
+
+            self.status.emit(
+                f"Visualizer port check returned no listener. "
+                f"exit_status={exit_status}, stdout={output!r}, stderr={error_output!r}"
+            )
+            return False
         except Exception as exc:
             self.error.emit(
                 "Could not check the visualizer port on the Pi. "
