@@ -1,3 +1,93 @@
+import select
+import socket
+import socketserver
+from typing import Optional
+
+import paramiko
+from PyQt5.QtCore import QThread, pyqtSignal
+
+from config import hostname, password, username
+
+# Port the Dash visualizer binds to on the Pi and locally after forwarding.
+VISUALIZER_PORT = 8050
+BUFFER_SIZE = 1024
+
+
+class ForwardServer(socketserver.ThreadingTCPServer):
+    daemon_threads = True
+    allow_reuse_address = True
+
+
+class ForwardHandler(socketserver.BaseRequestHandler):
+    """Forwards traffic from a local socket to a remote host through SSH."""
+
+    # Filled in per-tunnel by make_forward_server() via a subclass.
+    ssh_transport: paramiko.Transport
+    remote_host: str
+    remote_port: int
+
+    def handle(self) -> None:
+        try:
+            channel = self.ssh_transport.open_channel(
+                kind="direct-tcpip",
+                dest_addr=(self.remote_host, self.remote_port),
+                src_addr=self.request.getpeername(),
+            )
+        except Exception:
+            return
+
+        if channel is None:
+            return
+
+        try:
+            self._forward_between(self.request, channel)
+        finally:
+            channel.close()
+            self.request.close()
+
+    @staticmethod
+    def _forward_between(
+        local_socket: socket.socket, ssh_channel: paramiko.Channel
+    ) -> None:
+        """Bidirectionally forwards bytes between the local socket and SSH channel."""
+        while True:
+            readable, _, _ = select.select([local_socket, ssh_channel], [], [])
+
+            if local_socket in readable:
+                data = local_socket.recv(BUFFER_SIZE)
+                if not data:
+                    break
+                ssh_channel.sendall(data)
+
+            if ssh_channel in readable:
+                data = ssh_channel.recv(BUFFER_SIZE)
+                if not data:
+                    break
+                local_socket.sendall(data)
+
+
+def make_forward_server(
+    local_port: int,
+    target_host: str,
+    target_port: int,
+    transport: paramiko.Transport,
+) -> ForwardServer:
+    """Creates a local TCP server that forwards traffic through an SSH transport.
+
+    NOTE: target_host/target_port intentionally differ from the handler's
+    remote_host/remote_port attribute names. Reusing the same name inside the
+    class body (e.g. ``remote_host = remote_host``) raises NameError, because
+    the assignment makes it a class-local that shadows the function argument.
+    """
+
+    class SubHandler(ForwardHandler):
+        ssh_transport = transport
+        remote_host = target_host
+        remote_port = target_port
+
+    return ForwardServer(("", local_port), SubHandler)
+
+
 class VisualizerTunnelThread(QThread):
     """Creates a tunnel equivalent to:
 
