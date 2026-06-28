@@ -1,6 +1,7 @@
 import select
 import socket
 import socketserver
+import time
 from typing import Optional
 
 import paramiko
@@ -11,6 +12,11 @@ from config import hostname, password, username
 # Port the Dash visualizer binds to on the Pi and locally after forwarding.
 VISUALIZER_PORT = 8050
 BUFFER_SIZE = 1024
+
+# The Dash app takes a few seconds to bind its port after the container starts,
+# so poll for it instead of checking just once.
+LISTEN_POLL_ATTEMPTS = 20
+LISTEN_POLL_DELAY_SECONDS = 2.0
 
 
 class ForwardServer(socketserver.ThreadingTCPServer):
@@ -111,6 +117,7 @@ class VisualizerTunnelThread(QThread):
 
         self._server: Optional[ForwardServer] = None
         self._ssh: Optional[paramiko.SSHClient] = None
+        self._stop_requested = False
 
     def run(self) -> None:
         ssh = self._connect_to_pi()
@@ -120,12 +127,12 @@ class VisualizerTunnelThread(QThread):
         self._ssh = ssh
 
         try:
-            if not self._is_visualizer_listening(ssh):
+            if not self._wait_for_visualizer(ssh):
                 self.error.emit(
-                    f"Visualizer is not listening on port {self.remote_port} on the Pi. "
-                    "Start the container with visualizer_mode:=true, then try again."
+                    f"Visualizer never came up on port {self.remote_port} on the Pi "
+                    f"after {LISTEN_POLL_ATTEMPTS * LISTEN_POLL_DELAY_SECONDS:.0f}s. "
+                    "Make sure the container was started with visualizer_mode:=true."
                 )
-
                 return
 
             self.status.emit(
@@ -166,6 +173,7 @@ class VisualizerTunnelThread(QThread):
             self._cleanup()
 
     def stop(self) -> None:
+        self._stop_requested = True
         self._cleanup()
 
     def _connect_to_pi(self) -> Optional[paramiko.SSHClient]:
@@ -188,6 +196,25 @@ class VisualizerTunnelThread(QThread):
         except Exception as exc:
             self.error.emit(f"Could not connect to the Pi: {type(exc).__name__}: {exc}")
             return None
+
+    def _wait_for_visualizer(self, ssh: paramiko.SSHClient) -> bool:
+        """Polls the Pi until the visualizer port is listening, or attempts run
+        out. Returns True as soon as it is up."""
+        for attempt in range(1, LISTEN_POLL_ATTEMPTS + 1):
+            if self._stop_requested:
+                return False
+
+            if self._is_visualizer_listening(ssh):
+                return True
+
+            if attempt < LISTEN_POLL_ATTEMPTS:
+                self.status.emit(
+                    f"Waiting for visualizer on :{self.remote_port} "
+                    f"(attempt {attempt}/{LISTEN_POLL_ATTEMPTS})..."
+                )
+                time.sleep(LISTEN_POLL_DELAY_SECONDS)
+
+        return False
 
     def _is_visualizer_listening(self, ssh: paramiko.SSHClient) -> bool:
         """Equivalent to: ss -tln | grep :8050 run on the Pi host.
@@ -217,12 +244,6 @@ class VisualizerTunnelThread(QThread):
             print(f"[SSH] exit_status: {exit_status}")
             print(f"[SSH] stdout: {output}")
             print(f"[SSH] stderr: {error_output}")
-
-            self.status.emit(
-                f"Port check found nothing on :{self.remote_port}. "
-                f"exit_status={exit_status}, stdout={output!r}, "
-                f"stderr={error_output!r}"
-            )
 
             return False
 
