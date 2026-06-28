@@ -189,9 +189,17 @@ class VisualizerTunnelThread(QThread):
             return None
 
     def _is_visualizer_listening(self, ssh: paramiko.SSHClient) -> bool:
-        """Equivalent to checking: ss -tln | grep 8050 on the Pi."""
+        """Equivalent to: ss -tln | grep :8050 run on the Pi host.
 
-        command = f"ss -tlnH 'sport = :{self.remote_port}'"
+        /usr/sbin and /sbin are added to PATH because a non-interactive SSH
+        command gets a minimal PATH that often omits them, so a bare `ss` would
+        fail with "command not found". The `-E ':PORT([^0-9]|$)'` filter matches
+        the port exactly (so :8050 does not also match :80500)."""
+
+        command = (
+            f"PATH=$PATH:/usr/sbin:/sbin ss -tln | "
+            f"grep -E ':{self.remote_port}([^0-9]|$)'"
+        )
 
         try:
             _, stdout, stderr = ssh.exec_command(command)
@@ -200,12 +208,14 @@ class VisualizerTunnelThread(QThread):
             output = stdout.read().decode(errors="replace").strip()
             error_output = stderr.read().decode(errors="replace").strip()
 
-            if exit_status == 0 and output:
+            # grep prints the matching LISTEN line(s) iff the port is bound.
+            if output:
                 return True
 
             self.status.emit(
-                f"Port check failed. exit_status={exit_status}, "
-                f"stdout={output!r}, stderr={error_output!r}"
+                f"Port check found nothing on :{self.remote_port}. "
+                f"exit_status={exit_status}, stdout={output!r}, "
+                f"stderr={error_output!r}"
             )
             return False
 
