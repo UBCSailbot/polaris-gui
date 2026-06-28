@@ -125,6 +125,7 @@ class VisualizerTunnelThread(QThread):
                     f"Visualizer is not listening on port {self.remote_port} on the Pi. "
                     "Start the container with visualizer_mode:=true, then try again."
                 )
+
                 return
 
             self.status.emit(
@@ -211,12 +212,18 @@ class VisualizerTunnelThread(QThread):
             # grep prints the matching LISTEN line(s) iff the port is bound.
             if output:
                 return True
+            
+            print(f"[SSH] command: {command}")
+            print(f"[SSH] exit_status: {exit_status}")
+            print(f"[SSH] stdout: {output}")
+            print(f"[SSH] stderr: {error_output}")
 
             self.status.emit(
                 f"Port check found nothing on :{self.remote_port}. "
                 f"exit_status={exit_status}, stdout={output!r}, "
                 f"stderr={error_output!r}"
             )
+
             return False
 
         except Exception as exc:
