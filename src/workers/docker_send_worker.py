@@ -52,7 +52,13 @@ def send_docker_command(command: str):
 
         # Wait for the command to finish and get the exit status
         exit_status = stdout.channel.recv_exit_status()
+        out = stdout.read().decode().strip()
         err = stderr.read().decode().strip()
+
+        print(f"[SSH] command: {command}")
+        print(f"[SSH] exit_status: {exit_status}")
+        print(f"[SSH] stdout: {out}")
+        print(f"[SSH] stderr: {err}")
 
         if exit_status != 0:
             raise RuntimeError(err)
