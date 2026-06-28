@@ -5,19 +5,39 @@
 
 import numpy as np
 import math
+
 # from pyqtgraph.Qt import QtGui, QtCore
 import pyqtgraph as pg
-from PyQt5 import QtCore, QtWidgets, QtGui
+from PyQt5 import QtWidgets
 
 from project.data_object import IMUHeadingAxisItem
+
 
 class MyArrowItem(pg.ArrowItem):
     def paint(self, p, *args):
         p.translate(-2 * self.boundingRect().center())
         pg.ArrowItem.paint(self, p, *args)
 
-def create_arrow_item(angle: int, headLen: int, tailLen: int, tailWidth: int, headWidth: int, pen: pg.QtGui.QPen, brush: pg.QtGui.QBrush) -> MyArrowItem:
-    return MyArrowItem(angle=angle, headLen=headLen, tailLen=tailLen, tailWidth=tailWidth, headWidth=headWidth, pen=pen, brush=brush)
+
+def create_arrow_item(
+    angle: int,
+    headLen: int,
+    tailLen: int,
+    tailWidth: int,
+    headWidth: int,
+    pen: pg.QtGui.QPen,
+    brush: pg.QtGui.QBrush,
+) -> MyArrowItem:
+    return MyArrowItem(
+        angle=angle,
+        headLen=headLen,
+        tailLen=tailLen,
+        tailWidth=tailWidth,
+        headWidth=headWidth,
+        pen=pen,
+        brush=brush,
+    )
+
 
 # Sample data points
 # x = np.array([1, 2, 3, 4, 5, -2, -2, 10, 10])
@@ -32,7 +52,7 @@ lat_test_sine_path = [lat_ref + (0.00001 * (i * 0.1)) for i in range(0, num_dp)]
 lon_test_sine_path = [lon_ref + (0.00001 * math.sin(i * 0.1)) for i in range(0, num_dp)]
 d_heading_sine_path = [90 * math.sin(i) for i in range(0, num_dp)]
 a_heading_sine_path = [90, 90, 90, 45, 45, 45, 90, 90, 90, 135, 135, 135] * num_dp
-    
+
 # y = [(lat_data - lat_ref) * 110562 for lat_data in lat_test_sine_path]
 # x = [(lon_data - lon_ref) * math.cos(math.radians(lat_ref)) * 111320 for lon_data in lon_test_sine_path]
 # print("lat[0:5] = ", lat_test_sine_path[0:5])
@@ -47,16 +67,16 @@ app = QtWidgets.QApplication([])
 
 headingAxisItem = IMUHeadingAxisItem("left")
 p = pg.PlotWidget(axisItems={"left": headingAxisItem})
-p.showGrid(x = True, y = True, alpha = 0.3)
-p.setBackground('w')
+p.showGrid(x=True, y=True, alpha=0.3)
+p.setBackground("w")
 
 line = p.plot(
     x,
     y,
     name="Path",
-    pen=None, # no line colour = no line
-    symbol='o',
-    symbolBrush = 'black'
+    pen=None,  # no line colour = no line
+    symbol="o",
+    symbolBrush="black",
 )
 
 # b = MyArrowItem(angle=0, headLen=20, tailLen=40, tailWidth=10, headWidth=10, pen={'color': 'w', 'width': 3})
@@ -88,7 +108,7 @@ last_glo_y = None
 #         print(f"screen pixel distance from ({last_x},{last_y}) to ({x[i]}, {y[i]}) = ", math.sqrt((last_pix_x - scene_pixel.x()) ** 2 + (last_pix_y - scene_pixel.y()) ** 2))
 #         print(f"window pixel distance from ({last_x},{last_y}) to ({x[i]}, {y[i]}) = ", math.sqrt((last_win_x - window_pixel.x()) ** 2 + (last_win_y - window_pixel.y()) ** 2))
 #         print(f"global pixel distance from ({last_x},{last_y}) to ({x[i]}, {y[i]}) = ", math.sqrt((last_glo_x - global_screen_pixel.x()) ** 2 + (last_glo_y - global_screen_pixel.y()) ** 2))
-    
+
 #     last_x = x[i]
 #     last_y = y[i]
 #     last_pix_x = scene_pixel.x()
@@ -124,7 +144,7 @@ w.show()
 w.resize(640, 480)
 # w.setCentralWidget(p)
 w.setCentralWidget(main_widget)
-w.setWindowTitle('pyqtgraph example: ArrowItem')
+w.setWindowTitle("pyqtgraph example: ArrowItem")
 
 # a = MyArrowItem(angle=0, tipAngle=60, headLen=40, tailLen=40, tailWidth=20, pen={'color': 'w', 'width': 3},  brush='r')
 # # b is the chosen arrow (can modify this later if necessary)
@@ -140,11 +160,11 @@ w.setWindowTitle('pyqtgraph example: ArrowItem')
 # p.addItem(c)
 
 ## Start Qt event loop unless running in interactive mode or using pyside.
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.exec()
 
 
-# # ===== Example PID Graph (Basic) ===== 
+# # ===== Example PID Graph (Basic) =====
 # # NOTE: I might want to use a scatterplot for this
 # import pyqtgraph as pg
 # from pyqtgraph.Qt import QtGui
@@ -171,12 +191,12 @@ if __name__ == '__main__':
 
 # # 4. Set data with the custom arrow symbol
 # sp.setData(
-#     x=x, 
-#     y=y, 
-#     symbol=[thin_arrow_path, arrow_path, thick_arrow_path, arrow_path, arrow_path], 
+#     x=x,
+#     y=y,
+#     symbol=[thin_arrow_path, arrow_path, thick_arrow_path, arrow_path, arrow_path],
 #     # symbol=arrow_path,
-#     size=25, 
-#     symbolBrush='y', 
+#     size=25,
+#     symbolBrush='y',
 #     symbolPen='w'
 # )
 
@@ -194,7 +214,7 @@ if __name__ == '__main__':
 #         super().__init__()
 
 #         self.time = list(range(10)) # create a list of times from 1-10 for time
-#         x_data = [uniform(-180, 180) for i in range(10)] 
+#         x_data = [uniform(-180, 180) for i in range(10)]
 #         y_data = [uniform(-90, 90) for j in range(10)] # randint(1, 9) for i in range(0, 10)]
 #         print("longitude: ", x_data)
 #         print("latitude: ", y_data)
@@ -205,7 +225,7 @@ if __name__ == '__main__':
 #         other_brush = pg.mkBrush(color='b')
 
 #         '''
-#         Optional list of dicts. Each dict specifies parameters for a single spot: {‘pos’: (x,y), ‘size’, ‘pen’, ‘brush’, ‘symbol’}. 
+#         Optional list of dicts. Each dict specifies parameters for a single spot: {‘pos’: (x,y), ‘size’, ‘pen’, ‘brush’, ‘symbol’}.
 #         This is just an alternate method of passing in data for the corresponding arguments.
 #         '''
 #         # spots = []
@@ -230,7 +250,7 @@ if __name__ == '__main__':
 #         # create line objects for polaris & for other ships; add data
 #         # TODO: copy necessary bits from create_line here
 #         other_line = self.plot_widget.plot(
-#             x_data, 
+#             x_data,
 #             y_data,
 #             name="other ships",
 #             pen=None,
@@ -247,12 +267,12 @@ if __name__ == '__main__':
 #         )
 
 #         arrow = pg.ArrowItem(angle=45, brush='y') # Points down
-#         arrow.setPos(0, 0) # Position in data coordinates   
+#         arrow.setPos(0, 0) # Position in data coordinates
 #         self.plot_widget.addItem(arrow)
 
 #         polaris_line.setData([0], [0])
 
-        
+
 #         # Graph using ScatterPLotItem
 #         # self.plot_widget = pg.PlotWidget()
 #         # self.plot_widget.getPlotItem().getViewBox().setMouseEnabled(False, False) # disable graph interaction
@@ -266,8 +286,8 @@ if __name__ == '__main__':
 
 #         # self.plot_graph = pg.ScatterPlotItem(spots) # create ScatterPlot object
 #         # self.plot_widget.addItem(self.plot_graph)
-        
-#         self.setCentralWidget(self.plot_widget) 
+
+#         self.setCentralWidget(self.plot_widget)
 
 # app = QtWidgets.QApplication([])
 # main = MainWindow()
@@ -275,7 +295,7 @@ if __name__ == '__main__':
 # app.exec()
 
 
-# # ===== Example Heartbeat ===== 
+# # ===== Example Heartbeat =====
 # # from random import randint, uniform
 
 # # import pyqtgraph as pg
@@ -317,14 +337,14 @@ if __name__ == '__main__':
 
 #         pdb_button = QPushButton("pdb heartbeat")
 #         pdb_button.clicked.connect(lambda: self.on_clicked(pdb_hb_label, pdb_title_text))
-        
+
 #         sail_hb_label = QLabel()
 #         sail_hb_label.setStyleSheet(heartbeat_label_style)
 #         sail_hb_label.setText(f"{sail_title_text} <font style=\"{heartbeat_status_bad_style}\">NOT RESPONDING</font>")
 
 #         sail_button = QPushButton("sail heartbeat")
 #         sail_button.clicked.connect(lambda: self.on_clicked(sail_hb_label, sail_title_text))
-        
+
 #         central_layout.addWidget(pdb_hb_label)
 #         central_layout.addWidget(sail_hb_label)
 #         central_layout.addSpacing(15)
@@ -332,7 +352,7 @@ if __name__ == '__main__':
 #         central_layout.addWidget(sail_button)
 
 #         central_widget.setLayout(central_layout)
-#         self.setCentralWidget(central_widget) 
+#         self.setCentralWidget(central_widget)
 
 #         self.timer = QTimer()
 #         self.timer.timeout.connect(self.update)
@@ -344,7 +364,7 @@ if __name__ == '__main__':
 
 #     def update(self):
 #         # TODO: if more than 10 secs have passed, switch to disconnected
-        
+
 #         pass
 
 # app = QtWidgets.QApplication([])
@@ -352,7 +372,7 @@ if __name__ == '__main__':
 # main.show()
 # app.exec()
 
-# ===== Example AIS Graph (Basic) ===== 
+# ===== Example AIS Graph (Basic) =====
 # from random import randint, uniform
 
 # import pyqtgraph as pg
@@ -363,7 +383,7 @@ if __name__ == '__main__':
 #         super().__init__()
 
 #         self.time = list(range(10)) # create a list of times from 1-10 for time
-#         x_data = [uniform(-180, 180) for i in range(10)] 
+#         x_data = [uniform(-180, 180) for i in range(10)]
 #         y_data = [uniform(-90, 90) for j in range(10)] # randint(1, 9) for i in range(0, 10)]
 #         print("longitude: ", x_data)
 #         print("latitude: ", y_data)
@@ -374,7 +394,7 @@ if __name__ == '__main__':
 #         other_brush = pg.mkBrush(color='b')
 
 #         '''
-#         Optional list of dicts. Each dict specifies parameters for a single spot: {‘pos’: (x,y), ‘size’, ‘pen’, ‘brush’, ‘symbol’}. 
+#         Optional list of dicts. Each dict specifies parameters for a single spot: {‘pos’: (x,y), ‘size’, ‘pen’, ‘brush’, ‘symbol’}.
 #         This is just an alternate method of passing in data for the corresponding arguments.
 #         '''
 #         # spots = []
@@ -399,7 +419,7 @@ if __name__ == '__main__':
 #         # create line objects for polaris & for other ships; add data
 #         # TODO: copy necessary bits from create_line here
 #         other_line = self.plot_widget.plot(
-#             x_data, 
+#             x_data,
 #             y_data,
 #             name="other ships",
 #             pen=None,
@@ -416,12 +436,12 @@ if __name__ == '__main__':
 #         )
 
 #         arrow = pg.ArrowItem(angle=45, brush='y') # Points down
-#         arrow.setPos(0, 0) # Position in data coordinates   
+#         arrow.setPos(0, 0) # Position in data coordinates
 #         self.plot_widget.addItem(arrow)
 
 #         polaris_line.setData([0], [0])
 
-        
+
 #         # Graph using ScatterPLotItem
 #         # self.plot_widget = pg.PlotWidget()
 #         # self.plot_widget.getPlotItem().getViewBox().setMouseEnabled(False, False) # disable graph interaction
@@ -435,8 +455,8 @@ if __name__ == '__main__':
 
 #         # self.plot_graph = pg.ScatterPlotItem(spots) # create ScatterPlot object
 #         # self.plot_widget.addItem(self.plot_graph)
-        
-#         self.setCentralWidget(self.plot_widget) 
+
+#         self.setCentralWidget(self.plot_widget)
 
 # app = QtWidgets.QApplication([])
 # main = MainWindow()
@@ -467,7 +487,7 @@ if __name__ == '__main__':
 
 
 #         '''
-#         Optional list of dicts. Each dict specifies parameters for a single spot: {‘pos’: (x,y), ‘size’, ‘pen’, ‘brush’, ‘symbol’}. 
+#         Optional list of dicts. Each dict specifies parameters for a single spot: {‘pos’: (x,y), ‘size’, ‘pen’, ‘brush’, ‘symbol’}.
 #         This is just an alternate method of passing in data for the corresponding arguments.
 #         '''
 #         spots = []
@@ -492,9 +512,9 @@ if __name__ == '__main__':
 
 #         self.plot_graph = pg.ScatterPlotItem(spots) # create ScatterPlot object
 #         self.plot_widget.addItem(self.plot_graph)
-        
-#         self.setCentralWidget(self.plot_widget) 
-        
+
+#         self.setCentralWidget(self.plot_widget)
+
 #         # Add a timer to simulate new temperature measurements
 #         self.timer = QtCore.QTimer() # timer object
 #         self.timer.setInterval(300) # set timer to timeout every 300 milliseconds
@@ -551,7 +571,7 @@ if __name__ == '__main__':
 #         self.combo_2.currentIndexChanged.connect(lambda idx: self.printOnClick(idx, 2))
 #         main_layout.addWidget(self.combo_2)
 #         main_widget.setLayout(main_layout)
-#         self.setCentralWidget(main_widget) 
+#         self.setCentralWidget(main_widget)
 
 #     def printOnClick(self, idx, which):
 #         print(f"combo #{which} switched to index {idx}")
@@ -599,7 +619,7 @@ if __name__ == '__main__':
 #             name="Temperature Sensor", # data/line name
 #             pen=pen, # brush/style used for this line
 #             symbol="+", # datapoint markers
-#             symbolSize=15, 
+#             symbolSize=15,
 #             symbolBrush="b",
 #         )
 
@@ -609,7 +629,7 @@ if __name__ == '__main__':
 #             name="Second line", # data/line name
 #             pen=pen, # brush/style used for this line
 #             symbol="o", # datapoint markers
-#             symbolSize=15, 
+#             symbolSize=15,
 #             symbolBrush="g",
 #         )
 #         # Add a timer to simulate new temperature measurements
@@ -668,7 +688,7 @@ if __name__ == '__main__':
 
 
 # === Multiprocessing Basics ===
-#import multiprocessing
+# import multiprocessing
 #
 # def hello(name, date, location):
 #     print("Hello, ", name, " at ", date, " in ", location)

@@ -11,7 +11,7 @@ window_height = 450
 window_width = 1350
 
 # update_freq = 100 # frequency at which CAN messages are collected & processed - TODO: implement separation of CAN msg processing and gui updating
-gui_update_freq = 50 # frequency of UI update in millis
+gui_update_freq = 50  # frequency of UI update in millis
 
 # ==== Live Values ====
 value_label_min_width = 300
@@ -45,7 +45,7 @@ value_warning = """
 input_label_style = "font-weight: bold;"
 
 # ==== Heartbeat UI Style ====
-heartbeat_timeout = 10 # Timeout for CAN frame (in secs)
+heartbeat_timeout = 10  # Timeout for CAN frame (in secs)
 heartbeat_status_good_text = "ALIVE"
 heartbeat_status_bad_text = "NOT RESPONDING"
 
@@ -60,49 +60,50 @@ heartbeat_status_good_style = "color: green;"
 heartbeat_status_bad_style = "color: red;"
 
 # ==== Dropdown font ====
-d_font_type = "Comic Sans" # hahaha
+d_font_type = "Comic Sans"  # hahaha
 d_font_size = 14
 
 # ==== Graph config ====
 linewidth = 2
 graph_bg = "w"
 graph_title_style = ["black", "10pt"]
-graph_label_style = {
-    "color": "black",
-    "font-size": "15px"
-}
+graph_label_style = {"color": "black", "font-size": "15px"}
 
 graph_y = "Time"
 graph_y_units = "s"
 graph_min_width = 250
 graph_min_height = 300
-scroll_window = 60 # in seconds
+scroll_window = 60  # in seconds
 
-manual_input_obj_update_interval = 1 # Amount of time before graph is updated with current value for manually inputted values
+manual_input_obj_update_interval = 1  # Amount of time before graph is updated with current value for manually inputted values
 
-LAST_UPDATED = "time_since_last_update" # tracks amount of time since a datapoint was updated 
-data_timeout = 5 * 60 # amt of time (in seconds) before data gets removed
-plrs_path_data_timeout = 30 # 2 * 60 # amt of time (in seconds) before POLARIS path data is deleted (for PID tuning)
+LAST_UPDATED = (
+    "time_since_last_update"  # tracks amount of time since a datapoint was updated
+)
+data_timeout = 5 * 60  # amt of time (in seconds) before data gets removed
+plrs_path_data_timeout = 30  # 2 * 60 # amt of time (in seconds) before POLARIS path data is deleted (for PID tuning)
 
 # Set range of ships centered around POLARIS +- <lat/lon>_range on AIS graph
-latitude_range = 0.1 # in decimal degrees
-longitude_range = 0.1 # in decimal degrees
+latitude_range = 0.1  # in decimal degrees
+longitude_range = 0.1  # in decimal degrees
 
 # ==== Heading & PID Tuning ====
-ARROW_TIME_SCALING_ENABLED = True # If True, how often heading arrows appear is time-based; if False, it is distance-based 
-min_time_between_arrows = 1 # Minimum time between heading arrows appearance (in seconds)
-min_dist_between_arrows = 15.0 # heading arrows only appear on points at least min_dist_between_arrows metres away from the last recorded point
+ARROW_TIME_SCALING_ENABLED = True  # If True, how often heading arrows appear is time-based; if False, it is distance-based
+min_time_between_arrows = (
+    1  # Minimum time between heading arrows appearance (in seconds)
+)
+min_dist_between_arrows = 15.0  # heading arrows only appear on points at least min_dist_between_arrows metres away from the last recorded point
 # NOTE: below is NOT implemented in PIDObject.should_create_arrow
 # max_time_between_arrows = 0.1 # if time since last arrow placed is more than this time, put an arrow no matter the distance
 
-# Arrow Styles 
+# Arrow Styles
 h_arrow_headLen = 20
 h_arrow_tailLen = 40
 h_arrow_tailWidth = 7
 h_arrow_headWidth = 7
-h_arrow_pen = {'color': 'black', 'width': 2}
-h_arrow_desired_brush = 'blue'
-h_arrow_actual_brush = 'red'
+h_arrow_pen = {"color": "black", "width": 2}
+h_arrow_desired_brush = "blue"
+h_arrow_actual_brush = "red"
 
 # Heading names for reference
 desired_heading_arrow_name = "desired_heading_arrow"
@@ -121,8 +122,7 @@ pid_params = [
     "STANDARD_DERIVATIVE_FILTER",
     "STANDARD_ERROR_THRESHOLD",
     "STANDARD_HEADING_TOLERANCE",
-    "STANDARD_ANG_VEL_TOLERANCE", # 9th element (index = 8)
-
+    "STANDARD_ANG_VEL_TOLERANCE",  # 9th element (index = 8)
     "TACKING_KP",
     "TACKING_KI",
     "TACKING_KD",
@@ -131,8 +131,7 @@ pid_params = [
     "TACKING_DERIVATIVE_FILTER",
     "TACKING_ERROR_THRESHOLD",
     "TACKING_HEADING_TOLERANCE",
-    "TACKING_ANG_VEL_TOLERANCE", # 18th element
-
+    "TACKING_ANG_VEL_TOLERANCE",  # 18th element
     "GYBING_KP",
     "GYBING_KI",
     "GYBING_KD",
@@ -141,8 +140,7 @@ pid_params = [
     "GYBING_DERIVATIVE_FILTER",
     "GYBING_ERROR_THRESHOLD",
     "GYBING_HEADING_TOLERANCE",
-    "GYBING_ANG_VEL_TOLERANCE", # 27th element
-
+    "GYBING_ANG_VEL_TOLERANCE",  # 27th element
     "LOW_WIND_KP",
     "LOW_WIND_KI",
     "LOW_WIND_KD",
@@ -151,8 +149,7 @@ pid_params = [
     "LOW_WIND_DERIVATIVE_FILTER",
     "LOW_WIND_ERROR_THRESHOLD",
     "LOW_WIND_HEADING_TOLERANCE",
-    "LOW_WIND_ANG_VEL_TOLERANCE", # 36th element
-
+    "LOW_WIND_ANG_VEL_TOLERANCE",  # 36th element
     "VELOCITY_FACTOR",
     "HEEL_FACTOR",
     "TACK_TIME",
@@ -160,13 +157,11 @@ pid_params = [
     "TACK_HEADING_PADDING",
     "GYBE_HEADING_PADDING",
     "AVERAGE_WINDOW_SIZE",
-
     "OUTPUT_MAX",
     "OUTPUT_MIN",
     "UPWIND_IRONS_ANGLE",
     "DOWNWIND_IRONS_ANGLE",
     "LOW_WIND_THRESHOLD",
-
     "STATE_LOW_WIND_THRESHOLD",
     "TACKING_LIN_THRESHOLD",
     "TACKING_ROT_THRESHOLD",
@@ -174,21 +169,20 @@ pid_params = [
     "GYBING_ROT_THRESHOLD",
     "IRONS_SPEED",
     "STATE_IRONS_ROT",
-
-    "PARAM_COUNT"
- ]
+    "PARAM_COUNT",
+]
 
 # NOTE: The tuples in the dict represent the starting (inclusive) and ending (exclusive) indexes
 # of the params corresponding to that category
-# NOTE: This method is used so that I can use the names in the dropdown, 
+# NOTE: This method is used so that I can use the names in the dropdown,
 # assign them to a category, and use their index to pass to the CAN frame
 pid_param_categories = {
     "STANDARD_COEFFS": (0, 9),
     "TACKING_COEFFS": (9, 18),
-    "GYBING_COEFFS": (18, 27), 
+    "GYBING_COEFFS": (18, 27),
     "LOW_WIND_COEFFS": (27, 36),
-    "OTHER_COEFFS": (36, len(pid_params))
-} 
+    "OTHER_COEFFS": (36, len(pid_params)),
+}
 
 
 # ==== CAN Frame offset parameters ====
@@ -196,15 +190,15 @@ integral_offset = 30000
 derivative_offset = 30000
 
 # ==== Joystick ====
-movement_sensitivity = 1 # number of decimal point precision
-max_rudder_angle = 20 # degrees
-min_trimtab_angle = -12 # degrees
+movement_sensitivity = 1  # number of decimal point precision
+max_rudder_angle = 20  # degrees
+min_trimtab_angle = -12  # degrees
 max_trimtab_angle = 3  # degrees
 
-num_axes = 8 # number of possible switches/joystick axes for Radiomaster Boxer joystick
-trimtab_axis = 0 # joystick axis used to move trimtab
-trimtab_latch = 6 # latch axis number
-rudder_axis = 3 # joystick axis used to move rudder
-rudder_latch = 4 # latch axis number
-LATCHED = 1 # latched == locked, unlatched == unlocked
+num_axes = 8  # number of possible switches/joystick axes for Radiomaster Boxer joystick
+trimtab_axis = 0  # joystick axis used to move trimtab
+trimtab_latch = 6  # latch axis number
+rudder_axis = 3  # joystick axis used to move rudder
+rudder_latch = 4  # latch axis number
+LATCHED = 1  # latched == locked, unlatched == unlocked
 UNLATCHED = -1

@@ -1,9 +1,20 @@
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
-    QApplication, QComboBox, QHBoxLayout, QLabel, QTextEdit
+    QApplication,
+    QComboBox,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QTextEdit,
 )
-from data_object import DataObject
+
+from data_object import DataObject, Docker_Commands
 from utils import all_objs
+from workers.docker_send_worker import (
+    DockerWorkerThread,
+    generate_docker_command,
+    kill_software,
+)
 
 from . import elements as elemns
 from . import styles as styles
@@ -13,8 +24,8 @@ from config import pid_param_categories, pid_params
 # UI creation functions
 class CANWindowUIMixin:
     def __init__(self, **kwargs):
-       super().__init__(**kwargs)   
-    
+        super().__init__(**kwargs)
+
     def init_ui(self):
         top_bar_layout = elemns.init_top_bar(self)
         checkbox_layout = elemns.init_checkbox(self)
@@ -40,9 +51,6 @@ class CANWindowUIMixin:
 
         # === Left Panel ===
 
-        # TODO: figure out how this is inputted
-        small_spacing = 2
-
         # NOTE: replaced by init_checkbox
         # self.manual_steer_checkbox = QCheckBox("Manual Steering")
         # self.manual_steer_checkbox.toggled.connect(self.set_manual_steer)
@@ -53,8 +61,12 @@ class CANWindowUIMixin:
         # checkbox_layout.addWidget(self.manual_steer_checkbox)
         # checkbox_layout.addWidget(self.keyboard_checkbox)
 
-        self.instructions1_display = QLabel("For Rudder    (+/- 3 degrees): A / S / D  (Left / Center / Right)")
-        self.instructions2_display = QLabel("For Trim Tab (+/- 3 degrees): Q / W / E (Left / Center / Right)")
+        self.instructions1_display = QLabel(
+            "For Rudder    (+/- 3 degrees): A / S / D  (Left / Center / Right)"
+        )
+        self.instructions2_display = QLabel(
+            "For Trim Tab (+/- 3 degrees): Q / W / E (Left / Center / Right)"
+        )
 
         self.rudder_display = QLabel("Current Set Rudder Angle:  0 degrees")
         self.trimtab_display = QLabel("Current Trim Tab Angle:   0 degrees")
@@ -92,7 +104,7 @@ class CANWindowUIMixin:
         # self.rudder_button.clicked.connect(self.send_rudder)
         # self.rudder_input_group = QWidget()
         # self.rudder_input_group.setLayout(self.rudder_input_layout)
-        
+
         # NOTE: replaced by init_trim_input_group
         # self.trim_input = QLineEdit()
         # self.trim_button = QPushButton("Send Trim Tab")
@@ -130,7 +142,7 @@ class CANWindowUIMixin:
         # self.pid_layout.addWidget(self.pid_input_button)
         # self.pid_layout.addWidget(self.pid_clear_button)
 
-        # TODO: create a similar elemns function to abstract out creation of PID params 
+        # TODO: create a similar elemns function to abstract out creation of PID params
         # UI elements
 
         self.pid_param_dropdown_layout = elemns.init_pid_dropdown_layout(self)
@@ -147,7 +159,7 @@ class CANWindowUIMixin:
         # self.pid_param_dropdown = QComboBox()
         # self.pid_param_dropdown.setFont(QFont(cg.pid_dropdown_font_type, cg.pid_dropdown_font_size))
         # self.update_pid_param_dropdown(self.pid_param_category_dropdown.currentText())
-        
+
         # # Input field for PID params
         # self.pid_param_input = QLineEdit(placeholderText = "Value")
         # self.pid_param_input.setFont(QFont(cg.pid_dropdown_font_type, cg.pid_dropdown_font_size))
@@ -161,6 +173,17 @@ class CANWindowUIMixin:
         # self.pid_param_input_layout = QHBoxLayout()
         # self.pid_param_input_layout.addWidget(self.pid_param_input)
         # self.pid_param_input_layout.addWidget(self.pid_param_button)
+
+        software_commands = [
+            ("Start Software", Docker_Commands.START),
+            ("Stop Software", Docker_Commands.STOP),
+            ("Enable Wingsail Controller", Docker_Commands.START_WING),
+            ("Disable Wingsail Controller", Docker_Commands.STOP_WING),
+            ("Start w/ visualizer", Docker_Commands.START_VISUAL),
+        ]
+        software_controls_layout = elemns.init_software_controls(
+            self, software_commands
+        )
 
         self.output_display = QTextEdit()
         self.output_display.setReadOnly(True)
@@ -213,19 +236,22 @@ class CANWindowUIMixin:
         #         margin: 2px;
         #     }
         # """)
-        
+
         # Define commands with labels
         commands = [
             ("SSH Connect", "ssh sailbot@192.168.0.10"),
             ("CAN0 Down", "sudo ip link set can0 down"),
-            ("CAN0 Up", "sudo ip link set can0 up type can bitrate 500000 dbitrate 1000000 fd on")
-           # ("Check CAN Status", "ip link show can0"),
-           # ("View System Logs", "dmesg | tail"),
-           # ("System Info", "uname -a")
+            (
+                "CAN0 Up",
+                "sudo ip link set can0 up type can bitrate 500000 dbitrate 1000000 fd on",
+            ),
+            # ("Check CAN Status", "ip link show can0"),
+            # ("View System Logs", "dmesg | tail"),
+            # ("System Info", "uname -a")
         ]
 
         self.commands_grid = elemns.init_commands_grid(self, commands)
-        
+
         # NOTE: replaced by init_commands_grid
         # # Create a grid layout for command buttons
         # self.commands_grid = QGridLayout()
@@ -253,7 +279,7 @@ class CANWindowUIMixin:
         #     """)
         #     btn.clicked.connect(lambda checked, cmd=command: self.copy_to_clipboard(cmd))
         #     self.command_buttons.append(btn)
-            
+
         #     # Add to grid layout (2 columns)
         #     row = i // 2
         #     col = i % 2
@@ -279,7 +305,7 @@ class CANWindowUIMixin:
         #             color: black;
         #         }
         #     """
-        
+
         # NOTE: replaced by init_emergency_controls
         # self.power_off_btn.setStyleSheet(red_button_style)
         # self.restart_btn.setStyleSheet(red_button_style)
@@ -298,6 +324,7 @@ class CANWindowUIMixin:
             checkbox_layout,
             input_layout,
             emergency_controls_layout,
+            software_controls_layout,
         )
 
         # NOTE: replaced by init_left_layout
@@ -315,7 +342,7 @@ class CANWindowUIMixin:
         # # Add UI elements for PID tuning
         # left_layout.addLayout(input_layout)
         # left_layout.addLayout(self.pid_layout)
-        
+
         # # Add UI elements for PID parameter tuning
         # left_layout.addLayout(self.pid_param_dropdown_layout)
         # # left_layout.addWidget(self.pid_param_button)
@@ -328,7 +355,7 @@ class CANWindowUIMixin:
         # left_layout.addWidget(self.output_display)
         # left_layout.addSpacing(5)  # Add small spacing
 
-        # # Add UI elements for heartbeat displays 
+        # # Add UI elements for heartbeat displays
         # for mod in heartbeat_modules:
         #     mod.init_label()
         #     left_layout.addWidget(mod.label)
@@ -350,7 +377,7 @@ class CANWindowUIMixin:
         # for graph_obj in all_objs:
         #     if (graph_obj.label is not None):
         #         labels_layout.addWidget(graph_obj.label)
-        
+
         # labels_layout.addStretch(1)
 
         right_layout = elemns.init_right_layout(self)
@@ -377,7 +404,7 @@ class CANWindowUIMixin:
         #     d.setVisible(False)
         #     dropdown_layout.addWidget(d)
 
-        # # show a maximum of three graphs initially 
+        # # show a maximum of three graphs initially
         # for i in range(0, 3):
         #     if (i < len(graph_objs)):
         #         self.right_graphs_layout.addWidget(graph_objs[i].graph, i, 0)
@@ -390,7 +417,7 @@ class CANWindowUIMixin:
         # d_top.currentTextChanged.connect(lambda text: self.setGraph(text, 0, dropdowns))
         # d_mid.currentTextChanged.connect(lambda text: self.setGraph(text, 1, dropdowns))
         # d_bot.currentTextChanged.connect(lambda text: self.setGraph(text, 2, dropdowns))
-        
+
         # right_layout.addLayout(dropdown_layout)
         # right_layout.addLayout(self.right_graphs_layout)
 
@@ -426,7 +453,7 @@ class CANWindowUIMixin:
         self.output_display.append(f"[COPIED] {text}")
 
     def update_pid_param_dropdown(self, text: str) -> None:
-        '''Updates the PID param dropdown based on the category selected'''
+        """Updates the PID param dropdown based on the category selected"""
         first, last = pid_param_categories[text]
         self.pid_param_dropdown.clear()
         self.pid_param_dropdown.addItems(pid_params[first:last])
@@ -476,3 +503,44 @@ class CANWindowUIMixin:
             newObj.update_line_data()
 
         dropdowns[spot].clearFocus()
+
+    def run_docker_command(self, action: Docker_Commands):
+        container_name = self.container_text_box.text().strip()
+
+        if not container_name:
+            self.show_error("Enter a Docker container name.")
+            return
+
+        try:
+            command = generate_docker_command(action, container_name)
+        except RuntimeError as e:
+            self.show_error(str(e))
+            return
+
+        self.docker_thread = DockerWorkerThread(command, action)
+        self.docker_thread.success.connect(self._on_docker_success)
+        self.docker_thread.error.connect(self.show_error)
+
+        self.docker_thread.started.connect(lambda: self.enable_software_controls(False))
+        self.docker_thread.finished.connect(lambda: self.enable_software_controls(True))
+
+        self.docker_thread.start()
+
+    # TODO change this from a pop up to some sort of status indicator
+    def _on_docker_success(self, action):
+        container_name = self.container_text_box.text().strip()
+        QMessageBox.information(
+            self,
+            "Success",
+            f"Successfully {action.name.lower()}ed container:\n{container_name}",
+        )
+
+    def enable_software_controls(self, enabled: bool):
+        for button in self.software_control_buttons:
+            button.setEnabled(enabled)
+
+    def call_software_emergency_kill(self):
+        try:
+            kill_software()
+        except RuntimeError as e:
+            self.show_error(str(e))

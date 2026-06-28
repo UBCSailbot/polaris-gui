@@ -16,7 +16,7 @@ print(f"Connected to: {js.get_name()}")
 try:
     # Get joystick data
     while True:
-        pygame.event.pump() # Update joystick state
+        pygame.event.pump()  # Update joystick state
 
         for i in range(js.get_numaxes()):
             axis = js.get_axis(i)
@@ -28,7 +28,6 @@ try:
         # y = js.get_axis(1) # right joystick up/down
         # z = js.get_axis(2) # left joystick up/down
         # a = js.get_axis(3) # left joystick left/right  !!! the one I want
-
 
         # print(f"A = {a:.2f}, X = {x:.2f}")
         # print(f"X = {x:.2f}, Y = {y:.2f}, Z = {z:.2f}")
