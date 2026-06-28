@@ -70,7 +70,7 @@ class CANWindowUpdateMixin:
             try:
                 self.can_log_queue.put_nowait(line)
             except:
-                print(f"line was not logged!")
+                print("line was not logged!")
 
             if line.startswith(can_line):
                 new_msg_to_log = True

@@ -14,7 +14,6 @@ from config import (
     gui_update_freq,
     max_trimtab_angle,
     min_trimtab_angle,
-    num_axes,
     window_height,
     window_width,
 )

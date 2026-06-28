@@ -253,7 +253,7 @@ class DataObject:
         try:
             del self.data[x]
         except KeyError:
-            print(f"ERR - trying to apply remove_datapoint() on a point which does not exist")
+            print("ERR - trying to apply remove_datapoint() on a point which does not exist")
     
     def update_line_data(self):
         if (self.line is not None):
@@ -573,7 +573,7 @@ class PIDObject(DataObject):
 
             del self.data[x]
         except KeyError:
-            print(f"ERR - trying to apply remove_datapoint() on a point which does not exist")
+            print("ERR - trying to apply remove_datapoint() on a point which does not exist")
 
     def clear(self):
         '''

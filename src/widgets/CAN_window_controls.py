@@ -1,10 +1,10 @@
 import time
 
-from utils import desired_heading_obj, set_rudder_obj
+from utils import set_rudder_obj
 
 from config import (
     can_line, min_trimtab_angle, max_trimtab_angle, 
-    pid_param_categories, pid_params
+    pid_params
 )
 from utils import (
     convert_to_hex, convert_to_little_endian,
