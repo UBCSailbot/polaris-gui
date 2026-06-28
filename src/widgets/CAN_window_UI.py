@@ -51,9 +51,6 @@ class CANWindowUIMixin:
 
         # === Left Panel ===
 
-        # TODO: figure out how this is inputted
-        small_spacing = 2
-
         # NOTE: replaced by init_checkbox
         # self.manual_steer_checkbox = QCheckBox("Manual Steering")
         # self.manual_steer_checkbox.toggled.connect(self.set_manual_steer)
