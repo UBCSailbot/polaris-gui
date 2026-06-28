@@ -1,3 +1,5 @@
+import webbrowser
+
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
     QApplication,
@@ -15,6 +17,7 @@ from workers.docker_send_worker import (
     generate_docker_command,
     kill_software,
 )
+from workers.visualizer_tunnel_worker import VisualizerTunnelThread
 
 from . import elements as elemns
 from . import styles as styles
@@ -521,10 +524,39 @@ class CANWindowUIMixin:
         self.docker_thread.success.connect(self._on_docker_success)
         self.docker_thread.error.connect(self.show_error)
 
+        # When starting with the visualizer, also forward its port to this machine
+        if action == Docker_Commands.START_VISUAL:
+            self.docker_thread.success.connect(
+                lambda _: self.start_visualizer_tunnel()
+            )
+
         self.docker_thread.started.connect(lambda: self.enable_software_controls(False))
         self.docker_thread.finished.connect(lambda: self.enable_software_controls(True))
 
         self.docker_thread.start()
+
+    def start_visualizer_tunnel(self):
+        """Forward the Pi's Dash visualizer port to this machine so it can be
+        viewed at http://localhost:8050, then open it in the browser."""
+        existing = getattr(self, "visualizer_thread", None)
+        if existing is not None and existing.isRunning():
+            self.output_display.append(
+                "[VISUALIZER] Tunnel already running at http://localhost:8050"
+            )
+            return
+
+        self.visualizer_thread = VisualizerTunnelThread()
+        self.visualizer_thread.status.connect(
+            lambda msg: self.output_display.append(f"[VISUALIZER] {msg}")
+        )
+        self.visualizer_thread.error.connect(self.show_error)
+        self.visualizer_thread.tunnel_ready.connect(self._on_visualizer_ready)
+        self.visualizer_thread.start()
+
+    def _on_visualizer_ready(self, port: int):
+        url = f"http://localhost:{port}"
+        self.output_display.append(f"[VISUALIZER] Tunnel ready - opening {url}")
+        webbrowser.open(url)
 
     # TODO change this from a pop up to some sort of status indicator
     def _on_docker_success(self, action):
