@@ -239,7 +239,7 @@ class VisualizerTunnelThread(QThread):
             # grep prints the matching LISTEN line(s) iff the port is bound.
             if output:
                 return True
-            
+
             print(f"[SSH] command: {command}")
             print(f"[SSH] exit_status: {exit_status}")
             print(f"[SSH] stdout: {output}")
