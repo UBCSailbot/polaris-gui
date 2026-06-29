@@ -1,3 +1,4 @@
+import argparse
 import multiprocessing
 import multiprocessing.util
 import os
@@ -9,6 +10,7 @@ from datetime import datetime
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QApplication, QMessageBox, QWidget
 
+import config
 from config import (
     gui_update_freq,
     max_trimtab_angle,
@@ -74,7 +76,13 @@ class CANWindow(
     QWidget,
 ):
     def __init__(
-        self, queue, temp_pipe, cmd_queue, response_queue, can_log_queue, timestamp
+        self,
+        queue,
+        temp_pipe,
+        cmd_queue,
+        response_queue,
+        can_log_queue,
+        timestamp,
     ):
         super().__init__()
         self.queue = queue
@@ -248,7 +256,19 @@ def restart(args=None):
     os.execv(python, [python, sys.argv[0], *args])
 
 
+def parse_args(argv):
+    parser = argparse.ArgumentParser(description="POLARIS GUI")
+    parser.add_argument(
+        "-p", "--profile", default="Wifi/new", help="SSH credentials profile"
+    )
+    return parser.parse_args(argv)
+
+
 if __name__ == "__main__":
+    args = parse_args(sys.argv[1:])
+    SSH_profile = args.profile
+    config.set_SSH_credentials(SSH_profile)
+
     multiprocessing.set_start_method("spawn")
 
     # Multiprocess initialization

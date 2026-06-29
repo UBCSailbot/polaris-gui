@@ -1,10 +1,26 @@
+import yaml
+
 # ==== General Setup ====
 can_line = "can0"
 
 # SSH Credentials
-hostname = "192.168.0.10"
-username = "sailbot"
-password = "sailbot"
+
+hostname = None
+username = None
+password = None
+
+
+def set_SSH_credentials(profile: str):
+    # NOTE must be called immediately when main.py is run
+    global hostname, username, password
+
+    with open("src/credentials.yml") as f:
+        creds = yaml.safe_load(f)
+
+    hostname = creds[profile]["hostname"]
+    username = creds[profile]["username"]
+    password = creds[profile]["password"]
+
 
 # ==== Window Size ====
 window_height = 450
