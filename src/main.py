@@ -1,4 +1,5 @@
 import multiprocessing
+import multiprocessing.util
 import os
 import signal
 import sys
@@ -6,7 +7,7 @@ import time
 from datetime import datetime
 
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox
+from PyQt5.QtWidgets import QApplication, QMessageBox, QWidget
 
 from config import (
     gui_update_freq,
@@ -89,9 +90,9 @@ class CANWindow(
         self.setWindowTitle("Remote Node GUI - POLARIS")
         self.setGeometry(50, 30, window_width, window_height)
         self.setFocusPolicy(Qt.StrongFocus)
-        
+
         self.restart_requested = False
-        self.restart_args = None # For picking which SSH credentials to use
+        self.restart_args = None  # For picking which SSH credentials to use
 
         self.time_start = time.time()
         self.time_history = []
@@ -130,7 +131,7 @@ class CANWindow(
 
         if event is not None:
             event.accept()
-    
+
     def request_restart(self, args=None):
         self.restart_requested = True
         self.restart_args = args
@@ -232,16 +233,20 @@ def cleanup():
     cmd_queue.close()
     can_log_queue.close()
 
+    # Fix small memory leak when restarting.
+    multiprocessing.util._exit_function()
     print("Cleanup complete.")
 
+
 def restart(args=None):
-    if args is None:
+    if not args:
         args = sys.argv[1:]
-        
+
     print(f"Restarting with args: {args}")
-    
+
     python = sys.executable
-    os.execv(python, [python] + sys.argv)
+    os.execv(python, [python, sys.argv[0], *args])
+
 
 if __name__ == "__main__":
     multiprocessing.set_start_method("spawn")
@@ -295,8 +300,8 @@ if __name__ == "__main__":
         print(f"Unexpected error: {e}")
     finally:
         cleanup()
-        
+
     if window.restart_requested:
         restart(window.restart_args)
-        
+
     sys.exit(exit_code)
