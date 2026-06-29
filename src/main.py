@@ -89,6 +89,9 @@ class CANWindow(
         self.setWindowTitle("Remote Node GUI - POLARIS")
         self.setGeometry(50, 30, window_width, window_height)
         self.setFocusPolicy(Qt.StrongFocus)
+        
+        self.restart_requested = False
+        self.restart_args = None # For picking which SSH credentials to use
 
         self.time_start = time.time()
         self.time_history = []
@@ -127,6 +130,14 @@ class CANWindow(
 
         if event is not None:
             event.accept()
+    
+    def request_restart(self, args=None):
+        self.restart_requested = True
+        self.restart_args = args
+        self.close()
+        app = QApplication.instance()
+        if app is not None:
+            app.quit()
 
     # NOTE: Functions moved to CAN_window_UI.py:
     # def init_ui()
@@ -223,6 +234,14 @@ def cleanup():
 
     print("Cleanup complete.")
 
+def restart(args=None):
+    if args is None:
+        args = sys.argv[1:]
+        
+    print(f"Restarting with args: {args}")
+    
+    python = sys.executable
+    os.execv(python, [python] + sys.argv)
 
 if __name__ == "__main__":
     multiprocessing.set_start_method("spawn")
@@ -267,11 +286,17 @@ if __name__ == "__main__":
     window.initialize_joystick()  # Joystick initialization
     window.show()
 
+    exit_code = 0
     try:
-        sys.exit(app.exec_())
+        exit_code = app.exec_()
     except KeyboardInterrupt:  # note: Ctrl+C doesn't work due to QT loop taking over
         print("\nKeyboard interrupt received, shutting down...")
     except Exception as e:
         print(f"Unexpected error: {e}")
     finally:
         cleanup()
+        
+    if window.restart_requested:
+        restart(window.restart_args)
+        
+    sys.exit(exit_code)
