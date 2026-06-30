@@ -209,6 +209,9 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
+# SSH credentials notes
+src/credentials.yml
+
 # Personal notes
 Todos.txt
 testing_docs.txt
