@@ -2,7 +2,7 @@ import time
 
 import paramiko
 
-from config import hostname, password, username
+import config
 
 
 def _send_status(pipe, connected, value):
@@ -17,7 +17,9 @@ def temperature_reader(pipe):
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     try:
-        client.connect(hostname, username=username, password=password)
+        client.connect(
+            config.hostname, username=config.username, password=config.password
+        )
         while True:
             try:
                 stdin, stdout, stderr = client.exec_command(

@@ -3,7 +3,8 @@ import time
 
 import paramiko
 
-from config import can_line, hostname, password, username
+import config
+from config import can_line
 
 
 def candump_process(queue: multiprocessing.Queue, testing):
@@ -14,7 +15,9 @@ def candump_process(queue: multiprocessing.Queue, testing):
         print("TESTING MODE ON")
     else:
         try:
-            client.connect(hostname, username=username, password=password)
+            client.connect(
+                config.hostname, username=config.username, password=config.password
+            )
             transport = client.get_transport()
             # session = transport.open_session()
             # session.exec_command("bash sailbot_workspace/scripts/canup.sh -l")

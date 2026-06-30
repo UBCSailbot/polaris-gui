@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import (
     QTextEdit,
 )
 
+from config import pid_param_categories, pid_params
 from data_object import DataObject, Docker_Commands
 from utils import all_objs
 from workers.docker_send_worker import (
@@ -21,7 +22,6 @@ from workers.visualizer_tunnel_worker import VisualizerTunnelThread
 
 from . import elements as elemns
 from . import styles as styles
-from config import pid_param_categories, pid_params
 
 
 # UI creation functions

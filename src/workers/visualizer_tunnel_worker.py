@@ -2,12 +2,11 @@ import select
 import socket
 import socketserver
 import time
-from typing import Optional
 
 import paramiko
 from PyQt5.QtCore import QThread, pyqtSignal
 
-from config import hostname, password, username
+import config
 
 # Port the Dash visualizer binds to on the Pi and locally after forwarding.
 VISUALIZER_PORT = 8050
@@ -115,8 +114,8 @@ class VisualizerTunnelThread(QThread):
         self.local_port = local_port
         self.remote_port = remote_port
 
-        self._server: Optional[ForwardServer] = None
-        self._ssh: Optional[paramiko.SSHClient] = None
+        self._server: ForwardServer | None = None
+        self._ssh: paramiko.SSHClient | None = None
         self._stop_requested = False
 
     def run(self) -> None:
@@ -176,15 +175,15 @@ class VisualizerTunnelThread(QThread):
         self._stop_requested = True
         self._cleanup()
 
-    def _connect_to_pi(self) -> Optional[paramiko.SSHClient]:
+    def _connect_to_pi(self) -> paramiko.SSHClient | None:
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         try:
             ssh.connect(
-                hostname=hostname,
-                username=username,
-                password=password,
+                hostname=config.hostname,
+                username=config.username,
+                password=config.password,
                 timeout=5,
             )
             return ssh
