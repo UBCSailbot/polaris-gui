@@ -11,11 +11,14 @@ This repository contains source code for the GUI application designed to interfa
     2. Run `source .venv/bin/activate` you will need to do this whenever open a new terminal
         * Note: On Windows run `.\.venv\Scripts\activate`. If you get an error saying "Running scripts is disabled on this system", run `Set-ExecutionPolicy Unrestricted -Scope Process` and then try the activation command again.
 4. Install project dependencies with `pip install -r requirements.txt`
-5. Run the application with `python .\src\main.py`
+5. Run the application with `python src\main.py`
     * Note: On Ubuntu systems `xcb` isn't preinstalled but is needed to render the GUI.
     Run `sudo apt install libxcb-cursor0` to fix this.
+    * Note: An optional flag (`--profile` [`Wifi/new`, `Wifi/old`, `remote/new`, `remote/old`]) is present to select which RPI you want the GUI to connect to. The implicit default is Wifi/new.
 6. Deactive the virtual environment with `deactivate`
     * Note: `deactivate` should work for both Linux and Windows.
+7. Duplicate `EXAMPLE_credentials.yml`, rename it to `credentials.yml`,
+and add additional SSH credentials if needed.
 
 ## Important usage notes
 
