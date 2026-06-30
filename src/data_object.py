@@ -908,8 +908,8 @@ class Docker_Commands(Enum):
             log_level:=debug visualizer_mode:=true config:=on_water_globals.yaml \
             2>&1 | tee src/global_launch/voyage_log/combined_log_$( date +%F_%T).txt"""
     STOP = ""
-    START_WING = "ros2 param set /can_transceiver_node manual_mode false"
-    STOP_WING = "ros2 param set /can_transceiver_node manual_mode true"
+    START_COMMS = "ros2 param set /can_transceiver_node manual_mode false"
+    STOP_COMMS = "ros2 param set /can_transceiver_node manual_mode true"
 
 
 # This list is ordered according to 0x060 frame conventions as specified on confluence (don't reorder or else heading order will be incorrect)
