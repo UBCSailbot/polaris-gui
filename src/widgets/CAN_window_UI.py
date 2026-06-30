@@ -59,8 +59,8 @@ class CANWindowUIMixin:
         software_commands = [
             ("Start Software", Docker_Commands.START),
             ("Stop Software", Docker_Commands.STOP),
-            ("Enable Wingsail Controller", Docker_Commands.START_WING),
-            ("Disable Wingsail Controller", Docker_Commands.STOP_WING),
+            ("Enable CAN Communcations", Docker_Commands.START_COMMS),
+            ("Disable CAN Communications", Docker_Commands.STOP_COMMS),
             ("Start w/ visualizer", Docker_Commands.START_VISUAL),
         ]
         software_controls_layout = elemns.init_software_controls(
