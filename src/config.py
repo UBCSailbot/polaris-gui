@@ -22,6 +22,10 @@ def set_SSH_credentials(profile: str):
     password = creds[profile]["password"]
 
 
+def get_SSH_credentials() -> tuple[str, str, str]:
+    return hostname, username, password
+
+
 # ==== Window Size ====
 window_height = 450
 window_width = 1350

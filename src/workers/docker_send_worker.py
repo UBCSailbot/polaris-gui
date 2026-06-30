@@ -1,7 +1,7 @@
 import paramiko
 from PyQt5.QtCore import QThread, pyqtSignal
 
-import config
+from config import get_SSH_credentials
 from data_object import Docker_Commands
 
 
@@ -42,13 +42,13 @@ def send_docker_command(command: str):
     ssh = paramiko.SSHClient()
     # Automatically add the server's SSH key (prevents "unknown host" errors)
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
+    hostname, username, password = get_SSH_credentials()
     try:
         # Connect to the remote server
         ssh.connect(
-            config.hostname,
-            username=config.username,
-            password=config.password,
+            hostname=hostname,
+            username=username,
+            password=password,
             timeout=5,
         )
 
@@ -80,11 +80,12 @@ def send_docker_command(command: str):
 def kill_software():
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    hostname, username, password = get_SSH_credentials()
     try:
         ssh.connect(
-            config.hostname,
-            username=config.username,
-            password=config.password,
+            hostname=hostname,
+            username=username,
+            password=password,
             timeout=2,
         )
         command = "docker kill $(docker ps -q)"

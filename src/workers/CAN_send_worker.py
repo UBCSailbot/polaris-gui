@@ -2,7 +2,6 @@ import multiprocessing
 
 import paramiko
 
-import config
 from utils import make_pretty
 
 
@@ -10,13 +9,13 @@ def cansend_worker(
     cmd_queue: multiprocessing.Queue,
     response_queue: multiprocessing.Queue,
     can_log_queue: multiprocessing.Queue,
+    credentials: tuple[str, str, str],
 ):
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    hostname, username, password = credentials
     try:
-        client.connect(
-            config.hostname, username=config.username, password=config.password
-        )
+        client.connect(hostname=hostname, username=username, password=password)
         while True:
             cmd = cmd_queue.get()
             if cmd == "__EXIT__":
@@ -29,7 +28,7 @@ def cansend_worker(
                     buf = ""
                     while not buf.endswith("[sudo] password for sailbot: "):
                         buf += stdout.channel.recv(1024).decode()
-                    stdin.write(f"{config.password}\n")
+                    stdin.write(f"{password}\n")
                     stdin.flush()
                     out = stdout.read().decode()
                     err = stderr.read().decode()

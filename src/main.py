@@ -280,13 +280,17 @@ if __name__ == "__main__":
     current_time = datetime.now()
     timestamp = current_time.strftime("%Y%m%d_%H%M%S")
     current_time = current_time.timestamp()  # convert to seconds since epoch
+    credentials = config.get_SSH_credentials()
 
     candump_proc = multiprocessing.Process(
-        target=candump_process, args=(queue, False)
+        target=candump_process, args=(queue, False, credentials)
     )  # Testing mode set to false when run from main
-    temp_proc = multiprocessing.Process(target=temperature_reader, args=(child_conn,))
+    temp_proc = multiprocessing.Process(
+        target=temperature_reader, args=(child_conn, credentials)
+    )
     cansend_proc = multiprocessing.Process(
-        target=cansend_worker, args=(cmd_queue, response_queue, can_log_queue)
+        target=cansend_worker,
+        args=(cmd_queue, response_queue, can_log_queue, credentials),
     )
     can_logging_proc = multiprocessing.Process(
         target=can_logging_process, args=(queue, can_log_queue, timestamp)

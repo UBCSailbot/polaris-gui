@@ -2,8 +2,6 @@ import time
 
 import paramiko
 
-import config
-
 
 def _send_status(pipe, connected, value):
     try:
@@ -13,13 +11,12 @@ def _send_status(pipe, connected, value):
         return False
 
 
-def temperature_reader(pipe):
+def temperature_reader(pipe, credentials: tuple[str, str, str]):
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    hostname, username, password = credentials
     try:
-        client.connect(
-            config.hostname, username=config.username, password=config.password
-        )
+        client.connect(hostname=hostname, username=username, password=password)
         while True:
             try:
                 stdin, stdout, stderr = client.exec_command(
