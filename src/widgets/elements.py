@@ -61,8 +61,8 @@ def init_checkbox(self):
 def init_ssh_dropdown(self):
     self.SSH_dropdown = QComboBox()
     self.SSH_dropdown.addItems(["Wifi/new", "Wifi/old", "remote/new", "remote/old"])
-    self.SSH_dropdown.currentTextChanged.connect(self.change_SSH_profile)
     self.SSH_dropdown.setCurrentText(cg.profile)
+    self.SSH_dropdown.currentTextChanged.connect(self.change_SSH_profile)
 
     ssh_layout = QHBoxLayout()
     ssh_layout.setSpacing(5)
