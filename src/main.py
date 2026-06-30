@@ -259,7 +259,7 @@ def restart(args=None):
 def parse_args(argv):
     parser = argparse.ArgumentParser(description="POLARIS GUI")
     parser.add_argument(
-        "-p", "--profile", default="Wifi/new", help="SSH credentials profile"
+        "-p", "--profile", default="Wifi/deployment", help="SSH credentials profile"
     )
     return parser.parse_args(argv)
 

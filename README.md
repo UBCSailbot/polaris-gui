@@ -14,11 +14,12 @@ This repository contains source code for the GUI application designed to interfa
 5. Run the application with `python src\main.py`
     * Note: On Ubuntu systems `xcb` isn't preinstalled but is needed to render the GUI.
     Run `sudo apt install libxcb-cursor0` to fix this.
-    * Note: An optional flag (`--profile` [`Wifi/new`, `Wifi/old`, `remote/new`, `remote/old`]) is present to select which RPI you want the GUI to connect to. The implicit default is Wifi/new.
+    * Note: An optional flag (`--profile` [`Wifi/deployment`, `Wifi/test-bench`, `remote/deployment`, `remote/test-bench`]) is present to select which RPI you want the GUI to connect to. The implicit default is Wifi/deployment.
 6. Deactive the virtual environment with `deactivate`
     * Note: `deactivate` should work for both Linux and Windows.
 7. Duplicate `EXAMPLE_credentials.yml`, rename it to `credentials.yml`,
 and add additional SSH credentials if needed.
+    * Note: Keep the `.yml` files in src/
 
 ## Important usage notes
 
