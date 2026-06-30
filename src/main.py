@@ -326,6 +326,6 @@ if __name__ == "__main__":
         cleanup()
 
     if window.restart_requested:
-        restart(window.restart_args)
+        restart(["--profile", window.restart_args])
 
     sys.exit(exit_code)

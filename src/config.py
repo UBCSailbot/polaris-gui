@@ -8,18 +8,20 @@ can_line = "can0"
 hostname = None
 username = None
 password = None
+profile = None
 
 
-def set_SSH_credentials(profile: str):
+def set_SSH_credentials(_profile: str):
     # NOTE must be called immediately when main.py is run
-    global hostname, username, password
+    global hostname, username, password, profile
 
     with open("src/credentials.yml") as f:
         creds = yaml.safe_load(f)
 
-    hostname = creds[profile]["hostname"]
-    username = creds[profile]["username"]
-    password = creds[profile]["password"]
+    hostname = creds[_profile]["hostname"]
+    username = creds[_profile]["username"]
+    password = creds[_profile]["password"]
+    profile = _profile
 
 
 def get_SSH_credentials() -> tuple[str, str, str]:

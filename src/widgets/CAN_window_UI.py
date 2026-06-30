@@ -31,6 +31,7 @@ class CANWindowUIMixin:
 
     def init_ui(self):
         top_bar_layout = elemns.init_top_bar(self)
+        ssh_layout = elemns.init_ssh_dropdown(self)
         checkbox_layout = elemns.init_checkbox(self)
 
         self.instructions1_display = QLabel(
@@ -106,6 +107,7 @@ class CANWindowUIMixin:
         left_layout = elemns.init_left_layout(
             self,
             top_bar_layout,
+            ssh_layout,
             checkbox_layout,
             input_layout,
             emergency_controls_layout,
@@ -265,3 +267,7 @@ class CANWindowUIMixin:
             kill_software()
         except RuntimeError as e:
             self.show_error(str(e))
+
+    def change_SSH_profile(self):
+        profile = self.SSH_dropdown.currentText()
+        self.request_restart(profile)
