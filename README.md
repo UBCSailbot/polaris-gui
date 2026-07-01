@@ -18,7 +18,7 @@ This repository contains source code for the GUI application designed to interfa
 6. Deactive the virtual environment with `deactivate`
     * Note: `deactivate` should work for both Linux and Windows.
 7. Duplicate `EXAMPLE_credentials.yml`, rename it to `credentials.yml`,
-and add additional SSH credentials if needed.
+and add additional SSH credentials if needed from [this Confluence Page](https://ubcsailbot.atlassian.net/wiki/spaces/prjt22/pages/2981724161/Polaris+GUI+Software+Design+Specification#SSH-Credentials).
     * Note: Keep the `.yml` files in src/
 
 ## Important usage notes
