@@ -3,18 +3,25 @@ import time
 
 import paramiko
 
-from config import can_line, hostname, password, username
+from config import can_line
 
 
-def candump_process(queue: multiprocessing.Queue, testing):
+def candump_process(
+    queue: multiprocessing.Queue, testing: bool, credentials: tuple[str, str, str]
+):
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    hostname, username, password = credentials
     if testing:
         # TODO
         print("TESTING MODE ON")
     else:
         try:
-            client.connect(hostname, username=username, password=password)
+            client.connect(
+                hostname=hostname,
+                username=username,
+                password=password,
+            )
             transport = client.get_transport()
             # session = transport.open_session()
             # session.exec_command("bash sailbot_workspace/scripts/canup.sh -l")

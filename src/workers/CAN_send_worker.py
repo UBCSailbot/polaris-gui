@@ -2,7 +2,6 @@ import multiprocessing
 
 import paramiko
 
-from config import hostname, password, username
 from utils import make_pretty
 
 
@@ -10,11 +9,13 @@ def cansend_worker(
     cmd_queue: multiprocessing.Queue,
     response_queue: multiprocessing.Queue,
     can_log_queue: multiprocessing.Queue,
+    credentials: tuple[str, str, str],
 ):
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    hostname, username, password = credentials
     try:
-        client.connect(hostname, username=username, password=password)
+        client.connect(hostname=hostname, username=username, password=password)
         while True:
             cmd = cmd_queue.get()
             if cmd == "__EXIT__":

@@ -497,7 +497,7 @@ def main():
 
     try:
         print(f"\n[{datetime.now().strftime('%H:%M:%S')}] Connecting to SSH...")
-        client.connect(hostname, username=username, password=password)
+        client.connect(hostname=hostname, username=username, password=password)
         print(f"[{datetime.now().strftime('%H:%M:%S')}] SSH connection established!")
 
         print(f"\n[{datetime.now().strftime('%H:%M:%S')}] Starting test...")

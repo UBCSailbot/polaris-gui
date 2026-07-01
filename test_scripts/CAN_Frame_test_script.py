@@ -55,11 +55,11 @@ def generate_slope_data():
     slope_data += slope
 
     # return slope_data
-    
+
 # Sends a frame with set data (not random, always same)
 def send_set_pdb_command(client):
     try:
-        # Send sample pdb command with data: 
+        # Send sample pdb command with data:
         # volt1: 3 volt2: 2.4 volt3: 0.8 volt4: 1.3 temp1: 1.5 temp2: 57.8 temp3: 126.32
         # Convert data to CAN format (2-byte hex number in little endian)
         # Multiplied by 1000 by CAN Frame documentation
@@ -69,7 +69,7 @@ def send_set_pdb_command(client):
 
         # Execute the cansend command
         stdin, stdout, stderr = client.exec_command(can_msg)
-        
+
         # Check for errors
         error = stderr.read().decode().strip()
         output = stdout.read().decode().strip()
@@ -111,7 +111,7 @@ def send_pdb_command(client):
 
         # Execute the cansend command
         stdin, stdout, stderr = client.exec_command(can_msg)
-        
+
         # Check for errors
         error = stderr.read().decode().strip()
         output = stdout.read().decode().strip()
@@ -152,7 +152,7 @@ def send_sensor_command(client, frame_id, data: float):
 
         # Execute the cansend command
         stdin, stdout, stderr = client.exec_command(can_msg)
-        
+
         # Check for errors
         error = stderr.read().decode().strip()
         output = stdout.read().decode().strip()
@@ -164,12 +164,12 @@ def send_sensor_command(client, frame_id, data: float):
             sent = convert_from_little_endian_str(hex_bytes) / 1000
             print(f"✓ Sent: {sent} - CAN message: {can_msg}")
             return True
-        
+
     except Exception as e:
         print(f"Error sending cansend command: {e}")
         print(f"Attempted command: {can_msg}")
         return False
-    
+
 def send_rudder_command(client):
     """Send rudder CAN message via SSH"""
     try:
@@ -189,25 +189,25 @@ def send_rudder_command(client):
         # print(f"spd_over_gnd {int(spd_over_gnd, 16)}")
         can_data = actual_angle + imu_roll + imu_pitch + imu_heading + set_angle + integral + derivative + spd_over_gnd
         can_message = "cansend " + can_line + " 204##1" + can_data
-        
+
         # Execute the cansend command
         stdin, stdout, stderr = client.exec_command(can_message)
-        
+
         # Check for errors
         error = stderr.read().decode().strip()
         output = stdout.read().decode().strip()
-        
+
         if error:
             print(f"ERROR sending command: {error}")
             return False
         else:
             print(f"✓ Sent - CAN message: {can_message}")
             return True
-            
+
     except Exception as e:
         print(f"Exception sending rudder command: {e}")
         return False
-    
+
 def send_data_wind_command(client):
     """Send wind sensor CAN message via SSH"""
     try:
@@ -218,25 +218,25 @@ def send_data_wind_command(client):
 
         can_data = wind_dir + wind_speed
         can_message = "cansend " + can_line + " 041##1" + can_data
-        
+
         # Execute the cansend command
         stdin, stdout, stderr = client.exec_command(can_message)
-        
+
         # Check for errors
         error = stderr.read().decode().strip()
         output = stdout.read().decode().strip()
-        
+
         if error:
             print(f"ERROR sending command: {error}")
             return False
         else:
             print(f"✓ Sent - CAN message: {can_message}")
             return True
-            
+
     except Exception as e:
         print(f"Exception sending wind sensor command: {e}")
         return False
-    
+
 def send_gps_command(client):
     '''
     [31:0] uint32_t latitude
@@ -275,22 +275,22 @@ def send_gps_command(client):
 
         # Execute the cansend command
         stdin, stdout, stderr = client.exec_command(can_message)
-        
+
         # Check for errors
         error = stderr.read().decode().strip()
         output = stdout.read().decode().strip()
-        
+
         if error:
             print(f"ERROR sending command: {error}")
             return False
         else:
             print(f"✓ Sent - CAN message: {can_message}")
             return True
-            
+
     except Exception as e:
         print(f"Exception sending gps command: {e}")
         return False
-    
+
 def send_ais_command(client, num_msgs):
         # TODO: Send num_msgs can messages (multiple commands) to reflect actual AIS behaviour
         # note: should ais_obj be a subclass of dataobject?
@@ -313,7 +313,7 @@ def send_ais_command(client, num_msgs):
 
                 sog = 0
                 if (i == 3):
-                    sog = convert_to_little_endian(convert_to_hex(1023, 2)) # test sog not available 
+                    sog = convert_to_little_endian(convert_to_hex(1023, 2)) # test sog not available
                 else:
                     sog = convert_to_little_endian(convert_to_hex(35, 2)) # should be received as 3.5
 
@@ -322,7 +322,7 @@ def send_ais_command(client, num_msgs):
                     cog = convert_to_little_endian(convert_to_hex(3600, 2)) # test cog not available
                 else:
                     cog = convert_to_little_endian(convert_to_hex(0, 2)) # received as 0
-                
+
                 true_heading = 0
                 if (i == 2):
                     true_heading = convert_to_little_endian(convert_to_hex(511, 2)) # test true heading not available
@@ -362,11 +362,11 @@ def send_ais_command(client, num_msgs):
 
                 # Execute the cansend command
                 stdin, stdout, stderr = client.exec_command(can_message)
-                
+
                 # Check for errors
                 error = stderr.read().decode().strip()
                 output = stdout.read().decode().strip()
-                
+
                 if error:
                     print(f"ERROR sending command: {error}")
                     return False
@@ -374,11 +374,11 @@ def send_ais_command(client, num_msgs):
                     print(f"✓ Sent - CAN message: {can_message}")
 
                 # generate_slope_data()
-                    
+
             except Exception as e:
                 print(f"Exception sending AIS command: {e}")
                 return False
-            
+
         return True
 
 
@@ -390,19 +390,19 @@ def main():
     print(f"Username: {username}")
     print(f"Sends CAN Frame for pH sensor with random data every {delay} secs")
     print("=" * 60)
-    
+
     # Connect to SSH
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    
+
     try:
         print(f"\n[{datetime.now().strftime('%H:%M:%S')}] Connecting to SSH...")
         client.connect(hostname, username=username, password=password)
         print(f"[{datetime.now().strftime('%H:%M:%S')}] SSH connection established!")
-        
+
         print(f"\n[{datetime.now().strftime('%H:%M:%S')}] Starting test...")
         print("Press Ctrl+C to stop the test\n")
-        
+
         cycle_count = 0
         start_time = time.time()
 
@@ -414,7 +414,7 @@ def main():
         # time.sleep(delay)
         # send_pdb_command(client)
         # time.sleep(delay)
-        
+
         while True:
             cycle_count += 1
             print(f"--- CYCLE {cycle_count} ---")
@@ -423,15 +423,15 @@ def main():
             pH_data = round(slope_data * 15)
             temp_sensor_data = round((slope_data * 1100.0) + 273.15, 3)
             sal_data = round(slope_data * 575000, 3)
-        
+
 
             current_time = time.time()
             timestamp = datetime.now().strftime('%H:%M:%S')
-            
+
             # Calculate total elapsed time
             total_elapsed = current_time - start_time
             print(f"[{timestamp}] Total elapsed time: {total_elapsed:.1f}s")
-            
+
             success = send_pdb_command(client)
             # time.sleep(delay)
             # success = send_rudder_command(client)
@@ -469,20 +469,20 @@ def main():
 
             print(f"[{timestamp}] Waiting {delay} seconds before next cansend...")
             time.sleep(delay)  # Wait 30 seconds before next angle
-    
+
     except KeyboardInterrupt:
         print(f"\n[{datetime.now().strftime('%H:%M:%S')}] Test stopped by user (Ctrl+C)")
-    
+
     except paramiko.AuthenticationException:
         print(f"[{datetime.now().strftime('%H:%M:%S')}] SSH Authentication failed!")
         print("Check username/password credentials")
-    
+
     except paramiko.SSHException as e:
         print(f"[{datetime.now().strftime('%H:%M:%S')}] SSH connection error: {e}")
-    
+
     except Exception as e:
         print(f"[{datetime.now().strftime('%H:%M:%S')}] Unexpected error: {e}")
-    
+
     finally:
         client.close()
         print(f"[{datetime.now().strftime('%H:%M:%S')}] SSH connection closed")

@@ -1,9 +1,12 @@
 import time
 
-from utils import set_rudder_obj
-
-from config import can_line, min_trimtab_angle, max_trimtab_angle, pid_params
-from utils import convert_to_hex, convert_to_little_endian, convert_float_to_binary32hex
+from config import can_line, max_trimtab_angle, min_trimtab_angle, pid_params
+from utils import (
+    convert_float_to_binary32hex,
+    convert_to_hex,
+    convert_to_little_endian,
+    set_rudder_obj,
+)
 
 
 # CAN send functions

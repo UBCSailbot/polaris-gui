@@ -1,4 +1,6 @@
+import argparse
 import multiprocessing
+import multiprocessing.util
 import os
 import signal
 import sys
@@ -6,8 +8,9 @@ import time
 from datetime import datetime
 
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox
+from PyQt5.QtWidgets import QApplication, QMessageBox, QWidget
 
+import config
 from config import (
     gui_update_freq,
     max_trimtab_angle,
@@ -73,7 +76,13 @@ class CANWindow(
     QWidget,
 ):
     def __init__(
-        self, queue, temp_pipe, cmd_queue, response_queue, can_log_queue, timestamp
+        self,
+        queue,
+        temp_pipe,
+        cmd_queue,
+        response_queue,
+        can_log_queue,
+        timestamp,
     ):
         super().__init__()
         self.queue = queue
@@ -89,6 +98,9 @@ class CANWindow(
         self.setWindowTitle("Remote Node GUI - POLARIS")
         self.setGeometry(50, 30, window_width, window_height)
         self.setFocusPolicy(Qt.StrongFocus)
+
+        self.restart_requested = False
+        self.restart_args = None  # For picking which SSH credentials to use
 
         self.time_start = time.time()
         self.time_history = []
@@ -127,6 +139,14 @@ class CANWindow(
 
         if event is not None:
             event.accept()
+
+    def request_restart(self, args=None):
+        self.restart_requested = True
+        self.restart_args = args
+        self.close()
+        app = QApplication.instance()
+        if app is not None:
+            app.quit()
 
     # NOTE: Functions moved to CAN_window_UI.py:
     # def init_ui()
@@ -221,10 +241,34 @@ def cleanup():
     cmd_queue.close()
     can_log_queue.close()
 
+    # Fix small memory leak when restarting.
+    multiprocessing.util._exit_function()
     print("Cleanup complete.")
 
 
+def restart(args=None):
+    if not args:
+        args = sys.argv[1:]
+
+    print(f"Restarting with args: {args}")
+
+    python = sys.executable
+    os.execv(python, [python, sys.argv[0], *args])
+
+
+def parse_args(argv):
+    parser = argparse.ArgumentParser(description="POLARIS GUI")
+    parser.add_argument(
+        "-p", "--profile", default="Wifi/deployment", help="SSH credentials profile"
+    )
+    return parser.parse_args(argv)
+
+
 if __name__ == "__main__":
+    args = parse_args(sys.argv[1:])
+    SSH_profile = args.profile
+    config.set_SSH_credentials(SSH_profile)
+
     multiprocessing.set_start_method("spawn")
 
     # Multiprocess initialization
@@ -236,13 +280,17 @@ if __name__ == "__main__":
     current_time = datetime.now()
     timestamp = current_time.strftime("%Y%m%d_%H%M%S")
     current_time = current_time.timestamp()  # convert to seconds since epoch
+    credentials = config.get_SSH_credentials()
 
     candump_proc = multiprocessing.Process(
-        target=candump_process, args=(queue, False)
+        target=candump_process, args=(queue, False, credentials)
     )  # Testing mode set to false when run from main
-    temp_proc = multiprocessing.Process(target=temperature_reader, args=(child_conn,))
+    temp_proc = multiprocessing.Process(
+        target=temperature_reader, args=(child_conn, credentials)
+    )
     cansend_proc = multiprocessing.Process(
-        target=cansend_worker, args=(cmd_queue, response_queue, can_log_queue)
+        target=cansend_worker,
+        args=(cmd_queue, response_queue, can_log_queue, credentials),
     )
     can_logging_proc = multiprocessing.Process(
         target=can_logging_process, args=(queue, can_log_queue, timestamp)
@@ -267,11 +315,17 @@ if __name__ == "__main__":
     window.initialize_joystick()  # Joystick initialization
     window.show()
 
+    exit_code = 0
     try:
-        sys.exit(app.exec_())
+        exit_code = app.exec_()
     except KeyboardInterrupt:  # note: Ctrl+C doesn't work due to QT loop taking over
         print("\nKeyboard interrupt received, shutting down...")
     except Exception as e:
         print(f"Unexpected error: {e}")
     finally:
         cleanup()
+
+    if window.restart_requested:
+        restart(["--profile", window.restart_args])
+
+    sys.exit(exit_code)

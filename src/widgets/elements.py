@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import (
     QLabel,
     QLineEdit,
     QPushButton,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -55,6 +56,24 @@ def init_checkbox(self):
     checkbox_layout.addWidget(self.keyboard_checkbox)
 
     return checkbox_layout
+
+
+def init_ssh_dropdown(self):
+    self.SSH_dropdown = QComboBox()
+    self.SSH_dropdown.addItems(
+        ["Wifi/deployment", "Wifi/test-bench", "remote/deployment", "remote/test-bench"]
+    )
+    self.SSH_dropdown.setCurrentText(cg.profile)
+    self.SSH_dropdown.currentTextChanged.connect(self.change_SSH_profile)
+
+    ssh_layout = QHBoxLayout()
+    ssh_layout.setSpacing(5)
+    ssh_label = QLabel("RPI Selector:")
+    ssh_label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
+    ssh_layout.addWidget(ssh_label)
+    ssh_layout.addWidget(self.SSH_dropdown)
+
+    return ssh_layout
 
 
 def init_desired_heading_input_group(self):
@@ -273,6 +292,7 @@ def init_input_layout(self):
 def init_left_layout(
     self,
     top_bar_layout,
+    ssh_layout,
     checkbox_layout,
     input_layout,
     emergency_controls,
@@ -280,6 +300,7 @@ def init_left_layout(
 ):
     left_layout = QVBoxLayout()
     left_layout.addLayout(top_bar_layout)
+    left_layout.addLayout(ssh_layout)
     left_layout.addLayout(checkbox_layout)
     left_layout.addSpacing(5)  # Add small spacing
     left_layout.addWidget(self.instructions1_display)
