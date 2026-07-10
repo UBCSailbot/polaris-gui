@@ -891,6 +891,9 @@ class Docker_Command_Type(Enum):
     STOP = ""
     START_COMMS = "ros2 param set /can_transceiver_node manual_mode false"
     STOP_COMMS = "ros2 param set /can_transceiver_node manual_mode true"
+    ROS_SERVICE_CALL = (
+        """ros2 service call /receive_and_pub std_srvs/srv/Trigger \"{}\""""
+    )
 
 
 class Docker_Command:

@@ -69,6 +69,10 @@ class CANWindowUIMixin:
                 Docker_Command(Docker_Command_Type.STOP_COMMS),
             ),
             ("Start w/ visualizer", Docker_Command(Docker_Command_Type.START_VISUAL)),
+            (
+                "ros2 service call pub/sub",
+                Docker_Command(Docker_Command_Type.ROS_SERVICE_CALL),
+            ),
         ]
         software_controls_layout = elemns.init_software_controls(
             self, software_commands
