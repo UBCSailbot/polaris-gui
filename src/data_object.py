@@ -879,6 +879,55 @@ class AISObject(DataObject):
         # print("self.polaris_line = (", self.polaris_line.xData, ", ", self.polaris_line.yData, ")")
 
 
+# Docker Command classes
+class Docker_Command_Type(Enum):
+    START = """ros2 launch global_launch main_launch.py record:=true mode:=production \
+            log_level:=debug visualizer_mode:=false config:=on_water_globals.yaml \
+            2>&1 | tee src/global_launch/voyage_log/combined_log_$( date +%F_%T).txt"""
+    START_CUSTOM = ""
+    START_VISUAL = """ros2 launch global_launch main_launch.py record:=true mode:=production \
+            log_level:=debug visualizer_mode:=true config:=on_water_globals.yaml \
+            2>&1 | tee src/global_launch/voyage_log/combined_log_$( date +%F_%T).txt"""
+    STOP = ""
+    START_COMMS = "ros2 param set /can_transceiver_node manual_mode false"
+    STOP_COMMS = "ros2 param set /can_transceiver_node manual_mode true"
+
+
+class Docker_Command:
+    def __init__(
+        self,
+        command_type: Docker_Command_Type,
+        config_file="",
+        launch_mode="",
+        mock_ais="",  # boolean
+        visualizer_mode="",  # boolean
+    ):
+
+        self.command_type = command_type
+        self.config_file = config_file
+        self.launch_mode = launch_mode
+        self.mock_ais = mock_ais
+        self.visualizer_mode = visualizer_mode
+
+        self.command = command_type.value
+
+        if command_type == Docker_Command_Type.START_CUSTOM:
+            header = (
+                """ros2 launch global_launch main.py record:=true log_level:=debug"""
+            )
+            footer = """2>&1 | tee src/global_launch/voyage_log/combined_log_$( date +%F_%T).txt"""
+            self.command = " ".join(
+                [
+                    header,
+                    f"config:={config_file}",
+                    f"mode:={launch_mode}",
+                    f"on_water_mock_ais:={mock_ais}",
+                    f"visualizer_mode:={visualizer_mode}",
+                    footer,
+                ]
+            )
+
+
 ### ----------  Structs/Enums ---------- ###
 class AIS_Attributes(Enum):
     SID = "ship_id"
@@ -898,18 +947,6 @@ class AIS_Attributes(Enum):
     WIDTH_NA = 0
     IDX = "index"
     TOTAL = "total_ships"
-
-
-class Docker_Commands(Enum):
-    START = """ros2 launch global_launch main_launch.py record:=true mode:=production \
-            log_level:=debug visualizer_mode:=false config:=on_water_globals.yaml \
-            2>&1 | tee src/global_launch/voyage_log/combined_log_$( date +%F_%T).txt"""
-    START_VISUAL = """ros2 launch global_launch main_launch.py record:=true mode:=production \
-            log_level:=debug visualizer_mode:=true config:=on_water_globals.yaml \
-            2>&1 | tee src/global_launch/voyage_log/combined_log_$( date +%F_%T).txt"""
-    STOP = ""
-    START_COMMS = "ros2 param set /can_transceiver_node manual_mode false"
-    STOP_COMMS = "ros2 param set /can_transceiver_node manual_mode true"
 
 
 # This list is ordered according to 0x060 frame conventions as specified on confluence (don't reorder or else heading order will be incorrect)

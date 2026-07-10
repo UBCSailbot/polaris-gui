@@ -2,14 +2,14 @@ import paramiko
 from PyQt5.QtCore import QThread, pyqtSignal
 
 from config import get_SSH_credentials
-from data_object import Docker_Commands
+from data_object import Docker_Command, Docker_Command_Type
 
 
 class DockerWorkerThread(QThread):
-    success = pyqtSignal(Docker_Commands)  # action name
+    success = pyqtSignal(Docker_Command_Type)  # action name
     error = pyqtSignal(str)  # error message
 
-    def __init__(self, command: str, action: Docker_Commands):
+    def __init__(self, command: str, action: Docker_Command):
         super().__init__()
         self.command = command
         self.action = action
@@ -17,22 +17,24 @@ class DockerWorkerThread(QThread):
     def run(self):
         try:
             send_docker_command(self.command)
-            self.success.emit(self.action)
+            self.success.emit(self.action.command_type)
         except Exception as e:
             self.error.emit(str(e))
 
 
-def generate_docker_command(action: Docker_Commands, container_name: str):
+def generate_docker_command(action: Docker_Command, container_name: str):
     command_text = "docker "
 
-    match action:
-        case Docker_Commands.STOP:
+    match action.command_type:
+        case Docker_Command_Type.STOP:
             print(f"Stopping container: {container_name}")
             command_text += f"stop {container_name}"
         case _:
             run_text = f'docker exec -d {container_name} bash -ic "'
-            command_text += f'start {container_name} && {run_text} {action.value}"'
-            print(f"Running {action.name} on docker container {container_name}")
+            command_text += f'start {container_name} && {run_text} {action.command}"'
+            print(
+                f"Running {action.command_type.name} on docker container {container_name}"
+            )
 
     return command_text
 

@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
 )
 
 from config import pid_param_categories, pid_params
-from data_object import DataObject, Docker_Commands
+from data_object import DataObject, Docker_Command, Docker_Command_Type
 from utils import all_objs
 from workers.docker_send_worker import (
     DockerWorkerThread,
@@ -58,11 +58,17 @@ class CANWindowUIMixin:
         self.pid_param_input_layout = elemns.init_pid_input_layout(self)
 
         software_commands = [
-            ("Start Software", Docker_Commands.START),
-            ("Stop Software", Docker_Commands.STOP),
-            ("Enable CAN Communcations", Docker_Commands.START_COMMS),
-            ("Disable CAN Communications", Docker_Commands.STOP_COMMS),
-            ("Start w/ visualizer", Docker_Commands.START_VISUAL),
+            ("Start Software", Docker_Command(Docker_Command_Type.START)),
+            ("Stop Software", Docker_Command(Docker_Command_Type.STOP)),
+            (
+                "Enable CAN Communcations",
+                Docker_Command(Docker_Command_Type.START_COMMS),
+            ),
+            (
+                "Disable CAN Communications",
+                Docker_Command(Docker_Command_Type.STOP_COMMS),
+            ),
+            ("Start w/ visualizer", Docker_Command(Docker_Command_Type.START_VISUAL)),
         ]
         software_controls_layout = elemns.init_software_controls(
             self, software_commands
@@ -216,7 +222,7 @@ class CANWindowUIMixin:
 
         dropdowns[spot].clearFocus()
 
-    def run_docker_command(self, action: Docker_Commands):
+    def run_docker_command(self, action: Docker_Command):
         container_name = self.container_text_box.text().strip()
 
         if not container_name:
@@ -234,7 +240,7 @@ class CANWindowUIMixin:
         self.docker_thread.error.connect(self.show_error)
 
         # When starting with the visualizer, also forward its port to this machine
-        if action == Docker_Commands.START_VISUAL:
+        if action.visualizer_mode == "true":
             self.docker_thread.success.connect(lambda _: self.start_visualizer_tunnel())
 
         self.docker_thread.started.connect(lambda: self.enable_software_controls(False))
