@@ -4,6 +4,7 @@ import struct
 # TODO: improve imports - per utils_old.py
 # '''
 from pyqtgraph import mkBrush
+
 import config as cg
 from data_object import (
     AIS_Attributes,
@@ -16,6 +17,7 @@ from data_object import (
     ais_attributes,
 )
 from heartbeat_module import HeartbeatModule
+
 # '''
 
 # from project.data_object import *
@@ -411,7 +413,7 @@ def parse_0x060_frame(data_hex, current_time):
         AIS_Attributes.HEADING: round(val(raw_bytes, 16, 18, 1))
         if (val(raw_bytes, 16, 18, 1) != AIS_Attributes.HEADING_NA.value)
         else None,
-        AIS_Attributes.ROT: round((val(raw_bytes, 18, 19, 1) - 128))
+        AIS_Attributes.ROT: round(val(raw_bytes, 18, 19, 1) - 128)
         if ((val(raw_bytes, 18, 19, 1) - 128) != AIS_Attributes.ROT_NA.value)
         else None,
         AIS_Attributes.LENGTH: int(val(raw_bytes, 19, 21, 1))

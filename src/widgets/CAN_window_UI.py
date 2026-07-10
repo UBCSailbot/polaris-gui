@@ -1,4 +1,5 @@
 import webbrowser
+from types import SimpleNamespace
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
@@ -114,6 +115,14 @@ class CANWindowUIMixin:
             software_controls_layout,
         )
 
+        # Graph Dropdown
+        self.advanced_soft_panel = elemns.init_advanced_soft_panel(self)
+        self.advanced_soft_panel_label = "Advanced Software Controls"
+        self.advanced_soft_panel_entry = SimpleNamespace(
+            dropdown_label=self.advanced_soft_panel_label,
+            graph=self.advanced_soft_panel,
+        )
+
         labels_layout = elemns.init_labels_layout()
         right_layout = elemns.init_right_layout(self)
 
@@ -174,9 +183,15 @@ class CANWindowUIMixin:
         name = DataObj.graph_obj.dropdown_label\n
         spot = 0, 1, 2 (top, mid, bot)\n
         """
-        newObj = self.getObjFromLabel(name)
-        # newGraphObj = self.getGraphObjFromXName(name) # get graph to put in spot
-        newGraphObj = newObj.graph_obj
+        # Check if the 'graph' is actually button pannel
+        # TODO refactor this function to support rendering any pyqt widget
+        if name == getattr(self, "advanced_soft_panel_label", None):
+            newGraphObj = self.advanced_soft_panel_entry
+            newObj = None
+        else:
+            newObj = self.getObjFromLabel(name)
+            # newGraphObj = self.getGraphObjFromXName(name) # get graph to put in spot
+            newGraphObj = newObj.graph_obj
 
         if newGraphObj.dropdown_label == self.visibleGraphObjs[spot].dropdown_label:
             return  # do nothing
@@ -189,14 +204,15 @@ class CANWindowUIMixin:
                 self.visibleGraphObjs[spot].dropdown_label
             )  # switch text back to original
         else:
-            self.right_graphs_layout.removeWidget(
-                self.visibleGraphObjs[spot].graph
-            )  # remove graph currently in spot
-            self.visibleGraphObjs[spot].hide()
+            current_widget = self.visibleGraphObjs[spot].graph
+            self.right_graphs_layout.removeWidget(current_widget)
+            current_widget.hide()
             self.right_graphs_layout.addWidget(newGraphObj.graph, spot, 0)
-            newGraphObj.show()
+            newGraphObj.graph.show()
             self.visibleGraphObjs[spot] = newGraphObj
-            newObj.update_line_data()
+            # Check again if the 'graph' is a real graph that needs updates
+            if newObj is not None and hasattr(newObj, "update_line_data"):
+                newObj.update_line_data()
 
         dropdowns[spot].clearFocus()
 

@@ -279,6 +279,22 @@ def init_software_controls(self, commands):
     return soft_controls
 
 
+def init_advanced_soft_panel(self):
+    panel = QWidget()
+    panel.setMinimumSize(cg.graph_min_width, cg.graph_min_height)
+
+    panel_layout = QVBoxLayout()
+    panel.setLayout(panel_layout)
+
+    title_label = QLabel("Advanced Software Controls")
+    title_label.setStyleSheet("font-weight: bold;")
+    panel_layout.addWidget(title_label)
+
+    panel_layout.addStretch(1)
+
+    return panel
+
+
 def init_input_layout(self):
     input_layout = QGridLayout()
     input_layout.setSpacing(0)
@@ -380,6 +396,9 @@ def init_right_layout(self):
             obj.graph_obj.dropdown_label not in self.graph_titles
         ):
             self.graph_titles.append(obj.graph_obj.dropdown_label)
+
+    if hasattr(self, "advanced_soft_panel_label"):
+        self.graph_titles.append(self.advanced_soft_panel_label)
 
     for d in dropdowns:
         d.setFont(QFont(cg.d_font_type, cg.d_font_size))
