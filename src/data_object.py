@@ -1,7 +1,7 @@
 import csv
 import math
 import os
-from enum import Enum
+from enum import Enum, auto
 
 import pyqtgraph as pg
 from PyQt5 import QtCore
@@ -884,7 +884,7 @@ class Docker_Command_Type(Enum):
     START = """ros2 launch global_launch main_launch.py record:=true mode:=production \
             log_level:=debug visualizer_mode:=false config:=on_water_globals.yaml \
             2>&1 | tee src/global_launch/voyage_log/combined_log_$( date +%F_%T).txt"""
-    START_CUSTOM = ""
+    START_CUSTOM = auto()
     START_VISUAL = """ros2 launch global_launch main_launch.py record:=true mode:=production \
             log_level:=debug visualizer_mode:=true config:=on_water_globals.yaml \
             2>&1 | tee src/global_launch/voyage_log/combined_log_$( date +%F_%T).txt"""
