@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import (
     QTextEdit,
 )
 
+import config
 from config import pid_param_categories, pid_params
 from data_object import DataObject, Docker_Command, Docker_Command_Type
 from utils import all_objs
@@ -18,6 +19,7 @@ from workers.docker_send_worker import (
     generate_docker_command,
     kill_software,
 )
+from workers.ros2_output_worker import check_container_running
 from workers.visualizer_tunnel_worker import VisualizerTunnelThread
 
 from . import elements as elemns
@@ -180,6 +182,45 @@ class CANWindowUIMixin:
             f"container '{container_name}'."
         )
 
+    def append_ros2_log(self, message: str) -> None:
+        """Append a message to the ROS2 output display"""
+        if getattr(self, "ros2_output_display", None) is not None:
+            self.ros2_output_display.append(message)
+
+    def update_ros2_container_name(self, container_name: str) -> None:
+        """Update the container name for ROS2 output streaming"""
+        try:
+            self.container_name_queue.put_nowait(container_name)
+        except Exception:
+            print(f"Failed to update ROS2 container name to: {container_name}")
+
+    def _check_container_status(self) -> None:
+        """Periodically check container status and update ROS2 output display"""
+        container_name = self.container_text_box.text().strip()
+
+        if not container_name:
+            # No container selected, ROS2 output display will show the placeholder
+            return
+
+        try:
+            credentials = config.get_SSH_credentials()
+            is_running = check_container_running(container_name, credentials)
+
+            # Update the ROS2 output display based on container status
+            if is_running:
+                # Container is running, ROS2 worker will stream output
+                pass  # No need to do anything, worker is already streaming
+            else:
+                # Container is not running
+                msg = (
+                    "[INFO] Container is not running. Start software to see ROS2 "
+                    "output."
+                )
+                self.append_ros2_log(msg)
+        except Exception:
+            # Silently ignore errors from status check to not spam the log
+            pass
+
     def update_pid_param_dropdown(self, text: str) -> None:
         """Updates the PID param dropdown based on the category selected"""
         first, last = pid_param_categories[text]
@@ -290,11 +331,24 @@ class CANWindowUIMixin:
         self.output_display.append(f"[VISUALIZER] Tunnel ready - opening {url}")
         webbrowser.open(url)
 
-    def _on_docker_success(self, action):
+    def _on_docker_success(self, command_type):
         container_name = self.container_text_box.text().strip()
         self.append_docker_log(
-            f"[INFO] Successfully {action.name}ed container: {container_name}"
+            f"[INFO] Successfully {command_type.name}ed container: {container_name}"
         )
+
+        # Update ROS2 streaming based on action
+        start_types = (
+            Docker_Command_Type.START,
+            Docker_Command_Type.START_CUSTOM,
+            Docker_Command_Type.START_VISUAL,
+        )
+        if command_type in start_types:
+            # Start streaming ROS2 output
+            self.update_ros2_container_name(container_name)
+        elif command_type == Docker_Command_Type.STOP:
+            # Stop streaming ROS2 output
+            self.update_ros2_container_name("")
 
     def _on_docker_error(self, message: str):
         self.log_and_report_docker_error(message)

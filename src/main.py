@@ -30,6 +30,7 @@ from workers import (
     can_logging_process,
     candump_process,
     cansend_worker,
+    ros2_output_process,
     temperature_reader,
 )
 
@@ -82,6 +83,8 @@ class CANWindow(
         cmd_queue,
         response_queue,
         can_log_queue,
+        ros2_output_queue,
+        container_name_queue,
         timestamp,
     ):
         super().__init__()
@@ -90,6 +93,8 @@ class CANWindow(
         self.cansend_queue = cmd_queue
         self.cansend_response_queue = response_queue
         self.can_log_queue = can_log_queue
+        self.ros2_output_queue = ros2_output_queue
+        self.container_name_queue = container_name_queue
 
         self.rudder_angle = 0  # degrees
         self.trimtab_angle = 0  # degrees
@@ -114,6 +119,11 @@ class CANWindow(
         self.timer.timeout.connect(self.update_status)
         self.timer.start(gui_update_freq)  # Updates every update_freq milliseconds
 
+        # Container status check timer (less frequent, every 5 seconds)
+        self.container_status_timer = QTimer()
+        self.container_status_timer.timeout.connect(self._check_container_status)
+        self.container_status_timer.start(5000)  # Check every 5 seconds
+
     # NOTE: Below functions are all in CANWindowLoggingMixin
     # def _init_logging(self, timestamp):
     # def _log_values(self):
@@ -126,6 +136,13 @@ class CANWindow(
             print("Log files closed successfully")
         except Exception as e:
             print(f"Error closing log files: {e}")
+
+        # Stop the container status timer
+        try:
+            if hasattr(self, "container_status_timer"):
+                self.container_status_timer.stop()
+        except Exception as e:
+            print(f"Error stopping container status timer: {e}")
 
         # Tear down the visualizer SSH tunnel if it is running
         try:
@@ -232,11 +249,13 @@ def cleanup():
     temp_proc.terminate()
     cansend_proc.terminate()
     can_logging_proc.terminate()
+    ros2_proc.terminate()
 
     candump_proc.join(timeout=2)
     temp_proc.join(timeout=2)
     cansend_proc.join(timeout=2)
     can_logging_proc.join(timeout=2)
+    ros2_proc.join(timeout=2)
 
     parent_conn.close()
     child_conn.close()
@@ -246,6 +265,8 @@ def cleanup():
     response_queue.close()
     cmd_queue.close()
     can_log_queue.close()
+    ros2_output_queue.close()
+    container_name_queue.close()
 
     # Fix small memory leak when restarting.
     multiprocessing.util._exit_function()
@@ -283,6 +304,8 @@ if __name__ == "__main__":
     cmd_queue = multiprocessing.Queue()
     response_queue = multiprocessing.Queue()
     can_log_queue = multiprocessing.Queue()
+    ros2_output_queue = multiprocessing.Queue()
+    container_name_queue = multiprocessing.Queue()
     current_time = datetime.now()
     timestamp = current_time.strftime("%Y%m%d_%H%M%S")
     current_time = current_time.timestamp()  # convert to seconds since epoch
@@ -301,11 +324,16 @@ if __name__ == "__main__":
     can_logging_proc = multiprocessing.Process(
         target=can_logging_process, args=(queue, can_log_queue, timestamp)
     )
+    ros2_proc = multiprocessing.Process(
+        target=ros2_output_process,
+        args=(ros2_output_queue, container_name_queue, credentials),
+    )
 
     candump_proc.start()
     temp_proc.start()
     cansend_proc.start()
     can_logging_proc.start()
+    ros2_proc.start()
 
     # Cleanup (CTRL + C) initialization
     signal.signal(signal.SIGINT, key_interrupt_cleanup)
@@ -316,7 +344,14 @@ if __name__ == "__main__":
     for mod in heartbeat_modules:
         mod.init_time(current_time)
     window = CANWindow(
-        queue, parent_conn, cmd_queue, response_queue, can_log_queue, timestamp
+        queue,
+        parent_conn,
+        cmd_queue,
+        response_queue,
+        can_log_queue,
+        ros2_output_queue,
+        container_name_queue,
+        timestamp,
     )
     window.initialize_joystick()  # Joystick initialization
     window.show()

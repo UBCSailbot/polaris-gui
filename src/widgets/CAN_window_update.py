@@ -285,6 +285,11 @@ class CANWindowUpdateMixin:
             elif out:
                 self.output_display.append(f"[OUT] {out.strip()}")
 
+        # Handle ROS2 output
+        while not self.ros2_output_queue.empty():
+            line = self.ros2_output_queue.get()
+            self.append_ros2_log(line)
+
         # Handle joystick updates
         if self.get_joystick_enabled():
             moved, pos = self.joystick_moved(rudder_axis, rudder_latch)

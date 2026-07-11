@@ -358,10 +358,22 @@ def init_advanced_soft_panel(self):
     self.docker_log_display.setMinimumHeight(110)
     self.docker_log_display.setMaximumHeight(180)
 
+    # ROS2 Output Display
+    self.ros2_output_display = QTextEdit()
+    self.ros2_output_display.setReadOnly(True)
+    self.ros2_output_display.setPlaceholderText(
+        "ROS2 output will appear here when a container is running.\n"
+        "Enter a container name in the Docker controls above and start software."
+    )
+    self.ros2_output_display.setMinimumHeight(110)
+    self.ros2_output_display.setMaximumHeight(180)
+
     panel_layout.addWidget(grid_widget)
     panel_layout.addWidget(custom_launch_btn)
     panel_layout.addWidget(QLabel("Docker Message Log:"))
     panel_layout.addWidget(self.docker_log_display)
+    panel_layout.addWidget(QLabel("ROS2 Global Launch Output:"))
+    panel_layout.addWidget(self.ros2_output_display)
 
     panel_layout.addStretch(1)
 
