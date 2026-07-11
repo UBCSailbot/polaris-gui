@@ -70,7 +70,7 @@ class CANWindowUIMixin:
             ),
             ("Start w/ visualizer", Docker_Command(Docker_Command_Type.START_VISUAL)),
             (
-                "ros2 service call pub/sub",
+                "RECIEVE",
                 Docker_Command(Docker_Command_Type.ROS_SERVICE_CALL),
             ),
         ]
