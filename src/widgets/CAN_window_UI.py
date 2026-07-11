@@ -272,22 +272,32 @@ class CANWindowUIMixin:
         viewed at http://localhost:8050, then open it in the browser."""
         existing = getattr(self, "visualizer_thread", None)
         if existing is not None and existing.isRunning():
-            self.output_display.append(
-                "[VISUALIZER] Tunnel already running at http://localhost:8050"
-            )
+            msg = "[VISUALIZER] Tunnel already running at http://localhost:8050"
+            self.output_display.append(msg)
+            self.append_docker_log(msg)
             return
 
         self.visualizer_thread = VisualizerTunnelThread()
         self.visualizer_thread.status.connect(
-            lambda msg: self.output_display.append(f"[VISUALIZER] {msg}")
+            lambda msg: self._log_visualizer_message(msg)
         )
-        self.visualizer_thread.error.connect(self.show_error)
+        self.visualizer_thread.error.connect(
+            lambda msg: self._log_visualizer_message(msg, is_error=True)
+        )
         self.visualizer_thread.tunnel_ready.connect(self._on_visualizer_ready)
         self.visualizer_thread.start()
 
+    def _log_visualizer_message(self, message: str, is_error: bool = False) -> None:
+        prefix = "[VISUALIZER][ERROR]" if is_error else "[VISUALIZER]"
+        full_message = f"{prefix} {message}"
+        self.output_display.append(full_message)
+        self.append_docker_log(full_message)
+
     def _on_visualizer_ready(self, port: int):
         url = f"http://localhost:{port}"
-        self.output_display.append(f"[VISUALIZER] Tunnel ready - opening {url}")
+        message = f"[VISUALIZER] Tunnel ready - opening {url}"
+        self.output_display.append(message)
+        self.append_docker_log(message)
         webbrowser.open(url)
 
     def _on_docker_success(self, action):
