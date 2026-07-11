@@ -7,7 +7,6 @@ from PyQt5.QtWidgets import (
     QComboBox,
     QHBoxLayout,
     QLabel,
-    QMessageBox,
     QTextEdit,
 )
 
@@ -167,6 +166,20 @@ class CANWindowUIMixin:
         # Show a brief confirmation
         self.output_display.append(f"[COPIED] {text}")
 
+    def append_docker_log(self, message: str) -> None:
+        if getattr(self, "docker_log_display", None) is not None:
+            self.docker_log_display.append(message)
+
+    def log_and_report_docker_error(self, message: str) -> None:
+        self.append_docker_log(f"[ERROR] {message}")
+        self.show_error(message, log_to_output=False)
+
+    def log_docker_action(self, action: Docker_Command, container_name: str) -> None:
+        self.append_docker_log(
+            f"[{action.command_type.name}] Queued docker action for "
+            f"container '{container_name}'."
+        )
+
     def update_pid_param_dropdown(self, text: str) -> None:
         """Updates the PID param dropdown based on the category selected"""
         first, last = pid_param_categories[text]
@@ -230,18 +243,20 @@ class CANWindowUIMixin:
         container_name = self.container_text_box.text().strip()
 
         if not container_name:
-            self.show_error("Enter a Docker container name.")
+            self.log_and_report_docker_error("Enter a Docker container name.")
             return
 
         try:
             command = generate_docker_command(action, container_name)
         except RuntimeError as e:
-            self.show_error(str(e))
+            self.log_and_report_docker_error(str(e))
             return
+
+        self.log_docker_action(action, container_name)
 
         self.docker_thread = DockerWorkerThread(command, action)
         self.docker_thread.success.connect(self._on_docker_success)
-        self.docker_thread.error.connect(self.show_error)
+        self.docker_thread.error.connect(self._on_docker_error)
 
         # When starting with the visualizer, also forward its port to this machine
         if action.visualizer_mode == "true":
@@ -275,14 +290,14 @@ class CANWindowUIMixin:
         self.output_display.append(f"[VISUALIZER] Tunnel ready - opening {url}")
         webbrowser.open(url)
 
-    # TODO change this from a pop up to some sort of status indicator
     def _on_docker_success(self, action):
         container_name = self.container_text_box.text().strip()
-        QMessageBox.information(
-            self,
-            "Success",
-            f"Successfully {action.name.lower()}ed container:\n{container_name}",
+        self.append_docker_log(
+            f"[INFO] Successfully {action.name}ed container: {container_name}"
         )
+
+    def _on_docker_error(self, message: str):
+        self.log_and_report_docker_error(message)
 
     def enable_software_controls(self, enabled: bool):
         for button in self.software_control_buttons:
@@ -290,9 +305,12 @@ class CANWindowUIMixin:
 
     def call_software_emergency_kill(self):
         try:
-            kill_software()
+            result = kill_software()
         except RuntimeError as e:
-            self.show_error(str(e))
+            self.log_and_report_docker_error(str(e))
+            return
+
+        self.append_docker_log(f"[INFO] {result}")
 
     def change_SSH_profile(self):
         profile = self.SSH_dropdown.currentText()

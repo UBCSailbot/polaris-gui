@@ -90,8 +90,26 @@ def kill_software():
             password=password,
             timeout=2,
         )
-        command = "docker kill $(docker ps -q)"
-        ssh.exec_command(command)
+        command = (
+            'if [ -n "$(docker ps -q)" ]; then '
+            "docker kill $(docker ps -q); "
+            "echo 'Stopped all running Docker containers.'; "
+            "else echo 'No running Docker containers found.'; fi"
+        )
+        _, stdout, stderr = ssh.exec_command(command)
+        exit_status = stdout.channel.recv_exit_status()
+        out = stdout.read().decode().strip()
+        err = stderr.read().decode().strip()
+
+        print(f"[SSH] command: {command}")
+        print(f"[SSH] exit_status: {exit_status}")
+        print(f"[SSH] stdout: {out}")
+        print(f"[SSH] stderr: {err}")
+
+        if exit_status != 0:
+            raise RuntimeError(err or out or "Failed to kill software.")
+
+        return out or "Kill command completed."
 
     except paramiko.AuthenticationException:
         raise RuntimeError("Authentication failed. Check your username and password.")

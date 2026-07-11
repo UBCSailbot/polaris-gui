@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import (
     QLineEdit,
     QPushButton,
     QSizePolicy,
+    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
@@ -351,8 +352,16 @@ def init_advanced_soft_panel(self):
     # Add to this control group that gets disabled when any other button is pressed.
     self.software_control_buttons.append(custom_launch_btn)
 
+    self.docker_log_display = QTextEdit()
+    self.docker_log_display.setReadOnly(True)
+    self.docker_log_display.setPlaceholderText("Docker action logs will appear here.")
+    self.docker_log_display.setMinimumHeight(110)
+    self.docker_log_display.setMaximumHeight(180)
+
     panel_layout.addWidget(grid_widget)
     panel_layout.addWidget(custom_launch_btn)
+    panel_layout.addWidget(QLabel("Docker Message Log:"))
+    panel_layout.addWidget(self.docker_log_display)
 
     panel_layout.addStretch(1)
 
