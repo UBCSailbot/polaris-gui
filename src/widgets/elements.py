@@ -15,6 +15,7 @@ from PyQt5.QtWidgets import (
 
 import config as cg
 from config import input_label_style
+from data_object import Docker_Command, Docker_Command_Type
 from utils import all_objs, graph_objs, heartbeat_modules, pid_obj
 
 from . import styles
@@ -279,6 +280,85 @@ def init_software_controls(self, commands):
     return soft_controls
 
 
+def init_advanced_soft_panel(self):
+    panel = QWidget()
+    panel.setMinimumSize(cg.graph_min_width, cg.graph_min_height)
+
+    panel_layout = QVBoxLayout()
+    panel.setLayout(panel_layout)
+
+    title_label = QLabel("Advanced Software Controls")
+    title_label.setStyleSheet("font-weight: bold;")
+    panel_layout.addWidget(title_label)
+
+    config_grid = QGridLayout()
+    grid_widget = QWidget()
+    grid_widget.setLayout(config_grid)
+    grid_widget.setMaximumWidth(500)
+    config_grid.setContentsMargins(0, 0, 0, 0)
+
+    # dropdowns
+    launch_mode_dropdown = QComboBox()
+    launch_mode_dropdown.addItems(["development", "production", "sim"])
+    launch_mode_dropdown.setFixedWidth(150)
+
+    self.launch_mode_dropdown = launch_mode_dropdown
+
+    launch_mode_layout = QHBoxLayout()
+    launch_mode_layout.addWidget(QLabel("Launch mode:"))
+    launch_mode_layout.addWidget(self.launch_mode_dropdown)
+    launch_mode_layout.setSpacing(4)
+
+    config_file_dropdown = QComboBox()
+    config_file_dropdown.addItems(
+        ["globals.yaml", "on_water_globals.yaml", "launch_globals.yaml"]
+    )
+    config_file_dropdown.setFixedWidth(150)
+    self.config_file_dropdown = config_file_dropdown
+
+    config_file_layout = QHBoxLayout()
+    config_file_layout.addWidget(QLabel("Config file:"))
+    config_file_layout.addWidget(self.config_file_dropdown)
+    config_file_layout.setSpacing(25)
+
+    # checkboxes
+    self.mock_ais_checkbox = QCheckBox("Enable mock AIS data?")
+    self.visualizer_mode_checkbox = QCheckBox("Enable pathfinding visualizer?")
+
+    config_grid.addLayout(launch_mode_layout, 0, 0, alignment=Qt.AlignLeft)
+    config_grid.addLayout(config_file_layout, 1, 0, alignment=Qt.AlignLeft)
+    config_grid.addWidget(self.mock_ais_checkbox, 0, 1)
+    config_grid.addWidget(self.visualizer_mode_checkbox, 1, 1)
+
+    config_grid.setColumnStretch(0, 0)
+    config_grid.setColumnStretch(1, 0)
+
+    # launch custom config button
+    custom_launch_btn = QPushButton("Custom Launch")
+    custom_launch_btn.clicked.connect(
+        lambda _: self.run_docker_command(
+            Docker_Command(
+                Docker_Command_Type.START_CUSTOM,
+                launch_mode=self.launch_mode_dropdown.currentText(),
+                config_file=self.config_file_dropdown.currentText(),
+                mock_ais=str(self.mock_ais_checkbox.isChecked()).lower(),
+                visualizer_mode=str(self.visualizer_mode_checkbox.isChecked()).lower(),
+            )
+        )
+    )
+    custom_launch_btn.setMaximumWidth(150)
+
+    # Add to this control group that gets disabled when any other button is pressed.
+    self.software_control_buttons.append(custom_launch_btn)
+
+    panel_layout.addWidget(grid_widget)
+    panel_layout.addWidget(custom_launch_btn)
+
+    panel_layout.addStretch(1)
+
+    return panel
+
+
 def init_input_layout(self):
     input_layout = QGridLayout()
     input_layout.setSpacing(0)
@@ -380,6 +460,9 @@ def init_right_layout(self):
             obj.graph_obj.dropdown_label not in self.graph_titles
         ):
             self.graph_titles.append(obj.graph_obj.dropdown_label)
+
+    if hasattr(self, "advanced_soft_panel_label"):
+        self.graph_titles.append(self.advanced_soft_panel_label)
 
     for d in dropdowns:
         d.setFont(QFont(cg.d_font_type, cg.d_font_size))

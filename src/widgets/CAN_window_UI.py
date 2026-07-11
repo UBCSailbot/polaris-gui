@@ -1,4 +1,5 @@
 import webbrowser
+from types import SimpleNamespace
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
@@ -11,7 +12,7 @@ from PyQt5.QtWidgets import (
 )
 
 from config import pid_param_categories, pid_params
-from data_object import DataObject, Docker_Commands
+from data_object import DataObject, Docker_Command, Docker_Command_Type
 from utils import all_objs
 from workers.docker_send_worker import (
     DockerWorkerThread,
@@ -57,11 +58,21 @@ class CANWindowUIMixin:
         self.pid_param_input_layout = elemns.init_pid_input_layout(self)
 
         software_commands = [
-            ("Start Software", Docker_Commands.START),
-            ("Stop Software", Docker_Commands.STOP),
-            ("Enable CAN Communcations", Docker_Commands.START_COMMS),
-            ("Disable CAN Communications", Docker_Commands.STOP_COMMS),
-            ("Start w/ visualizer", Docker_Commands.START_VISUAL),
+            ("Start Software", Docker_Command(Docker_Command_Type.START)),
+            ("Stop Software", Docker_Command(Docker_Command_Type.STOP)),
+            (
+                "Enable CAN Communcations",
+                Docker_Command(Docker_Command_Type.START_COMMS),
+            ),
+            (
+                "Disable CAN Communications",
+                Docker_Command(Docker_Command_Type.STOP_COMMS),
+            ),
+            ("Start w/ visualizer", Docker_Command(Docker_Command_Type.START_VISUAL)),
+            (
+                "RECEIVE",
+                Docker_Command(Docker_Command_Type.ROS_SERVICE_CALL),
+            ),
         ]
         software_controls_layout = elemns.init_software_controls(
             self, software_commands
@@ -112,6 +123,14 @@ class CANWindowUIMixin:
             input_layout,
             emergency_controls_layout,
             software_controls_layout,
+        )
+
+        # Graph Dropdown
+        self.advanced_soft_panel = elemns.init_advanced_soft_panel(self)
+        self.advanced_soft_panel_label = "Advanced Software Controls"
+        self.advanced_soft_panel_entry = SimpleNamespace(
+            dropdown_label=self.advanced_soft_panel_label,
+            graph=self.advanced_soft_panel,
         )
 
         labels_layout = elemns.init_labels_layout()
@@ -174,9 +193,15 @@ class CANWindowUIMixin:
         name = DataObj.graph_obj.dropdown_label\n
         spot = 0, 1, 2 (top, mid, bot)\n
         """
-        newObj = self.getObjFromLabel(name)
-        # newGraphObj = self.getGraphObjFromXName(name) # get graph to put in spot
-        newGraphObj = newObj.graph_obj
+        # Check if the 'graph' is actually button pannel
+        # TODO refactor this function to support rendering any pyqt widget
+        if name == getattr(self, "advanced_soft_panel_label", None):
+            newGraphObj = self.advanced_soft_panel_entry
+            newObj = None
+        else:
+            newObj = self.getObjFromLabel(name)
+            # newGraphObj = self.getGraphObjFromXName(name) # get graph to put in spot
+            newGraphObj = newObj.graph_obj
 
         if newGraphObj.dropdown_label == self.visibleGraphObjs[spot].dropdown_label:
             return  # do nothing
@@ -189,18 +214,19 @@ class CANWindowUIMixin:
                 self.visibleGraphObjs[spot].dropdown_label
             )  # switch text back to original
         else:
-            self.right_graphs_layout.removeWidget(
-                self.visibleGraphObjs[spot].graph
-            )  # remove graph currently in spot
-            self.visibleGraphObjs[spot].hide()
+            current_widget = self.visibleGraphObjs[spot].graph
+            self.right_graphs_layout.removeWidget(current_widget)
+            current_widget.hide()
             self.right_graphs_layout.addWidget(newGraphObj.graph, spot, 0)
-            newGraphObj.show()
+            newGraphObj.graph.show()
             self.visibleGraphObjs[spot] = newGraphObj
-            newObj.update_line_data()
+            # Check again if the 'graph' is a real graph that needs updates
+            if newObj is not None and hasattr(newObj, "update_line_data"):
+                newObj.update_line_data()
 
         dropdowns[spot].clearFocus()
 
-    def run_docker_command(self, action: Docker_Commands):
+    def run_docker_command(self, action: Docker_Command):
         container_name = self.container_text_box.text().strip()
 
         if not container_name:
@@ -218,7 +244,7 @@ class CANWindowUIMixin:
         self.docker_thread.error.connect(self.show_error)
 
         # When starting with the visualizer, also forward its port to this machine
-        if action == Docker_Commands.START_VISUAL:
+        if action.visualizer_mode == "true":
             self.docker_thread.success.connect(lambda _: self.start_visualizer_tunnel())
 
         self.docker_thread.started.connect(lambda: self.enable_software_controls(False))
