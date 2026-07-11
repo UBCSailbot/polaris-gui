@@ -69,7 +69,7 @@ class CANWindowUIMixin:
             ),
             ("Start w/ visualizer", Docker_Command(Docker_Command_Type.START_VISUAL)),
             (
-                "RECIEVE",
+                "RECEIVE",
                 Docker_Command(Docker_Command_Type.ROS_SERVICE_CALL),
             ),
         ]
