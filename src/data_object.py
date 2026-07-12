@@ -902,8 +902,8 @@ class Docker_Command:
         command_type: Docker_Command_Type,
         config_file="",
         launch_mode="",
-        mock_ais="",  # boolean
-        visualizer_mode="",  # boolean
+        mock_ais=False,
+        visualizer_mode=False,
     ):
 
         self.command_type = command_type
@@ -916,7 +916,7 @@ class Docker_Command:
 
         if command_type == Docker_Command_Type.START_CUSTOM:
             header = (
-                """ros2 launch global_launch main.py record:=true log_level:=debug"""
+                """ros2 launch global_launch main_launch.py record:=true log_level:=debug"""
             )
             footer = """2>&1 | tee src/global_launch/voyage_log/combined_log_$( date +%F_%T).txt"""
             self.command = " ".join(
@@ -924,8 +924,8 @@ class Docker_Command:
                     header,
                     f"config:={config_file}",
                     f"mode:={launch_mode}",
-                    f"on_water_mock_ais:={mock_ais}",
-                    f"visualizer_mode:={visualizer_mode}",
+                    f"on_water_mock_ais:={str(mock_ais).lower()}",
+                    f"visualizer_mode:={str(visualizer_mode).lower()}",
                     footer,
                 ]
             )
