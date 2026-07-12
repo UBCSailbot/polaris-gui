@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QTextEdit,
+    QMessageBox,
 )
 
 from config import pid_param_categories, pid_params
@@ -275,7 +276,6 @@ class CANWindowUIMixin:
         existing = getattr(self, "visualizer_thread", None)
         if existing is not None and existing.isRunning():
             msg = "[VISUALIZER] Tunnel already running at http://localhost:8050"
-            self.output_display.append(msg)
             self.append_docker_log(msg)
             return
 
@@ -292,18 +292,21 @@ class CANWindowUIMixin:
     def _log_visualizer_message(self, message: str, is_error: bool = False) -> None:
         prefix = "[VISUALIZER][ERROR]" if is_error else "[VISUALIZER]"
         full_message = f"{prefix} {message}"
-        self.output_display.append(full_message)
         self.append_docker_log(full_message)
 
     def _on_visualizer_ready(self, port: int):
         url = f"http://localhost:{port}"
         message = f"[VISUALIZER] Tunnel ready - opening {url}"
-        self.output_display.append(message)
         self.append_docker_log(message)
         webbrowser.open(url)
 
     def _on_docker_success(self, action):
         container_name = self.container_text_box.text().strip()
+        QMessageBox.information(
+            self,
+            "Success",
+            f"Successfully {action.name.lower()} container:\n{container_name}",
+        )
         self.append_docker_log(
             f"[INFO] Successfully {action.name}ed container: {container_name}"
         )
