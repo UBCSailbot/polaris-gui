@@ -342,8 +342,8 @@ def init_advanced_soft_panel(self):
                 Docker_Command_Type.START_CUSTOM,
                 launch_mode=self.launch_mode_dropdown.currentText(),
                 config_file=self.config_file_dropdown.currentText(),
-                mock_ais=str(self.mock_ais_checkbox.isChecked()).lower(),
-                visualizer_mode=str(self.visualizer_mode_checkbox.isChecked()).lower(),
+                mock_ais=self.mock_ais_checkbox.isChecked(),
+                visualizer_mode=self.visualizer_mode_checkbox.isChecked(),
             )
         )
     )

@@ -258,8 +258,10 @@ class CANWindowUIMixin:
         self.docker_thread.success.connect(self._on_docker_success)
         self.docker_thread.error.connect(self._on_docker_error)
 
-        # When starting with the visualizer, also forward its port to this machine
-        if action.visualizer_mode == "true":
+        if (
+            action.command_type == Docker_Command_Type.START_VISUAL
+            or action.visualizer_mode
+        ):
             self.docker_thread.success.connect(lambda _: self.start_visualizer_tunnel())
 
         self.docker_thread.started.connect(lambda: self.enable_software_controls(False))
