@@ -915,9 +915,7 @@ class Docker_Command:
         self.command = command_type.value
 
         if command_type == Docker_Command_Type.START_CUSTOM:
-            header = (
-                """ros2 launch global_launch main_launch.py record:=true log_level:=debug"""
-            )
+            header = """ros2 launch global_launch main_launch.py record:=true log_level:=debug"""
             footer = """2>&1 | tee src/global_launch/voyage_log/combined_log_$( date +%F_%T).txt"""
             self.command = " ".join(
                 [
