@@ -245,7 +245,7 @@ class CANWindowUIMixin:
 
         if (
             action.command_type == Docker_Command_Type.START_VISUAL
-            or action.visualizer_mode == True
+            or action.visualizer_mode
         ):
             self.docker_thread.success.connect(lambda _: self.start_visualizer_tunnel())
 
