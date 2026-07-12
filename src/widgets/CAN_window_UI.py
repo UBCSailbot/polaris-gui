@@ -2,12 +2,16 @@ import webbrowser
 from types import SimpleNamespace
 
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QTextCursor
 from PyQt5.QtWidgets import (
     QApplication,
     QComboBox,
     QHBoxLayout,
     QLabel,
+    QScrollArea,
     QTextEdit,
+    QVBoxLayout,
+    QWidget,
     QMessageBox,
 )
 
@@ -19,6 +23,7 @@ from workers.docker_send_worker import (
     generate_docker_command,
     kill_software,
 )
+from workers.ros_info_worker import RosCommandThread, RosStreamThread
 from workers.visualizer_tunnel_worker import VisualizerTunnelThread
 
 from . import elements as elemns
@@ -142,7 +147,20 @@ class CANWindowUIMixin:
         bottom_layout.addLayout(labels_layout)
         bottom_layout.addLayout(right_layout, 1)
 
-        self.setLayout(bottom_layout)
+        # Host all content in a scroll area so the window can be smaller than its
+        # contents (e.g. on a laptop) and scroll, instead of forcing the window
+        # past the screen and crunching buttons / breaking text boxes.
+        content = QWidget()
+        content.setLayout(bottom_layout)
+
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setWidget(content)
+
+        outer_layout = QVBoxLayout()
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.addWidget(scroll_area)
+        self.setLayout(outer_layout)
 
     def set_manual_steer(self, checked):
         self.rudder_input_group.setVisible(checked)
@@ -331,6 +349,103 @@ class CANWindowUIMixin:
             "Successfully killed the software",
         )
         self.append_docker_log(f"[INFO] {result}")
+
+    # ---------- ROS info panel ----------
+
+    def append_ros_log(self, message: str) -> None:
+        """Appends a snapshot/status message to the ROS info box as its own block."""
+        if getattr(self, "ros_dump_display", None) is not None:
+            self.ros_dump_display.append(message)
+
+    def _append_ros_stream_line(self, message: str) -> None:
+        """Appends a discrete status line (start/stop/error) to the live stream box."""
+        if getattr(self, "ros_stream_display", None) is not None:
+            self.ros_stream_display.append(message)
+
+    def _append_ros_stream_text(self, text: str) -> None:
+        """Inserts raw streamed text at the end of the live stream box without
+        forcing extra newlines, so multi-line ros2 echo output keeps its
+        formatting."""
+        display = getattr(self, "ros_stream_display", None)
+        if display is None:
+            return
+        display.moveCursor(QTextCursor.End)
+        display.insertPlainText(text)
+        display.moveCursor(QTextCursor.End)
+
+    def _ros_container_or_warn(self, log):
+        """Returns the container name, or None (logging via ``log``) if empty.
+
+        ``log`` targets whichever box the caller is writing to (info vs stream)."""
+        container_name = self.container_text_box.text().strip()
+        if not container_name:
+            log("[ERROR] Enter a Docker container name.")
+            return None
+        return container_name
+
+    def refresh_ros_nodes(self):
+        self._run_ros_snapshot("ros2 node list", "ros2 node list")
+
+    def refresh_ros_topics(self):
+        self._run_ros_snapshot("ros2 topic list", "ros2 topic list")
+
+    def _run_ros_snapshot(self, ros_command: str, label: str) -> None:
+        container = self._ros_container_or_warn(self.append_ros_log)
+        if container is None:
+            return
+
+        self.append_ros_log(f"=== {label} ===")
+        thread = RosCommandThread(container, ros_command)
+        thread.result.connect(self.append_ros_log)
+        thread.error.connect(lambda msg: self.append_ros_log(f"[ERROR] {msg}"))
+        self._track_ros_snapshot(thread)
+        thread.start()
+
+    def _track_ros_snapshot(self, thread: RosCommandThread) -> None:
+        """Keeps a reference so the QThread is not garbage collected mid-run,
+        and drops it once finished."""
+        if not hasattr(self, "_ros_snapshot_threads"):
+            self._ros_snapshot_threads = []
+        self._ros_snapshot_threads.append(thread)
+        thread.finished.connect(
+            lambda: self._ros_snapshot_threads.remove(thread)
+            if thread in self._ros_snapshot_threads
+            else None
+        )
+
+    def start_ros_echo(self):
+        topic = self.ros_topic_input.text().strip()
+        if not topic:
+            self._append_ros_stream_line("[ERROR] Enter a topic to echo.")
+            return
+        self._start_ros_stream(f"ros2 topic echo {topic}", f"echo {topic}")
+
+    def stream_ros_launch_logs(self):
+        self._start_ros_stream("ros2 topic echo /rosout", "launch logs (/rosout)")
+
+    def _start_ros_stream(self, ros_command: str, label: str) -> None:
+        container = self._ros_container_or_warn(self._append_ros_stream_line)
+        if container is None:
+            return
+
+        # Only one live stream at a time.
+        self.stop_ros_stream()
+
+        self._append_ros_stream_line(f"=== streaming {label} (press Stop to end) ===")
+        self.ros_stream_thread = RosStreamThread(container, ros_command)
+        self.ros_stream_thread.line.connect(self._append_ros_stream_text)
+        self.ros_stream_thread.error.connect(
+            lambda msg: self._append_ros_stream_line(f"[ERROR] {msg}")
+        )
+        self.ros_stream_thread.start()
+
+    def stop_ros_stream(self):
+        thread = getattr(self, "ros_stream_thread", None)
+        if thread is not None and thread.isRunning():
+            thread.stop()
+            thread.wait(2000)
+            self._append_ros_stream_line("=== stream stopped ===")
+        self.ros_stream_thread = None
 
     def change_SSH_profile(self):
         profile = self.SSH_dropdown.currentText()

@@ -137,6 +137,16 @@ class CANWindow(
         except Exception as e:
             print(f"Error closing visualizer tunnel: {e}")
 
+        # Tear down the ROS info stream if it is running
+        try:
+            ros_stream_thread = getattr(self, "ros_stream_thread", None)
+            if ros_stream_thread is not None and ros_stream_thread.isRunning():
+                ros_stream_thread.stop()
+                ros_stream_thread.wait(2000)
+                print("ROS info stream closed successfully")
+        except Exception as e:
+            print(f"Error closing ROS info stream: {e}")
+
         if event is not None:
             event.accept()
 

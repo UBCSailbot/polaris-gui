@@ -358,14 +358,85 @@ def init_advanced_soft_panel(self):
     self.docker_log_display.setMinimumHeight(110)
     self.docker_log_display.setMaximumHeight(180)
 
+    ros_dump_panel = init_ros_dump_panel(self)
+
+    # Docker log and ROS dump sit side by side below the launch controls.
+    logs_row = QHBoxLayout()
+
+    docker_log_column = QVBoxLayout()
+    docker_log_column.addWidget(QLabel("Docker Message Log:"))
+    docker_log_column.addWidget(self.docker_log_display)
+
+    logs_row.addLayout(docker_log_column)
+    logs_row.addLayout(ros_dump_panel)
+
+    # Large, full-width box dedicated to the live ROS stream so echo/rosout
+    # output is easy to read.
+    self.ros_stream_display = QTextEdit()
+    self.ros_stream_display.setReadOnly(True)
+    self.ros_stream_display.setPlaceholderText(
+        "Live ros2 topic echo / rosout output will stream here."
+    )
+    stream_font = QFont("Monospace")
+    stream_font.setStyleHint(QFont.Monospace)
+    self.ros_stream_display.setFont(stream_font)
+    self.ros_stream_display.setLineWrapMode(QTextEdit.NoWrap)
+    self.ros_stream_display.setMinimumHeight(280)
+
     panel_layout.addWidget(grid_widget)
     panel_layout.addWidget(custom_launch_btn)
-    panel_layout.addWidget(QLabel("Docker Message Log:"))
-    panel_layout.addWidget(self.docker_log_display)
-
-    panel_layout.addStretch(1)
+    panel_layout.addLayout(logs_row)
+    panel_layout.addWidget(QLabel("ROS Live Stream:"))
+    # Stretch factor lets the stream box absorb any extra vertical space.
+    panel_layout.addWidget(self.ros_stream_display, 1)
 
     return panel
+
+
+def init_ros_dump_panel(self):
+    """Builds the ROS info column: snapshot buttons (node/topic list), a topic
+    echo input, a launch-log stream button, and the snapshot output display."""
+    ros_column = QVBoxLayout()
+    ros_column.addWidget(QLabel("ROS Info:"))
+
+    # Snapshot buttons.
+    snapshot_row = QHBoxLayout()
+    self.ros_nodes_btn = QPushButton("List Nodes")
+    self.ros_nodes_btn.clicked.connect(self.refresh_ros_nodes)
+    self.ros_topics_btn = QPushButton("List Topics")
+    self.ros_topics_btn.clicked.connect(self.refresh_ros_topics)
+    snapshot_row.addWidget(self.ros_nodes_btn)
+    snapshot_row.addWidget(self.ros_topics_btn)
+    ros_column.addLayout(snapshot_row)
+
+    # Topic echo (live stream of a chosen topic).
+    echo_row = QHBoxLayout()
+    self.ros_topic_input = QLineEdit()
+    self.ros_topic_input.setPlaceholderText("/topic to echo")
+    self.ros_echo_btn = QPushButton("Echo")
+    self.ros_echo_btn.clicked.connect(self.start_ros_echo)
+    self.ros_stop_btn = QPushButton("Stop")
+    self.ros_stop_btn.clicked.connect(self.stop_ros_stream)
+    echo_row.addWidget(self.ros_topic_input)
+    echo_row.addWidget(self.ros_echo_btn)
+    echo_row.addWidget(self.ros_stop_btn)
+    ros_column.addLayout(echo_row)
+
+    # Live launch logging via /rosout.
+    self.ros_launch_log_btn = QPushButton("Stream Launch Logs (/rosout)")
+    self.ros_launch_log_btn.clicked.connect(self.stream_ros_launch_logs)
+    ros_column.addWidget(self.ros_launch_log_btn)
+
+    self.ros_dump_display = QTextEdit()
+    self.ros_dump_display.setReadOnly(True)
+    self.ros_dump_display.setPlaceholderText(
+        "ros2 node/topic list output will appear here."
+    )
+    self.ros_dump_display.setMinimumHeight(180)
+    self.ros_dump_display.setMaximumHeight(300)
+    ros_column.addWidget(self.ros_dump_display)
+
+    return ros_column
 
 
 def init_input_layout(self):
