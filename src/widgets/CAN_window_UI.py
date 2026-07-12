@@ -308,7 +308,7 @@ class CANWindowUIMixin:
             f"Successfully {action.name.lower()} container:\n{container_name}",
         )
         self.append_docker_log(
-            f"[INFO] Successfully {action.name}ed container: {container_name}"
+            f"[INFO] Successfully {action.name.lower()} container: {container_name}"
         )
 
     def _on_docker_error(self, message: str):
@@ -325,6 +325,11 @@ class CANWindowUIMixin:
             self.log_and_report_docker_error(str(e))
             return
 
+        QMessageBox.information(
+            self,
+            "Success",
+            f"Successfully killed the software",
+        )
         self.append_docker_log(f"[INFO] {result}")
 
     def change_SSH_profile(self):
