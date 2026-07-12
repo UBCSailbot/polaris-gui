@@ -328,7 +328,7 @@ class CANWindowUIMixin:
         QMessageBox.information(
             self,
             "Success",
-            f"Successfully killed the software",
+            "Successfully killed the software",
         )
         self.append_docker_log(f"[INFO] {result}")
 
