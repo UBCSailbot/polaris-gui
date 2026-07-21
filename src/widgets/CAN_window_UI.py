@@ -7,8 +7,8 @@ from PyQt5.QtWidgets import (
     QComboBox,
     QHBoxLayout,
     QLabel,
-    QTextEdit,
     QMessageBox,
+    QTextEdit,
 )
 
 from config import pid_param_categories, pid_params
@@ -243,7 +243,10 @@ class CANWindowUIMixin:
     def run_docker_command(self, action: Docker_Command):
         container_name = self.container_text_box.text().strip()
 
-        if not container_name:
+        if (
+            not container_name
+            and not action.command_type == Docker_Command_Type.LIST_CONTAINERS
+        ):
             self.log_and_report_docker_error("Enter a Docker container name.")
             return
 
@@ -258,6 +261,7 @@ class CANWindowUIMixin:
         self.docker_thread = DockerWorkerThread(command, action)
         self.docker_thread.success.connect(self._on_docker_success)
         self.docker_thread.error.connect(self._on_docker_error)
+        self.docker_thread.output.connect(self.append_docker_log)
 
         if (
             action.command_type == Docker_Command_Type.START_VISUAL

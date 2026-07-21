@@ -8,6 +8,7 @@ from data_object import Docker_Command, Docker_Command_Type
 class DockerWorkerThread(QThread):
     success = pyqtSignal(Docker_Command_Type)  # action name
     error = pyqtSignal(str)  # error message
+    output = pyqtSignal(str)
 
     def __init__(self, command: str, action: Docker_Command):
         super().__init__()
@@ -16,22 +17,31 @@ class DockerWorkerThread(QThread):
 
     def run(self):
         try:
-            send_docker_command(self.command)
+            out = send_docker_command(self.command)
+
+            if self.action.command_type == Docker_Command_Type.LIST_CONTAINERS:
+                self.output.emit(out)
+
             self.success.emit(self.action.command_type)
         except Exception as e:
             self.error.emit(str(e))
 
 
 def generate_docker_command(action: Docker_Command, container_name: str):
-    command_text = "docker "
+    command_text = ""
 
     match action.command_type:
         case Docker_Command_Type.STOP:
             print(f"Stopping container: {container_name}")
-            command_text += f"stop {container_name}"
+            command_text = f"{action.command} {container_name}"
+        case Docker_Command_Type.LIST_CONTAINERS:
+            print("Listing all availible containers:")
+            command_text = action.command
         case _:
             run_text = f'docker exec -d {container_name} bash -ic "'
-            command_text += f'start {container_name} && {run_text} {action.command}"'
+            command_text = (
+                f'docker start {container_name} && {run_text} {action.command}"'
+            )
             print(
                 f"Running {action.command_type.name} on docker container {container_name}"
             )
@@ -39,7 +49,7 @@ def generate_docker_command(action: Docker_Command, container_name: str):
     return command_text
 
 
-def send_docker_command(command: str):
+def send_docker_command(command: str) -> str:
     # Set up the SSH Client
     ssh = paramiko.SSHClient()
     # Automatically add the server's SSH key (prevents "unknown host" errors)
@@ -69,6 +79,8 @@ def send_docker_command(command: str):
 
         if exit_status != 0:
             raise RuntimeError(err)
+
+        return out
 
     except paramiko.AuthenticationException:
         raise RuntimeError("Authentication failed. Check your username and password.")
