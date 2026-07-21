@@ -39,8 +39,19 @@ def generate_docker_command(action: Docker_Command, container_name: str):
             command_text = action.command
         case _:
             run_text = f'docker exec -d {container_name} bash -ic "'
+            start_mode = "restart"
+
+            # these commands typically are to modifiy a running instance.
+            # The remaining START_ commands need to use restart to prevent multiple
+            # instances running concurently.
+            if (
+                action.command_type == Docker_Command_Type.START_COMMS
+                or action.command_type == Docker_Command_Type.STOP_COMMS
+            ):
+                start_mode = "start"
+
             command_text = (
-                f'docker start {container_name} && {run_text} {action.command}"'
+                f'docker {start_mode} {container_name} && {run_text} {action.command}"'
             )
             print(
                 f"Running {action.command_type.name} on docker container {container_name}"
