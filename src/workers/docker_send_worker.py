@@ -47,6 +47,7 @@ def generate_docker_command(action: Docker_Command, container_name: str):
             if (
                 action.command_type == Docker_Command_Type.START_COMMS
                 or action.command_type == Docker_Command_Type.STOP_COMMS
+                or action.command_type == Docker_Command_Type.ROS_SERVICE_CALL
             ):
                 start_mode = "start"
 
