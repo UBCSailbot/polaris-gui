@@ -199,7 +199,13 @@ class CANWindow(
     # def update_status(self):
     # def _update_plot_ranges(self, current_time):
 
-    def show_error(self, msg):
+    def show_error(self, msg, log_to_output=True):
+        if (
+            log_to_output
+            and hasattr(self, "output_display")
+            and self.output_display is not None
+        ):
+            self.output_display.append(f"[ERR] {msg}")
         QMessageBox.critical(self, "Error", msg)
         print(f"Error: {msg}")
 
@@ -215,7 +221,7 @@ def cleanup():
     # Close window and log files
     try:
         window.closeEvent(None)
-    except:
+    except Exception:
         pass
 
     # Clean up processes
