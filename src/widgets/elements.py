@@ -350,7 +350,7 @@ def init_advanced_soft_panel(self):
     custom_launch_btn.setMaximumWidth(150)
 
     # list all availible containers button
-    list_containers_btn = QPushButton("List availible containers")
+    list_containers_btn = QPushButton("List available containers")
     list_containers_btn.clicked.connect(
         lambda _: self.run_docker_command(
             Docker_Command(Docker_Command_Type.LIST_CONTAINERS)
