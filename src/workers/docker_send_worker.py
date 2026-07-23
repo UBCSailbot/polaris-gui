@@ -35,7 +35,7 @@ def generate_docker_command(action: Docker_Command, container_name: str):
             print(f"Stopping container: {container_name}")
             command_text = f"{action.command} {container_name}"
         case Docker_Command_Type.LIST_CONTAINERS:
-            print("Listing all availible containers:")
+            print("Listing all available containers:")
             command_text = action.command
         case _:
             run_text = f'docker exec -d {container_name} bash -ic "'
