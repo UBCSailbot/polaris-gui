@@ -400,8 +400,6 @@ def init_advanced_soft_panel(self):
 
     panel_layout.addWidget(grid_widget)
     panel_layout.addLayout(advanced_buttons)
-    panel_layout.addWidget(QLabel("Docker Message Log:"))
-    panel_layout.addWidget(self.docker_log_display)
     panel_layout.addLayout(logs_row)
     panel_layout.addWidget(QLabel("ROS Live Stream:"))
     # Stretch factor lets the stream box absorb any extra vertical space.
