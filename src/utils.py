@@ -75,6 +75,11 @@ def val(raw_bytes, s, e, div) -> float:
     return int.from_bytes(raw_bytes[s:e], "little") / div
 
 
+def signed_val(raw_bytes, s, e, div) -> float:
+    """Same as val(), but for two's complement (signed) fields"""
+    return int.from_bytes(raw_bytes[s:e], "little", signed=True) / div
+
+
 def convert_float_to_binary32hex(val: float) -> str:
     """
     Return a 8-character lowercase hex string in big endian byte order
@@ -157,6 +162,61 @@ def parse_0x204_frame(data_hex):
         derivative_obj.name: val(12, 14, 1.0) - cg.derivative_offset,
         spd_over_gnd_obj.name: val(14, 16, 1000.0),
     }
+
+
+def parse_0x002_frame(data_hex):
+    raw_bytes = bytes.fromhex(data_hex)
+    if len(raw_bytes) != 4:
+        raise ValueError("Incorrect data length (num bytes): ID 0x002")
+
+    return {  # angle is positive by the right hand rule with vector upwards
+        set_trimtab_obj.name: val(raw_bytes, 0, 4, 1000.0) - 90,
+    }
+
+
+POWER_OFF_VALUE = 0xF  # the only value the POWER_OFF (0x003) frame ever takes
+
+
+def parse_0x003_frame(data_hex) -> int:
+    """
+    Returns the raw POWER_OFF value; per the CAN frame documentation this frame only
+    ever takes the value 0xF, meaning power is cut in 15-30 seconds
+    """
+    raw_bytes = bytes.fromhex(data_hex)
+    if len(raw_bytes) != 1:
+        raise ValueError("Incorrect data length (num bytes): ID 0x003")
+
+    return raw_bytes[0]
+
+
+def parse_0x030_frame(data_hex):
+    raw_bytes = bytes.fromhex(data_hex)
+    if len(raw_bytes) != 8:
+        raise ValueError("Incorrect data length (num bytes): ID 0x030")
+
+    parsed = {
+        bms_volt_obj.name: val(raw_bytes, 0, 4, 100.0),
+        # NOTE: current is signed - negative for charging, positive for discharging
+        bms_curr_obj.name: signed_val(raw_bytes, 4, 8, 100.0),
+    }
+
+    range_check(bms_volt_obj.name, parsed[bms_volt_obj.name], 0)
+
+    return parsed
+
+
+def parse_0x050_frame(data_hex):
+    raw_bytes = bytes.fromhex(data_hex)
+    if len(raw_bytes) != 4:
+        raise ValueError("Incorrect data length (num bytes): ID 0x050")
+
+    parsed = {  # true heading (from the e-compass) in degrees, 0 is north and increasing CW
+        rudr_heading_obj.name: val(raw_bytes, 0, 4, 1000.0),
+    }
+
+    range_check(rudr_heading_obj.name, parsed[rudr_heading_obj.name], 0, 360)
+
+    return parsed
 
 
 def actual_rudder_parsing_fn(parsed_dict):
@@ -471,13 +531,22 @@ pdb_title_text = "PDB Status: "
 rudr_title_text = "RUDR Status: "
 sail_title_text = "SAIL Status: "
 sense_title_text = "SENSE Status: "
+main_title_text = "MAIN Status: "
 
 pdb_hb_module = HeartbeatModule(pdb_title_text)
 rudr_hb_module = HeartbeatModule(rudr_title_text)
 sail_hb_module = HeartbeatModule(sail_title_text)
 sense_hb_module = HeartbeatModule(sense_title_text)
+# NOTE: MAIN_HEARTBEAT is addressed to the PDB, but the GUI sees it on the bus as well
+main_hb_module = HeartbeatModule(main_title_text)
 
-heartbeat_modules = [pdb_hb_module, sail_hb_module, rudr_hb_module, sense_hb_module]
+heartbeat_modules = [
+    pdb_hb_module,
+    sail_hb_module,
+    rudr_hb_module,
+    sense_hb_module,
+    main_hb_module,
+]
 
 ### ---------- Data Objects ---------- ###
 # NOTE: If multiple data objects take data from the same frame, the parsing function function for all of them is None
@@ -530,6 +599,20 @@ mppt_ss_obj = DataObject(
     "MPPT_curr_sail_star", 2, "A", None, line_colour="y", graph=mppt_current_graph_obj
 )
 
+# Battery voltage & current (from BMS frame 0x030)
+bms_volt_graph_obj = GraphObject(
+    "BMS Battery Voltage", cg.graph_y, "V", cg.graph_y_units, 0, 20
+)
+bms_volt_obj = DataObject(
+    "BMS_voltage", 2, "V", None, line_colour="r", graph=bms_volt_graph_obj
+)
+bms_curr_graph_obj = GraphObject(
+    "BMS Battery Current", cg.graph_y, "A", cg.graph_y_units, -20, 20
+)
+bms_curr_obj = DataObject(  # negative when charging, positive when discharging
+    "BMS_current", 2, "A", None, line_colour="b", graph=bms_curr_graph_obj
+)
+
 # Rudder angles (set & actual)
 rudder_graph = GraphObject("Rudder Angles", cg.graph_y, "°", cg.graph_y_units, -90, 90)
 actual_rudder_obj = DataObject(
@@ -539,6 +622,14 @@ set_rudder_obj = DataObject(
     "Set_rdr_deg", 2, "°", None, line_dashed=True, line_colour="b", graph=rudder_graph
 )  # NOTE: graph parsing function changed to None here
 
+# Trim tab angle commanded by the mainframe (from frame 0x002)
+trimtab_graph_obj = GraphObject(
+    "Trim Tab Angle", cg.graph_y, "°", cg.graph_y_units, -90, 90
+)
+set_trimtab_obj = DataObject(
+    "Set_trimtab_deg", 2, "°", None, line_colour="m", graph=trimtab_graph_obj
+)
+
 # Speed over ground (from debug frame 0x204)
 spd_over_gnd_graph_obj = GraphObject(
     "Speed Over Ground", cg.graph_y, "km/h", cg.graph_y_units, 0, 20
@@ -547,9 +638,9 @@ spd_over_gnd_obj = DataObject(
     "Speed_over_gnd", 3, "km/h", None, line_colour="brown", graph=spd_over_gnd_graph_obj
 )
 
-# Headings (IMU & Desired)
+# Headings (IMU, Desired & True)
 headings_graph_obj = GraphObject(
-    "IMU & Desired Headings", cg.graph_y, "°", cg.graph_y_units, 0, 360
+    "IMU, Desired & True Headings", cg.graph_y, "°", cg.graph_y_units, 0, 360
 )
 # imu_heading_obj = DataObject("IMU_heading", 3, "°", None, line_colour="r", graph=headings_graph_obj)
 # desired_heading_obj = DataObject("Desired_heading", 3, "°", None, line_dashed=True, line_colour="b", graph=headings_graph_obj)
@@ -567,6 +658,11 @@ desired_heading_obj = DesiredHeadingObject(
     graph=headings_graph_obj,
     imu_heading_ref_obj=imu_heading_obj,
     interval=cg.manual_input_obj_update_interval,
+)
+# True heading from the rudder board's e-compass (frame 0x050); the IMU heading above
+# comes from the 0x204 debug frame, so the two are plotted together to be compared
+rudr_heading_obj = IMUHeadingObject(
+    "Rudr_true_heading", 3, "°", None, line_colour="g", graph=headings_graph_obj
 )
 
 # IMU roll & pitch
@@ -727,6 +823,15 @@ rudder_objs = [  # all objects with data from 0x204 frame (rudder -> mainframe)
     derivative_obj,
 ]
 
+# all objects with data from 0x050 frame (rudder -> mainframe)
+rudr_objs = [rudr_heading_obj]
+
+# all objects with data from 0x030 frame (pdb -> mainframe)
+bms_objs = [bms_volt_obj, bms_curr_obj]
+
+# all objects with data from 0x002 frame (mainframe -> sail)
+trimtab_objs = [set_trimtab_obj]
+
 data_objs = [pH_obj, temp_sensor_obj, sal_obj]
 gps_objs = [gps_lat_obj, gps_lon_obj, pid_obj]  # pid_y_obj, pid_x_obj]
 
@@ -739,8 +844,11 @@ data_objs = (
     + data_wind_objs
     + sail_wind_objs
     + rudder_objs
+    + rudr_objs
     + [desired_heading_obj]
+    + trimtab_objs
     + pdb_objs
+    + bms_objs
 )
 
 all_objs = data_objs.copy()
@@ -756,7 +864,10 @@ graph_objs = [
     pdb_temp_graph_obj,
     pdb_volt_graph_obj,
     mppt_current_graph_obj,
+    bms_volt_graph_obj,
+    bms_curr_graph_obj,
     rudder_graph,
+    trimtab_graph_obj,
     spd_over_gnd_graph_obj,
     headings_graph_obj,
     imu_roll_pitch_graph_obj,
