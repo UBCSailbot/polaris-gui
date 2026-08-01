@@ -401,7 +401,7 @@ def init_advanced_soft_panel(self):
     panel_layout.addWidget(grid_widget)
     panel_layout.addLayout(advanced_buttons)
     panel_layout.addLayout(logs_row)
-    panel_layout.addWidget(QLabel("ROS Live Stream:"))
+    panel_layout.addWidget(QLabel("ROS2 service output"))
     # Stretch factor lets the stream box absorb any extra vertical space.
     panel_layout.addWidget(self.ros_stream_display, 1)
 
