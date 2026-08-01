@@ -13,6 +13,7 @@ from data_object import (
     DesiredHeadingObject,
     GraphObject,
     IMUHeadingObject,
+    MapGraphObject,
     PIDObject,
     ais_attributes,
 )
@@ -760,7 +761,9 @@ polaris_brush = mkBrush(color="r")
 # other_pen = pg.mkPen(color='b', width=1)
 other_brush = mkBrush(color="b")
 
-position_graph_obj = GraphObject(
+# NOTE: a MapGraphObject rather than a plain GraphObject, so ship positions are drawn
+#       to scale on a chart-style plan view (offline - no map tiles are involved)
+position_graph_obj = MapGraphObject(
     "Latitude", "Longitude", "DD", "DD", -90, 90, "Ship Positions"
 )  # note: this graph's x_range should definitely not be updated with the rest
 ais_obj = AISObject(

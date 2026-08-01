@@ -26,6 +26,7 @@ from utils import (
     gps_lon_obj,
     gps_objs,
     heartbeat_modules,
+    imu_heading_obj,
     main_hb_module,
     manual_input_objs,
     parse_0x001_frame,
@@ -45,6 +46,7 @@ from utils import (
     POWER_OFF_VALUE,
     rudder_objs,
     rudr_hb_module,
+    rudr_heading_obj,
     rudr_objs,
     sail_hb_module,
     sail_wind_objs,
@@ -215,7 +217,11 @@ class CANWindowUpdateMixin:
                                 if ais_obj.graph_obj.isVisible():  # graph POLARIS's current position if graph is visible
                                     lon = gps_lon_obj.get_current()[1]
                                     lat = gps_lat_obj.get_current()[1]
-                                    ais_obj.update_polaris_pos(lon, lat)
+                                    # prefer the e-compass true heading (0x050) over the IMU heading (debug frame 0x204)
+                                    heading = rudr_heading_obj.get_current()[1]
+                                    if heading is None:
+                                        heading = imu_heading_obj.get_current()[1]
+                                    ais_obj.update_polaris_pos(lon, lat, heading)
                                     ais_obj.update_range(
                                         lon - longitude_range,
                                         lon + longitude_range,

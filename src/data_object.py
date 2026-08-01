@@ -13,6 +13,35 @@ import config as cg
 graph_margin = 0.2
 MAX_ANGLE_JUMP = 180
 
+### ---------- Map (AIS plan view) constants & helpers ---------- ###
+METRES_PER_DEG_LAT = 110574  # mean length of a degree of latitude (WGS84)
+METRES_PER_DEG_LON_EQUATOR = 111320  # length of a degree of longitude at the equator
+MIN_ASPECT_RATIO = 0.01  # keeps the map usable if a position near a pole is received
+MAP_FURNITURE_Z = -100  # draw rings/bearings underneath the ships
+RING_SEGMENT_DEG = 5  # angular resolution the range rings are drawn at
+COMPASS_LABEL_MARGIN = 1.08  # compass points sit just outside the outermost ring
+KM_PER_KNOT = 1.852
+
+
+def metres_per_deg_lon(latitude: float) -> float:
+    """Length (in metres) of one degree of longitude at the given latitude"""
+    return METRES_PER_DEG_LON_EQUATOR * math.cos(math.radians(latitude))
+
+
+def nice_ring_spacing(radius_km: float, max_rings: int) -> float:
+    """
+    Return a round spacing (in km) for range rings, such that no more than max_rings
+    rings fit within radius_km - ie. rings every 1, 2 or 5 km, never every 2.77 km
+    """
+    if radius_km <= 0 or max_rings <= 0:
+        return 0
+    smallest = radius_km / max_rings
+    magnitude = 10 ** math.floor(math.log10(smallest))
+    for step in (1, 2, 5):
+        if smallest <= step * magnitude:
+            return step * magnitude
+    return 10 * magnitude
+
 
 def create_label(title, min_width=None, max_height=None):
     if min_width is None:
@@ -192,6 +221,160 @@ class GraphObject:  # struct which keeps together objects needed for a graph
 
     def isVisible(self):
         return self.visible
+
+
+class MapGraphObject(GraphObject):
+    """
+    A GraphObject which presents its (longitude, latitude) data as a chart-style plan
+    view instead of a plain x-y plot:\n
+    - the aspect ratio is locked so a kilometre north and a kilometre east are drawn
+      the same length; without this the picture is stretched east-west by the
+      difference between a degree of latitude and a degree of longitude\n
+    - range rings, bearing spokes and compass points centered on POLARIS give the
+      distance and bearing to every contact at a glance\n
+    NOTE: every element is drawn from vectors - there are no map tiles and no network
+    access of any kind, so the map works offline (as it must on the water)
+    """
+
+    def __init__(self, *args, radius_km=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.centre = (None, None)  # (lon, lat) the map furniture is drawn around
+        # radius of the area the map is expected to cover (used to size the rings)
+        self.radius_km = (
+            radius_km
+            if radius_km is not None
+            else (cg.latitude_range * METRES_PER_DEG_LAT / 1000)
+        )
+        self.ring_curves = []
+        self.range_label = None  # marks the range of the outermost ring
+        self.ring_spacing_km = None  # spacing currently named in the graph title
+        self.bearing_curve = None
+        self.compass_labels = {}
+
+    def initialize(self, custom_y_AxisItem=None):
+        super().initialize(custom_y_AxisItem)
+        # a locked aspect ratio is what turns the plot into a map; the exact ratio
+        # depends on latitude, so it is corrected again as soon as POLARIS reports one
+        self.lock_aspect(self.centre[1] if self.centre[1] is not None else 0)
+        self._init_map_items()
+        if self.centre[0] is not None:
+            self.draw_map()
+
+    def _init_map_items(self):
+        """Create the (empty) range rings, bearing spokes and compass points"""
+        ring_pen = pg.mkPen(cg.map_ring_colour, width=1, style=QtCore.Qt.DashLine)
+        bearing_pen = pg.mkPen(cg.map_bearing_colour, width=1, style=QtCore.Qt.DotLine)
+
+        self.ring_curves = [
+            pg.PlotCurveItem(pen=ring_pen) for _ in range(cg.map_ring_max_count)
+        ]
+        # only the outermost ring is labelled (the ring spacing goes in the title
+        # instead) so the map stays readable when contacts are close together;
+        # the fill masks the bearing spoke running underneath the label
+        self.range_label = pg.TextItem(
+            color=cg.map_ring_label_colour,
+            anchor=(0.5, 0.5),
+            fill=pg.mkBrush(cg.graph_bg),
+        )
+
+        self.bearing_curve = pg.PlotCurveItem(pen=bearing_pen)
+        for bearing, text in ((0, "N"), (90, "E"), (180, "S"), (270, "W")):
+            self.compass_labels[bearing] = pg.TextItem(
+                text, color=cg.map_compass_colour, anchor=(0.5, 0.5)
+            )
+
+        # NOTE: ignoreBounds keeps the map furniture from dragging the view range around
+        for item in (
+            self.ring_curves
+            + [self.range_label, self.bearing_curve]
+            + list(self.compass_labels.values())
+        ):
+            item.setZValue(MAP_FURNITURE_Z)
+            self.graph.addItem(item, ignoreBounds=True)
+
+    def lock_aspect(self, latitude: float) -> None:
+        """
+        Lock the view so that equal distances are drawn equal in both axes.\n
+        pyqtgraph's aspect is (pixels per x unit) / (pixels per y unit), so it is the
+        ratio of the length of a degree of longitude to that of a degree of latitude
+        """
+        ratio = metres_per_deg_lon(latitude) / METRES_PER_DEG_LAT
+        self.graph.getPlotItem().getViewBox().setAspectLocked(
+            True, ratio=max(ratio, MIN_ASPECT_RATIO)
+        )
+
+    def set_centre(self, lon, lat) -> None:
+        """Re-draw the map furniture around the given position (POLARIS)"""
+        if lon is None or lat is None:
+            return
+        self.centre = (lon, lat)
+        if not self.initialized:
+            return  # graph widget does not exist yet - drawn on initialize() instead
+        self.lock_aspect(lat)
+        self.draw_map()
+
+    def name_ring_spacing(self, spacing_km: float) -> None:
+        """Note the range ring spacing in the graph title, so the rings need no labels"""
+        if spacing_km == self.ring_spacing_km:
+            return  # title already says this - nothing to redraw
+        self.ring_spacing_km = spacing_km
+        title = self.dropdown_label
+        if spacing_km > 0:
+            title += f"  (range rings: {spacing_km:g} km)"
+        self.graph.setTitle(
+            title, color=cg.graph_title_style[0], size=cg.graph_title_style[1]
+        )
+
+    def draw_map(self) -> None:
+        """Draw the range rings, bearing spokes and compass points around the centre"""
+        lon, lat = self.centre
+        if lon is None or lat is None or not self.initialized:
+            return
+
+        deg_per_km_lon = 1000 / metres_per_deg_lon(lat)
+        deg_per_km_lat = 1000 / METRES_PER_DEG_LAT
+        spacing_km = nice_ring_spacing(self.radius_km, cg.map_ring_max_count)
+
+        outer_km = 0
+        for i, curve in enumerate(self.ring_curves, start=1):
+            ring_km = spacing_km * i
+            if spacing_km <= 0 or ring_km > self.radius_km:
+                curve.setData([], [])  # unused ring: draw nothing
+                continue
+            outer_km = ring_km
+            d_lon = ring_km * deg_per_km_lon
+            d_lat = ring_km * deg_per_km_lat
+            points = [
+                (
+                    lon + d_lon * math.sin(math.radians(bearing)),
+                    lat + d_lat * math.cos(math.radians(bearing)),
+                )
+                for bearing in range(0, 361, RING_SEGMENT_DEG)
+            ]
+            curve.setData([p[0] for p in points], [p[1] for p in points])
+
+        self.name_ring_spacing(spacing_km)
+        if outer_km == 0:  # no rings fit - fall back to the full map radius
+            outer_km = self.radius_km
+            self.range_label.setText("")
+        else:  # label the outermost ring, due north on the ring itself
+            self.range_label.setText(f"{outer_km:g} km")
+            self.range_label.setPos(lon, lat + outer_km * deg_per_km_lat)
+
+        # bearing spokes, drawn as one curve with NaN gaps between the spokes
+        spoke_x, spoke_y = [], []
+        for bearing in range(0, 360, cg.map_bearing_interval):
+            rad = math.radians(bearing)
+            spoke_x += [lon, lon + outer_km * deg_per_km_lon * math.sin(rad), math.nan]
+            spoke_y += [lat, lat + outer_km * deg_per_km_lat * math.cos(rad), math.nan]
+        self.bearing_curve.setData(spoke_x, spoke_y, connect="finite")
+
+        for bearing, label in self.compass_labels.items():
+            rad = math.radians(bearing)
+            label.setPos(
+                lon + outer_km * COMPASS_LABEL_MARGIN * deg_per_km_lon * math.sin(rad),
+                lat + outer_km * COMPASS_LABEL_MARGIN * deg_per_km_lat * math.cos(rad),
+            )
 
 
 class DataObject:
@@ -755,6 +938,9 @@ class AISObject(DataObject):
         self.dataset_list = []  # a list of dictionaries, where each dictionary contains all data for one frame
         self.dataset = {}  # same as above but is a dictionary containing a bunch of frames instead, of the form MSID: dictionary
         self.log_value_headers = log_value_headers
+        self.ship_labels = {}  # TextItem naming each contact, of the form MMSI: item
+        self.ship_vector_curve = None  # course/speed vector of every contact
+        self.polaris_heading_curve = None  # POLARIS's own heading line
 
     def initialize(self, timestamp=None):
         super().initialize()
@@ -773,6 +959,16 @@ class AISObject(DataObject):
             self.polaris_brush,
             "x",
         )
+        # Course/speed vectors: one curve holding every contact's vector, with NaN
+        # gaps in between, so contacts can come and go without adding/removing items
+        self.ship_vector_curve = pg.PlotCurveItem(
+            pen=pg.mkPen(cg.map_ship_vector_colour, width=cg.linewidth)
+        )
+        self.polaris_heading_curve = pg.PlotCurveItem(
+            pen=pg.mkPen(cg.map_polaris_vector_colour, width=cg.linewidth)
+        )
+        for curve in (self.ship_vector_curve, self.polaris_heading_curve):
+            self.graph_obj.graph.addItem(curve, ignoreBounds=True)
 
     def add_frame(self, x, y, key, data, x_key):
         """x_key is the key for the value containing the x_value"""
@@ -798,6 +994,80 @@ class AISObject(DataObject):
     def clear_data(self):
         self.data.clear()
 
+    def update_line_data(self) -> None:
+        """
+        Re-draw every contact from self.dataset: its position, the vector showing
+        where its course and speed take it over the next cg.map_vector_minutes, and
+        a label naming it.\n
+        NOTE: drawing from self.dataset (keyed by MMSI) rather than self.data (keyed
+        by longitude) means two ships sharing a longitude are both drawn
+        """
+        if self.line is None:
+            return
+
+        lons, lats = [], []
+        vector_x, vector_y = [], []
+        for mmsi, frame in self.dataset.items():
+            lon = frame[AIS_Attributes.LONGITUDE]
+            lat = frame[AIS_Attributes.LATITUDE]
+            if lon is None or lat is None:
+                continue
+            lons.append(lon)
+            lats.append(lat)
+
+            end = self.course_vector_end(frame)
+            if end is not None:  # NaN gap separates this vector from the next one
+                vector_x += [lon, end[0], math.nan]
+                vector_y += [lat, end[1], math.nan]
+
+            self.update_ship_label(mmsi, frame, lon, lat)
+
+        self.line.setData(lons, lats)
+        if self.ship_vector_curve is not None:
+            self.ship_vector_curve.setData(vector_x, vector_y, connect="finite")
+        self.remove_stale_ship_labels()
+
+    def course_vector_end(self, frame):
+        """
+        Return the (lon, lat) a contact reaches after cg.map_vector_minutes on its
+        current course & speed, or None if either is unavailable
+        """
+        cog = frame[AIS_Attributes.COG]
+        sog = frame[AIS_Attributes.SOG]
+        lon = frame[AIS_Attributes.LONGITUDE]
+        lat = frame[AIS_Attributes.LATITUDE]
+        if cog is None or not sog or lon is None or lat is None:
+            return None
+
+        distance_km = sog * KM_PER_KNOT * (cg.map_vector_minutes / 60)
+        rad = math.radians(cog)  # COG is in degrees, 0 is north and increasing CW
+        return (
+            lon + (distance_km * 1000 / metres_per_deg_lon(lat)) * math.sin(rad),
+            lat + (distance_km * 1000 / METRES_PER_DEG_LAT) * math.cos(rad),
+        )
+
+    def update_ship_label(self, mmsi, frame, lon, lat) -> None:
+        """Create (if needed) and position the label naming a single contact"""
+        if mmsi not in self.ship_labels:
+            label = pg.TextItem(
+                color=cg.map_ship_label_colour, anchor=(-0.1, 1.1)
+            )  # anchored so the text sits just above & right of the contact
+            self.ship_labels[mmsi] = label
+            self.graph_obj.graph.addItem(label, ignoreBounds=True)
+
+        text = str(frame[AIS_Attributes.SID])
+        sog = frame[AIS_Attributes.SOG]
+        if sog is not None:
+            text += f"\n{sog} kn"
+        self.ship_labels[mmsi].setText(text)
+        self.ship_labels[mmsi].setPos(lon, lat)
+
+    def remove_stale_ship_labels(self) -> None:
+        """Drop the labels of contacts which are no longer in the dataset"""
+        for mmsi in list(self.ship_labels.keys()):
+            if mmsi not in self.dataset:
+                self.graph_obj.graph.removeItem(self.ship_labels.pop(mmsi))
+
     def update_range(self, x_min=None, x_max=None, y_min=None, y_max=None):
         """
         Modify the range of the x and y axes of the graph object belonging to this object.
@@ -819,7 +1089,10 @@ class AISObject(DataObject):
             ):  # if data has not been updated for long enough: remove dp
                 points_to_delete.append(key)
         for key in points_to_delete:
-            self.remove_datapoint(self.dataset[key][AIS_Attributes.LONGITUDE])
+            # NOTE: the check is needed because self.data is keyed by longitude, so a
+            # contact's point may already have been overwritten by another contact
+            if self.dataset[key][AIS_Attributes.LONGITUDE] in self.data:
+                self.remove_datapoint(self.dataset[key][AIS_Attributes.LONGITUDE])
             del self.dataset[key]
         if self.graph_obj and self.graph_obj.graph.isVisible():
             self.update_line_data()
@@ -867,16 +1140,39 @@ class AISObject(DataObject):
 
         return
 
-    def update_polaris_pos(self, lon, lat):
+    def update_polaris_pos(self, lon, lat, heading=None):
+        """
+        Move POLARIS (and with it the map centred on POLARIS) to the given position.\n
+        heading (in degrees, 0 is north and increasing CW) is optional; when given, a
+        heading line is drawn from POLARIS out to the edge of the map
+        """
         if lon is None or lat is None:
             print(
                 "ERR - update_polaris_pos(): POLARIS lon or lat is None, its position cannot be graphed"
             )
             return  # if either is None, can't graph position - just return
+        self.polaris_pos = (lon, lat)
+        self.graph_obj.set_centre(lon, lat)  # re-centre the range rings & bearings
         if self.graph_obj.isVisible():
             self.polaris_line.setData([lon], [lat])
+        self.update_polaris_heading(lon, lat, heading)
         # print("polaris_pos updated!")
         # print("self.polaris_line = (", self.polaris_line.xData, ", ", self.polaris_line.yData, ")")
+
+    def update_polaris_heading(self, lon, lat, heading) -> None:
+        """Draw POLARIS's heading line, out to the edge of the mapped area"""
+        if self.polaris_heading_curve is None:
+            return
+        if heading is None:
+            self.polaris_heading_curve.setData([], [])
+            return
+
+        rad = math.radians(heading)
+        length_km = self.graph_obj.radius_km
+        self.polaris_heading_curve.setData(
+            [lon, lon + (length_km * 1000 / metres_per_deg_lon(lat)) * math.sin(rad)],
+            [lat, lat + (length_km * 1000 / METRES_PER_DEG_LAT) * math.cos(rad)],
+        )
 
 
 # Docker Command classes
