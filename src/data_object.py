@@ -888,11 +888,15 @@ class Docker_Command_Type(Enum):
     START_VISUAL = """ros2 launch global_launch main_launch.py record:=true mode:=production \
             log_level:=debug visualizer_mode:=true config:=on_water_globals.yaml \
             2>&1 | tee src/global_launch/voyage_log/combined_log_$( date +%F_%T).txt"""
-    STOP = ""
     START_COMMS = "ros2 param set /can_transceiver_node manual_mode false"
     STOP_COMMS = "ros2 param set /can_transceiver_node manual_mode true"
     ROS_SERVICE_CALL = (
         """ros2 service call /receive_and_pub std_srvs/srv/Trigger \"{}\""""
+    )
+    # COMMANDS BELLOW ARE RUN OUTSIDE OF THE CONTAINER
+    STOP = "docker stop"
+    LIST_CONTAINERS = (
+        """docker container ls -a --format 'table {{.Names}}\\t\\t{{.Image}}' """
     )
 
 

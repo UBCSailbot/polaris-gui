@@ -199,6 +199,20 @@ class CANWindowUIMixin:
             f"container '{container_name}'."
         )
 
+    def append_docker_log(self, message: str) -> None:
+        if getattr(self, "docker_log_display", None) is not None:
+            self.docker_log_display.append(message)
+
+    def log_and_report_docker_error(self, message: str) -> None:
+        self.append_docker_log(f"[ERROR] {message}")
+        self.show_error(message, log_to_output=False)
+
+    def log_docker_action(self, action: Docker_Command, container_name: str) -> None:
+        self.append_docker_log(
+            f"[{action.command_type.name}] Queued docker action for "
+            f"container '{container_name}'."
+        )
+
     def update_pid_param_dropdown(self, text: str) -> None:
         """Updates the PID param dropdown based on the category selected"""
         first, last = pid_param_categories[text]
@@ -261,7 +275,10 @@ class CANWindowUIMixin:
     def run_docker_command(self, action: Docker_Command):
         container_name = self.container_text_box.text().strip()
 
-        if not container_name:
+        if (
+            not container_name
+            and not action.command_type == Docker_Command_Type.LIST_CONTAINERS
+        ):
             self.log_and_report_docker_error("Enter a Docker container name.")
             return
 
@@ -276,6 +293,7 @@ class CANWindowUIMixin:
         self.docker_thread = DockerWorkerThread(command, action)
         self.docker_thread.success.connect(self._on_docker_success)
         self.docker_thread.error.connect(self._on_docker_error)
+        self.docker_thread.output.connect(self.append_docker_log)
 
         if (
             action.command_type == Docker_Command_Type.START_VISUAL
