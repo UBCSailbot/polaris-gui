@@ -1,7 +1,7 @@
 import webbrowser
 from types import SimpleNamespace
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QTextCursor
 from PyQt5.QtWidgets import (
     QApplication,
@@ -23,11 +23,26 @@ from workers.docker_send_worker import (
     generate_docker_command,
     kill_software,
 )
-from workers.ros_info_worker import RosCommandThread, RosStreamThread
+from workers.ros_info_worker import (
+    LAUNCH_LOG_STREAM_LABEL,
+    RosCommandThread,
+    RosStreamThread,
+    build_launch_log_command,
+)
 from workers.visualizer_tunnel_worker import VisualizerTunnelThread
 
 from . import elements as elemns
 from . import styles as styles
+
+# Launch commands whose ERROR/WARN/FATAL output is worth following automatically.
+LAUNCH_COMMAND_TYPES = (
+    Docker_Command_Type.START,
+    Docker_Command_Type.START_VISUAL,
+    Docker_Command_Type.START_CUSTOM,
+)
+# Small head start for the container; the remote command waits for the log file
+# itself (see LAUNCH_LOG_WAIT_SECONDS), so this does not need to cover the launch.
+LAUNCH_LOG_ATTACH_DELAY_MS = 1000
 
 
 # UI creation functions
@@ -347,6 +362,16 @@ class CANWindowUIMixin:
             f"[INFO] Successfully {action.name.lower()} container: {container_name}"
         )
 
+        if action in LAUNCH_COMMAND_TYPES:
+            # The launch runs detached and needs a moment to create its combined
+            # log file before there is anything to follow.
+            self._append_ros_stream_line(
+                "=== waiting for the launch log to appear... ==="
+            )
+            QTimer.singleShot(
+                LAUNCH_LOG_ATTACH_DELAY_MS, self._attach_to_new_launch_logs
+            )
+
     def _on_docker_error(self, message: str):
         self.log_and_report_docker_error(message)
 
@@ -374,6 +399,12 @@ class CANWindowUIMixin:
         """Appends a snapshot/status message to the ROS info box as its own block."""
         if getattr(self, "ros_dump_display", None) is not None:
             self.ros_dump_display.append(message)
+
+    def _set_ros_stream_label(self, label: str) -> None:
+        """Retitles the stream box so it names whatever is currently streaming."""
+        stream_label = getattr(self, "ros_stream_label", None)
+        if stream_label is not None:
+            stream_label.setText(f"Live stream: {label}")
 
     def _append_ros_stream_line(self, message: str) -> None:
         """Appends a discrete status line (start/stop/error) to the live stream box."""
@@ -439,7 +470,16 @@ class CANWindowUIMixin:
         self._start_ros_stream(f"ros2 topic echo {topic}", f"echo {topic}")
 
     def stream_ros_launch_logs(self):
-        self._start_ros_stream("ros2 topic echo /rosout", "launch logs (/rosout)")
+        """Follows the ERROR/WARN/FATAL lines of the newest global_launch log,
+        whether that run is still going or was the last one."""
+        self._start_ros_stream(build_launch_log_command(), LAUNCH_LOG_STREAM_LABEL)
+
+    def _attach_to_new_launch_logs(self):
+        """Same, but only considers logs from the run we just started, so a
+        previous run's leftover log is never mistaken for the new one."""
+        self._start_ros_stream(
+            build_launch_log_command(recent_only=True), LAUNCH_LOG_STREAM_LABEL
+        )
 
     def _start_ros_stream(self, ros_command: str, label: str) -> None:
         container = self._ros_container_or_warn(self._append_ros_stream_line)
@@ -449,6 +489,7 @@ class CANWindowUIMixin:
         # Only one live stream at a time.
         self.stop_ros_stream()
 
+        self._set_ros_stream_label(label)
         self._append_ros_stream_line(f"=== streaming {label} (press Stop to end) ===")
         self.ros_stream_thread = RosStreamThread(container, ros_command)
         self.ros_stream_thread.line.connect(self._append_ros_stream_text)
@@ -464,6 +505,7 @@ class CANWindowUIMixin:
             thread.wait(2000)
             self._append_ros_stream_line("=== stream stopped ===")
         self.ros_stream_thread = None
+        self._set_ros_stream_label(LAUNCH_LOG_STREAM_LABEL)
 
     def change_SSH_profile(self):
         profile = self.SSH_dropdown.currentText()

@@ -18,6 +18,7 @@ import config as cg
 from config import input_label_style
 from data_object import Docker_Command, Docker_Command_Type
 from utils import all_objs, graph_objs, heartbeat_modules, pid_obj
+from workers.ros_info_worker import LAUNCH_LOG_STREAM_LABEL
 
 from . import styles
 
@@ -385,12 +386,14 @@ def init_advanced_soft_panel(self):
     logs_row.addLayout(docker_log_column)
     logs_row.addLayout(ros_dump_panel)
 
-    # Large, full-width box dedicated to the live ROS stream so echo/rosout
-    # output is easy to read.
+    # Large, full-width box dedicated to the live ROS stream. It defaults to the
+    # ERROR/WARN/FATAL lines of the running global_launch, and is reused for
+    # topic echo when one is started.
+    self.ros_stream_label = QLabel(f"Live stream: {LAUNCH_LOG_STREAM_LABEL}")
     self.ros_stream_display = QTextEdit()
     self.ros_stream_display.setReadOnly(True)
     self.ros_stream_display.setPlaceholderText(
-        "Live ros2 topic echo / rosout output will stream here."
+        "ERROR / WARN / FATAL lines from the global_launch run will stream here."
     )
     stream_font = QFont("Monospace")
     stream_font.setStyleHint(QFont.Monospace)
@@ -401,7 +404,7 @@ def init_advanced_soft_panel(self):
     panel_layout.addWidget(grid_widget)
     panel_layout.addLayout(advanced_buttons)
     panel_layout.addLayout(logs_row)
-    panel_layout.addWidget(QLabel("ROS2 service output"))
+    panel_layout.addWidget(self.ros_stream_label)
     # Stretch factor lets the stream box absorb any extra vertical space.
     panel_layout.addWidget(self.ros_stream_display, 1)
 
@@ -437,8 +440,8 @@ def init_ros_dump_panel(self):
     echo_row.addWidget(self.ros_stop_btn)
     ros_column.addLayout(echo_row)
 
-    # Live launch logging via /rosout.
-    self.ros_launch_log_btn = QPushButton("Stream Launch Logs (/rosout)")
+    # Live launch logging: ERROR/WARN/FATAL lines from the global_launch run.
+    self.ros_launch_log_btn = QPushButton("Stream Launch Errors/Warnings")
     self.ros_launch_log_btn.clicked.connect(self.stream_ros_launch_logs)
     ros_column.addWidget(self.ros_launch_log_btn)
 
