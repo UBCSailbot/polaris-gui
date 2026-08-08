@@ -895,9 +895,7 @@ class Docker_Command_Type(Enum):
     )
     # COMMANDS BELLOW ARE RUN OUTSIDE OF THE CONTAINER
     STOP = "docker stop"
-    LIST_CONTAINERS = (
-        """docker container ls -a --format 'table {{.Names}}\\t\\t{{.Image}}' """
-    )
+    LIST_CONTAINERS = "docker ps -a"
 
 
 class Docker_Command:

@@ -214,20 +214,6 @@ class CANWindowUIMixin:
             f"container '{container_name}'."
         )
 
-    def append_docker_log(self, message: str) -> None:
-        if getattr(self, "docker_log_display", None) is not None:
-            self.docker_log_display.append(message)
-
-    def log_and_report_docker_error(self, message: str) -> None:
-        self.append_docker_log(f"[ERROR] {message}")
-        self.show_error(message, log_to_output=False)
-
-    def log_docker_action(self, action: Docker_Command, container_name: str) -> None:
-        self.append_docker_log(
-            f"[{action.command_type.name}] Queued docker action for "
-            f"container '{container_name}'."
-        )
-
     def update_pid_param_dropdown(self, text: str) -> None:
         """Updates the PID param dropdown based on the category selected"""
         first, last = pid_param_categories[text]
@@ -457,9 +443,11 @@ class CANWindowUIMixin:
             self._ros_snapshot_threads = []
         self._ros_snapshot_threads.append(thread)
         thread.finished.connect(
-            lambda: self._ros_snapshot_threads.remove(thread)
-            if thread in self._ros_snapshot_threads
-            else None
+            lambda: (
+                self._ros_snapshot_threads.remove(thread)
+                if thread in self._ros_snapshot_threads
+                else None
+            )
         )
 
     def start_ros_echo(self):

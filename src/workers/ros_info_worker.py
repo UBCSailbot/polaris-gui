@@ -74,9 +74,7 @@ def build_launch_log_command(
     # nothing stay literal and are swallowed by find's suppressed stderr.
     globs = " ".join(LAUNCH_LOG_PATTERNS)
     patterns = " ".join(f'"{pattern}"' for pattern in LAUNCH_LOG_PATTERNS)
-    floor = (
-        f"$(( $(date +%s) - {RECENT_LOG_GRACE_SECONDS} ))" if recent_only else "0"
-    )
+    floor = f"$(( $(date +%s) - {RECENT_LOG_GRACE_SECONDS} ))" if recent_only else "0"
     # Newest mtime across every pattern wins, so a run that starts while we are
     # waiting takes precedence over any log that already existed.
     newest_log = (
@@ -175,13 +173,17 @@ class RosCommandThread(QThread):
             return
 
         try:
-            _, stdout, stderr = ssh.exec_command(_docker_exec(self.container, self.ros_command))
+            _, stdout, stderr = ssh.exec_command(
+                _docker_exec(self.container, self.ros_command)
+            )
             exit_status = stdout.channel.recv_exit_status()
             out = stdout.read().decode(errors="replace").strip()
             err = stderr.read().decode(errors="replace").strip()
 
             if exit_status != 0:
-                self.error.emit(err or out or f"'{self.ros_command}' exited {exit_status}.")
+                self.error.emit(
+                    err or out or f"'{self.ros_command}' exited {exit_status}."
+                )
                 return
 
             self.result.emit(out or "(no output)")

@@ -329,6 +329,15 @@ if __name__ == "__main__":
         queue, parent_conn, cmd_queue, response_queue, can_log_queue, timestamp
     )
     window.initialize_joystick()  # Joystick initialization
+
+    # Fit the window to the laptop's usable screen area so it always loads on
+    # screen; the scroll area inside handles any content that overflows.
+    available = app.primaryScreen().availableGeometry()
+    window.resize(
+        min(window_width, available.width()),
+        available.height(),
+    )
+    window.move(available.topLeft())
     window.show()
 
     exit_code = 0
