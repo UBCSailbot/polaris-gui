@@ -301,7 +301,7 @@ def init_advanced_soft_panel(self):
 
     # dropdowns
     launch_mode_dropdown = QComboBox()
-    launch_mode_dropdown.addItems(["development", "production", "sim"])
+    launch_mode_dropdown.addItems(["development", "production", "sim", "can"])
     launch_mode_dropdown.setFixedWidth(150)
 
     self.launch_mode_dropdown = launch_mode_dropdown
