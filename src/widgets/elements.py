@@ -18,6 +18,7 @@ import config as cg
 from config import input_label_style
 from data_object import Docker_Command, Docker_Command_Type
 from utils import all_objs, graph_objs, heartbeat_modules, pid_obj
+from workers.ros_info_worker import LAUNCH_LOG_STREAM_LABEL
 
 from . import styles
 
@@ -367,22 +368,93 @@ def init_advanced_soft_panel(self):
     # Add to this control group that gets disabled when any other button is pressed.
     self.software_control_buttons.append(custom_launch_btn)
 
-    docker_log_display = QTextEdit()
-    docker_log_display.setReadOnly(True)
-    docker_log_display.setPlaceholderText("Docker action logs will appear here.")
-    docker_log_display.setMinimumHeight(110)
-    docker_log_display.setMaximumHeight(180)
-    docker_log_display.setFont(QFont("Courier New", 10))
-    self.docker_log_display = docker_log_display
+    self.docker_log_display = QTextEdit()
+    self.docker_log_display.setReadOnly(True)
+    self.docker_log_display.setPlaceholderText("Docker action logs will appear here.")
+    self.docker_log_display.setMinimumHeight(110)
+    self.docker_log_display.setMaximumHeight(180)
+
+    ros_dump_panel = init_ros_dump_panel(self)
+
+    # Docker log and ROS dump sit side by side below the launch controls.
+    logs_row = QHBoxLayout()
+
+    docker_log_column = QVBoxLayout()
+    docker_log_column.addWidget(QLabel("Docker Message Log:"))
+    docker_log_column.addWidget(self.docker_log_display)
+
+    logs_row.addLayout(docker_log_column)
+    logs_row.addLayout(ros_dump_panel)
+
+    # Large, full-width box dedicated to the live ROS stream. It defaults to the
+    # ERROR/WARN/FATAL lines of the running global_launch, and is reused for
+    # topic echo when one is started.
+    self.ros_stream_label = QLabel(f"Live stream: {LAUNCH_LOG_STREAM_LABEL}")
+    self.ros_stream_display = QTextEdit()
+    self.ros_stream_display.setReadOnly(True)
+    self.ros_stream_display.setPlaceholderText(
+        "ERROR / WARN / FATAL lines from the global_launch run will stream here."
+    )
+    stream_font = QFont("Monospace")
+    stream_font.setStyleHint(QFont.Monospace)
+    self.ros_stream_display.setFont(stream_font)
+    self.ros_stream_display.setLineWrapMode(QTextEdit.NoWrap)
+    self.ros_stream_display.setMinimumHeight(280)
 
     panel_layout.addWidget(grid_widget)
     panel_layout.addLayout(advanced_buttons)
-    panel_layout.addWidget(QLabel("Docker Message Log:"))
-    panel_layout.addWidget(self.docker_log_display)
-
-    panel_layout.addStretch(1)
+    panel_layout.addLayout(logs_row)
+    panel_layout.addWidget(self.ros_stream_label)
+    # Stretch factor lets the stream box absorb any extra vertical space.
+    panel_layout.addWidget(self.ros_stream_display, 1)
 
     return panel
+
+
+def init_ros_dump_panel(self):
+    """Builds the ROS info column: snapshot buttons (node/topic list), a topic
+    echo input, a launch-log stream button, and the snapshot output display."""
+    ros_column = QVBoxLayout()
+    ros_column.addWidget(QLabel("ROS Info:"))
+
+    # Snapshot buttons.
+    snapshot_row = QHBoxLayout()
+    self.ros_nodes_btn = QPushButton("List Nodes")
+    self.ros_nodes_btn.clicked.connect(self.refresh_ros_nodes)
+    self.ros_topics_btn = QPushButton("List Topics")
+    self.ros_topics_btn.clicked.connect(self.refresh_ros_topics)
+    snapshot_row.addWidget(self.ros_nodes_btn)
+    snapshot_row.addWidget(self.ros_topics_btn)
+    ros_column.addLayout(snapshot_row)
+
+    # Topic echo (live stream of a chosen topic).
+    echo_row = QHBoxLayout()
+    self.ros_topic_input = QLineEdit()
+    self.ros_topic_input.setPlaceholderText("/topic to echo")
+    self.ros_echo_btn = QPushButton("Echo")
+    self.ros_echo_btn.clicked.connect(self.start_ros_echo)
+    self.ros_stop_btn = QPushButton("Stop")
+    self.ros_stop_btn.clicked.connect(self.stop_ros_stream)
+    echo_row.addWidget(self.ros_topic_input)
+    echo_row.addWidget(self.ros_echo_btn)
+    echo_row.addWidget(self.ros_stop_btn)
+    ros_column.addLayout(echo_row)
+
+    # Live launch logging: ERROR/WARN/FATAL lines from the global_launch run.
+    self.ros_launch_log_btn = QPushButton("Stream Launch Errors/Warnings")
+    self.ros_launch_log_btn.clicked.connect(self.stream_ros_launch_logs)
+    ros_column.addWidget(self.ros_launch_log_btn)
+
+    self.ros_dump_display = QTextEdit()
+    self.ros_dump_display.setReadOnly(True)
+    self.ros_dump_display.setPlaceholderText(
+        "ros2 node/topic list output will appear here."
+    )
+    self.ros_dump_display.setMinimumHeight(180)
+    self.ros_dump_display.setMaximumHeight(300)
+    ros_column.addWidget(self.ros_dump_display)
+
+    return ros_column
 
 
 def init_input_layout(self):

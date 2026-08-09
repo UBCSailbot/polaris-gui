@@ -3,6 +3,7 @@ from PyQt5.QtCore import QThread, pyqtSignal
 
 from config import get_SSH_credentials
 from data_object import Docker_Command, Docker_Command_Type
+from workers.container_env import docker_exec
 
 
 class DockerWorkerThread(QThread):
@@ -38,7 +39,6 @@ def generate_docker_command(action: Docker_Command, container_name: str):
             print("Listing all available containers:")
             command_text = action.command
         case _:
-            run_text = f'docker exec -d {container_name} bash -ic "'
             start_mode = "restart"
 
             # these commands typically are to modifiy a running instance.
@@ -51,8 +51,11 @@ def generate_docker_command(action: Docker_Command, container_name: str):
             ):
                 start_mode = "start"
 
+            # The command is quoted as a single argument, so its own quotes and
+            # `$(...)` survive the Pi's shell and are evaluated in the container.
             command_text = (
-                f'docker {start_mode} {container_name} && {run_text} {action.command}"'
+                f"docker {start_mode} {container_name} && "
+                f"{docker_exec(container_name, action.command, detach=True)}"
             )
             print(
                 f"Running {action.command_type.name} on docker container {container_name}"
