@@ -1,25 +1,24 @@
+import contextlib
 import re
 import select
-import shlex
 
 import paramiko
 from PyQt5.QtCore import QThread, pyqtSignal
 
 from config import get_SSH_credentials
+from workers.container_env import VOYAGE_LOG_DIR, WORKSPACE_ROOT, docker_exec
 
 # How long select() waits between checks so stop() stays responsive.
 STREAM_SELECT_TIMEOUT_SECONDS = 0.5
 STREAM_CHUNK_SIZE = 4096
 
-# Where the launch commands tee their combined stdout/stderr (see
-# Docker_Command_Type in data_object.py). That path is relative, but `docker
-# exec` starts in / rather than the workspace, so a GUI-triggered launch tees
-# into a directory that does not exist and leaves no combined log behind.
-VOYAGE_LOG_DIR = "src/global_launch/voyage_log"
-WORKSPACE_ROOT = "/workspaces/sailbot_workspace"
+# The launch commands tee their combined stdout/stderr into VOYAGE_LOG_DIR (see
+# Docker_Command_Type in data_object.py). That path is relative, so it lands
+# under whatever directory the container command starts in - hence both the
+# relative and workspace-anchored patterns below.
 # All of these are globbed together and the single newest file wins, so a fresh
-# run always beats a stale log from an older one. ``ros2 launch`` writes
-# ~/.ros/log/<run>/launch.log itself, which is what survives the broken tee.
+# run always beats a stale log from an older one. ``ros2 launch`` also writes
+# ~/.ros/log/<run>/launch.log itself, which survives even if the tee does not.
 LAUNCH_LOG_PATTERNS = (
     f"{VOYAGE_LOG_DIR}/combined_log_*.txt",
     f"{WORKSPACE_ROOT}/{VOYAGE_LOG_DIR}/combined_log_*.txt",
@@ -55,6 +54,7 @@ _SHELL_NOISE_RE = re.compile(
 def build_launch_log_command(
     tail_lines: int = 500,
     wait_seconds: int = LAUNCH_LOG_WAIT_SECONDS,
+    *,
     recent_only: bool = False,
 ) -> str:
     """Builds a shell command that follows the newest global_launch log and
@@ -96,15 +96,19 @@ def build_launch_log_command(
             '  if [ -z "$LOG" ]; then sleep 1; waited=$((waited + 1)); fi',
             "done",
             'if [ -z "$LOG" ]; then',
-            f'  echo "No launch log {scope} appeared within {wait_seconds}s'
-            ' - is the software running?"',
+            (
+                f'  echo "No launch log {scope} appeared within {wait_seconds}s'
+                ' - is the software running?"'
+            ),
             '  echo "Searched from $(pwd):"',
             f'  for pattern in {patterns}; do echo "  $pattern"; done',
             "  exit 1",
             "fi",
             'echo "=== following $LOG ==="',
-            f'tail -n {tail_lines} -F "$LOG" '
-            f'| grep --line-buffered -E "\\[({severities})\\]"',
+            (
+                f'tail -n {tail_lines} -F "$LOG" '
+                f'| grep --line-buffered -E "\\[({severities})\\]"'
+            ),
         ]
     )
 
@@ -137,20 +141,14 @@ def _connect_to_pi(timeout: int = 5) -> paramiko.SSHClient:
             timeout=timeout,
         )
         return ssh
-    except paramiko.AuthenticationException:
-        raise RuntimeError("Authentication failed. Check your username and password.")
+    except paramiko.AuthenticationException as exc:
+        raise RuntimeError(
+            "Authentication failed. Check your username and password."
+        ) from exc
     except Exception as exc:
-        raise RuntimeError(f"Could not connect to the Pi: {type(exc).__name__}: {exc}")
-
-
-def _docker_exec(container: str, ros_command: str) -> str:
-    """Wraps a ros2 command so it runs inside the container with ROS sourced.
-
-    ``bash -ic`` is used (matching the docker launch path) so the interactive
-    bashrc sources the ROS environment before the command runs. The command is
-    single-quoted so the Pi's shell hands it to the container untouched instead
-    of expanding ``$(...)``/globs itself."""
-    return f"docker exec {container} bash -ic {shlex.quote(ros_command)}"
+        raise RuntimeError(
+            f"Could not connect to the Pi: {type(exc).__name__}: {exc}"
+        ) from exc
 
 
 class RosCommandThread(QThread):
@@ -174,7 +172,7 @@ class RosCommandThread(QThread):
 
         try:
             _, stdout, stderr = ssh.exec_command(
-                _docker_exec(self.container, self.ros_command)
+                docker_exec(self.container, self.ros_command)
             )
             exit_status = stdout.channel.recv_exit_status()
             out = stdout.read().decode(errors="replace").strip()
@@ -222,7 +220,7 @@ class RosStreamThread(QThread):
         self._ssh = ssh
         try:
             _, stdout, _ = ssh.exec_command(
-                _docker_exec(self.container, self.ros_command),
+                docker_exec(self.container, self.ros_command),
                 get_pty=True,
             )
             channel = stdout.channel
@@ -253,15 +251,13 @@ class RosStreamThread(QThread):
         channel = self._channel
         self._channel = None
         if channel is not None:
-            try:
+            # Best effort: the remote end may already be gone, and either way the
+            # stream is finished, so a failure here has nothing to report.
+            with contextlib.suppress(Exception):
                 channel.close()
-            except Exception:
-                pass
 
         ssh = self._ssh
         self._ssh = None
         if ssh is not None:
-            try:
+            with contextlib.suppress(Exception):
                 ssh.close()
-            except Exception:
-                pass
