@@ -93,6 +93,14 @@ class CANWindowUIMixin:
                 "RECEIVE",
                 Docker_Command(Docker_Command_Type.ROS_SERVICE_CALL),
             ),
+            (
+                "SEND",
+                Docker_Command(Docker_Command_Type.SEND_SERVICE_CALL),
+            ),
+            (
+                "DEBUG SEND",
+                Docker_Command(Docker_Command_Type.DEBUG_SEND_SERVICE_CALL),
+            ),
         ]
         software_controls_layout = elemns.init_software_controls(
             self, software_commands
