@@ -296,7 +296,7 @@ def init_advanced_soft_panel(self):
     config_grid = QGridLayout()
     grid_widget = QWidget()
     grid_widget.setLayout(config_grid)
-    grid_widget.setMaximumWidth(500)
+    grid_widget.setMaximumWidth(750)
     config_grid.setContentsMargins(0, 0, 0, 0)
 
     # dropdowns
@@ -326,11 +326,13 @@ def init_advanced_soft_panel(self):
     # checkboxes
     self.mock_ais_checkbox = QCheckBox("Enable mock AIS data?")
     self.visualizer_mode_checkbox = QCheckBox("Enable pathfinding visualizer?")
+    self.disable_CAN_comms_checkbox = QCheckBox("Disable CAN communication on startup?")
 
     config_grid.addLayout(launch_mode_layout, 0, 0, alignment=Qt.AlignLeft)
     config_grid.addLayout(config_file_layout, 1, 0, alignment=Qt.AlignLeft)
     config_grid.addWidget(self.mock_ais_checkbox, 0, 1)
     config_grid.addWidget(self.visualizer_mode_checkbox, 1, 1)
+    config_grid.addWidget(self.disable_CAN_comms_checkbox, 0, 2)
 
     config_grid.setColumnStretch(0, 0)
     config_grid.setColumnStretch(1, 0)
@@ -345,6 +347,7 @@ def init_advanced_soft_panel(self):
                 config_file=self.config_file_dropdown.currentText(),
                 mock_ais=self.mock_ais_checkbox.isChecked(),
                 visualizer_mode=self.visualizer_mode_checkbox.isChecked(),
+                disable_CAN_comms=self.disable_CAN_comms_checkbox.isChecked(),
             )
         )
     )

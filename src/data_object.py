@@ -910,6 +910,7 @@ class Docker_Command:
         launch_mode="",
         mock_ais=False,
         visualizer_mode=False,
+        disable_CAN_comms=False, # aka manual_mode
     ):
 
         self.command_type = command_type
@@ -917,10 +918,12 @@ class Docker_Command:
         self.launch_mode = launch_mode
         self.mock_ais = mock_ais
         self.visualizer_mode = visualizer_mode
+        self.disable_CAN_comms = disable_CAN_comms
 
         self.command = command_type.value
 
         if command_type == Docker_Command_Type.START_CUSTOM:
+                           
             header = """ros2 launch global_launch main_launch.py record:=true log_level:=debug"""
             footer = """2>&1 | tee src/global_launch/voyage_log/combined_log_$( date +%F_%T).txt"""
             self.command = " ".join(
@@ -930,6 +933,7 @@ class Docker_Command:
                     f"mode:={launch_mode}",
                     f"on_water_mock_ais:={str(mock_ais).lower()}",
                     f"visualizer_mode:={str(visualizer_mode).lower()}",
+                    f"manual_mode:={str(disable_CAN_comms).lower()}",
                     footer,
                 ]
             )
