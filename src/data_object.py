@@ -893,6 +893,10 @@ class Docker_Command_Type(Enum):
     ROS_SERVICE_CALL = (
         """ros2 service call /receive_and_pub std_srvs/srv/Trigger \"{}\""""
     )
+    SEND_SERVICE_CALL = """ros2 service call /send_data std_srvs/srv/Trigger \"{}\""""
+    DEBUG_SEND_SERVICE_CALL = (
+        """ros2 service call /debug_send_data std_srvs/srv/Trigger \"{}\""""
+    )
     # COMMANDS BELLOW ARE RUN OUTSIDE OF THE CONTAINER
     STOP = "docker stop"
     LIST_CONTAINERS = "docker ps -a"
