@@ -109,6 +109,22 @@ plrs_path_data_timeout = 30  # 2 * 60 # amt of time (in seconds) before POLARIS 
 latitude_range = 0.1  # in decimal degrees
 longitude_range = 0.1  # in decimal degrees
 
+# ==== AIS Map (chart-style plan view of ship positions) ====
+# NOTE: the map is drawn entirely from vectors (range rings, bearing spokes, ship
+#       markers), so it needs no map tiles
+map_ring_max_count = 6  # max number of range rings drawn around POLARIS
+map_ring_colour = "#8fa0b0"
+map_ring_label_colour = "#61707e"
+map_bearing_interval = 45  # degrees between bearing spokes (must divide 360)
+map_bearing_colour = "#c3ccd4"
+map_compass_colour = "#41505e"
+map_ship_label_colour = "#1c3f66"
+map_ship_vector_colour = "#2f60c0"
+map_polaris_vector_colour = "#c02f2f"
+# Length of the course/speed vector drawn ahead of each ship, in minutes of travel
+# at its current speed (the standard "6 minute vector" of a marine radar display)
+map_vector_minutes = 6
+
 # ==== Heading & PID Tuning ====
 ARROW_TIME_SCALING_ENABLED = True  # If True, how often heading arrows appear is time-based; if False, it is distance-based
 min_time_between_arrows = (

@@ -18,6 +18,7 @@ from utils import (
     AIS_Attributes,
     ais_obj,
     all_objs,
+    bms_objs,
     data_objs,
     data_wind_objs,
     desired_heading_obj,
@@ -25,8 +26,14 @@ from utils import (
     gps_lon_obj,
     gps_objs,
     heartbeat_modules,
+    imu_heading_obj,
+    main_hb_module,
     manual_input_objs,
     parse_0x001_frame,
+    parse_0x002_frame,
+    parse_0x003_frame,
+    parse_0x030_frame,
+    parse_0x050_frame,
     parse_0x060_frame,
     parse_0x070_frame,
     parse_0x204_frame,
@@ -36,14 +43,18 @@ from utils import (
     pdb_hb_module,
     pdb_objs,
     pH_obj,
+    POWER_OFF_VALUE,
     rudder_objs,
     rudr_hb_module,
+    rudr_heading_obj,
+    rudr_objs,
     sail_hb_module,
     sail_wind_objs,
     sal_obj,
     sense_hb_module,
     set_rudder_obj,
     temp_sensor_obj,
+    trimtab_objs,
 )
 
 
@@ -96,7 +107,44 @@ class CANWindowUpdateMixin:
                             pass
 
                         case "002":  # Sent frame to trim tab
-                            pass
+                            try:
+                                raw_data = line.split("]")[-1].strip().split()
+                                parsed = parse_0x002_frame("".join(raw_data))
+                                for obj in trimtab_objs:
+                                    obj.parse_frame(current_time, None, parsed)
+                                    obj.update_label()
+                            except Exception as e:
+                                self.output_display.append(
+                                    f"[PARSE ERROR 0x002] {str(e)}"
+                                )
+
+                        case "003":  # Power off frame
+                            try:
+                                raw_data = line.split("]")[-1].strip().split()
+                                parsed = parse_0x003_frame("".join(raw_data))
+                                if parsed == POWER_OFF_VALUE:
+                                    msg = "[POWER OFF] PDB is cutting power in 15-30 seconds!"
+                                else:
+                                    msg = f"[POWER OFF] Unexpected value received: {hex(parsed)}"
+                                print(msg)
+                                self.output_display.append(msg)
+                            except Exception as e:
+                                self.output_display.append(
+                                    f"[PARSE ERROR 0x003] {str(e)}"
+                                )
+
+                        case "030":  # BMS data frame (battery voltage & current)
+                            try:
+                                raw_data = line.split("]")[-1].strip().split()
+                                parsed = parse_0x030_frame("".join(raw_data))
+                                for obj in bms_objs:
+                                    obj.parse_frame(current_time, None, parsed)
+                                    obj.update_label()
+                            except Exception as e:
+                                self.output_display.append(
+                                    f"[PARSE ERROR 0x030] {str(e)}"
+                                )
+
                         case "040":  # Sail_Wind frame
                             try:
                                 raw_data = line.split("]")[-1].strip().split()
@@ -146,6 +194,17 @@ class CANWindowUpdateMixin:
                                 self.output_display.append(
                                     f"[PARSE ERROR 0x060] {str(e)}"
                                 )
+                        case "050":  # Rudder data frame (true heading from e-compass)
+                            try:
+                                raw_data = line.split("]")[-1].strip().split()
+                                parsed = parse_0x050_frame("".join(raw_data))
+                                for obj in rudr_objs:
+                                    obj.parse_frame(current_time, None, parsed)
+                                    obj.update_label()
+                            except Exception as e:
+                                self.output_display.append(
+                                    f"[PARSE ERROR 0x050] {str(e)}"
+                                )
 
                         case "070":  # GPS frame
                             try:
@@ -158,7 +217,11 @@ class CANWindowUpdateMixin:
                                 if ais_obj.graph_obj.isVisible():  # graph POLARIS's current position if graph is visible
                                     lon = gps_lon_obj.get_current()[1]
                                     lat = gps_lat_obj.get_current()[1]
-                                    ais_obj.update_polaris_pos(lon, lat)
+                                    # prefer the e-compass true heading (0x050) over the IMU heading (debug frame 0x204)
+                                    heading = rudr_heading_obj.get_current()[1]
+                                    if heading is None:
+                                        heading = imu_heading_obj.get_current()[1]
+                                    ais_obj.update_polaris_pos(lon, lat, heading)
                                     ais_obj.update_range(
                                         lon - longitude_range,
                                         lon + longitude_range,
@@ -206,6 +269,8 @@ class CANWindowUpdateMixin:
                             sail_hb_module.set_alive(current_time)
                         case "133":
                             sense_hb_module.set_alive(current_time)
+                        case "134":  # MAIN Heartbeat frame
+                            main_hb_module.set_alive(current_time)
 
                         case "204":  # Handle 0x204 frame (actual rudder angle)
                             try:
